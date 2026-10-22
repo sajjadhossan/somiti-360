@@ -54,7 +54,7 @@ import {
   MapPin,
   Image as ImageIcon
 } from 'lucide-react';
-// useApp unneeded in standalone
+import { useApp } from '../../context/AppContext';
 import {
   loadSamityData,
   saveSamityData,

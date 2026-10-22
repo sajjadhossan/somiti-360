@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getCachedAuthUser, signOutUser, subscribeToAuthState } from '../services/somitiAuthService';
 
 const AppContext = createContext(null);
 
@@ -8,6 +9,23 @@ export const AppProvider = ({ children }) => {
   });
 
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Authentication State
+  const [user, setUser] = useState(() => getCachedAuthUser());
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthState((authUser) => {
+      setUser(authUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const logout = async () => {
+    await signOutUser();
+    setUser(null);
+  };
 
   const [businessSettings, setBusinessSettings] = useState(() => {
     try {
@@ -44,7 +62,12 @@ export const AppProvider = ({ children }) => {
     setLang,
     showToast,
     businessSettings,
-    setBusinessSettings
+    setBusinessSettings,
+    user,
+    setUser,
+    isAuthenticated: Boolean(user),
+    authLoading,
+    logout
   };
 
   return (
@@ -66,7 +89,11 @@ export const useApp = () => {
       lang: 'bn',
       setLang: () => {},
       showToast: () => {},
-      businessSettings: { companyName: 'সমিতি ৩৬০', phone: '', address: '', companyLogo: '' }
+      businessSettings: { companyName: 'সমিতি ৩৬০', phone: '', address: '', companyLogo: '' },
+      user: null,
+      isAuthenticated: false,
+      authLoading: false,
+      logout: () => {}
     };
   }
   return context;

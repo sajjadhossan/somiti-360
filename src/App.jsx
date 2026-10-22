@@ -1,8 +1,9 @@
 import React, { useState, useEffect, Component } from 'react';
-import { AppProvider } from './context/AppContext';
+import { AppProvider, useApp } from './context/AppContext';
 import { SamityManagementHub } from './components/samity/SamityManagementHub';
 import { SamityDocVerificationView } from './components/samity/SamityDocVerificationView';
-import { Users, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
+import { SomitiAuthView } from './components/auth/SomitiAuthView';
+import { Users, ShieldCheck, RefreshCw, AlertTriangle, LogOut } from 'lucide-react';
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -50,6 +51,7 @@ class ErrorBoundary extends Component {
 function MainView() {
   const [viewMode, setViewMode] = useState('hub'); // 'hub' | 'verify'
   const [verifyData, setVerifyData] = useState(null);
+  const { user, isAuthenticated, authLoading, logout } = useApp();
 
   useEffect(() => {
     // Check if query string contains verify parameters
@@ -70,6 +72,7 @@ function MainView() {
     }
   }, []);
 
+  // Public QR Document Verification View
   if (viewMode === 'verify') {
     return (
       <SamityDocVerificationView 
@@ -82,6 +85,24 @@ function MainView() {
         }} 
       />
     );
+  }
+
+  // Loading Session State
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4">
+          <RefreshCw className="w-6 h-6 animate-spin text-teal-400" />
+        </div>
+        <h3 className="text-base font-bold text-white mb-1">সমিতি ৩৬০</h3>
+        <p className="text-xs text-slate-400">নিরাপদ সেশন যাচাই করা হচ্ছে...</p>
+      </div>
+    );
+  }
+
+  // Strict Authentication Gate (Rule 7)
+  if (!isAuthenticated) {
+    return <SomitiAuthView onAuthSuccess={() => {}} />;
   }
 
   return (
@@ -102,7 +123,7 @@ function MainView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setViewMode(viewMode === 'verify' ? 'hub' : 'verify')}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
@@ -110,6 +131,30 @@ function MainView() {
             <ShieldCheck className="w-4 h-4 text-teal-400" />
             <span className="hidden sm:inline">ভেরিফিকেশন পোর্টাল</span>
           </button>
+
+          {user && (
+            <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-800">
+              <div className="hidden md:flex flex-col text-right">
+                <span className="text-xs font-semibold text-white leading-tight">
+                  {user.name || user.email?.split('@')[0]}
+                </span>
+                <span className="text-[10px] text-teal-400 truncate max-w-[130px]">
+                  {user.samityName || user.email}
+                </span>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-300 font-bold text-xs uppercase shadow-sm">
+                {user.name ? user.name[0] : (user.email ? user.email[0] : 'U')}
+              </div>
+              <button
+                onClick={logout}
+                title="লগআউট করুন"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">লগআউট</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

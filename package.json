@@ -50,12 +50,14 @@
       "output": "dist-electron"
     },
     "win": {
+      "icon": "public/logo-512.png",
       "target": [
         "nsis",
         "portable"
       ]
     },
     "mac": {
+      "icon": "public/logo-512.png",
       "category": "public.app-category.finance",
       "target": [
         {

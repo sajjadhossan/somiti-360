@@ -1,0 +1,30 @@
+{
+  "appId": "com.somiti360.app",
+  "appName": "Somiti 360",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "hostname": "app",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#070b12",
+    "webContentsDebuggingEnabled": true,
+    "resolveServiceWorkerRequests": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#070b12",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    }
+  }
+}

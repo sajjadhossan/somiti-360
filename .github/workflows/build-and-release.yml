@@ -1,0 +1,191 @@
+name: Build Somiti 360 Multi-Platform Apps
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: 📱 Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Set up Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Install Android SDK 36 Platform
+        run: |
+          echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-36" || true
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Build Web Production Assets
+        run: npm run build
+
+      - name: Copy Web Assets into Android Project
+        run: |
+          mkdir -p android/app/src/main/assets/public
+          rm -rf android/app/src/main/assets/public/*
+          cp -r dist/* android/app/src/main/assets/public/
+          cp capacitor.config.json android/app/src/main/assets/
+          chmod +x android/gradlew
+          mkdir -p ~/.android
+          cp android/app/debug.keystore ~/.android/debug.keystore || true
+
+      - name: Build Android APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon --stacktrace > gradle_build.log 2>&1 || (tail -n 60 gradle_build.log && exit 1)
+
+      - name: Prepare APK Asset
+        run: |
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360.apk
+
+      - name: Backup Upload Artifact
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: Somiti-360-Android-APK
+          path: artifacts/Somiti-360.apk
+          retention-days: 1
+
+      - name: Publish Android APK Direct to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: always() && !cancelled()
+        with:
+          tag_name: latest
+          name: "Somiti 360 Latest Multi-Platform Release"
+          body: |
+            ### সমিতি ৩৬০ (Somiti 360) সর্বজনীন রিলিজ প্যাকেজ
+            - 📱 **Android Mobile APK:** `Somiti-360.apk` (স্মার্টফোনে সরাসরি ডাউনলোড ও ইন্সটল করুন)
+            - 💻 **Windows Desktop Setup:** `Somiti-360-Setup.exe` (উইন্ডোজ পিসি অ্যাপ ইন্সটলার)
+            - ⚡ **Windows Portable:** `Somiti-360-PC.exe` (সরাসরি ক্লিক করে চলার মতো পোর্টেবল অ্যাপ)
+            - 🍏 **MacBook Intel x64:** `Somiti-360-Mac-Intel-x64.dmg` (ইন্টেল ম্যাকবুক অ্যাপ)
+            - 🍏 **MacBook Apple Silicon M-Series:** `Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg` (M1/M2/M3/M4 ম্যাকবুক অ্যাপ)
+          files: artifacts/Somiti-360.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: 💻 Build Windows PC Desktop App
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Build Web Assets
+        run: npm run build
+
+      - name: Package Native Windows Electron App & Launcher
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts
+          try {
+            npx electron-builder --win --publish never
+            if (Test-Path "dist-electron\*.exe") {
+              Copy-Item "dist-electron\*.exe" "artifacts\Somiti-360-Setup.exe" -Force
+            }
+          } catch {
+            Write-Host "Electron builder fallback"
+          }
+          Compress-Archive -Path dist\* -DestinationPath src-desktop\app.zip -Force
+          & "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /resource:src-desktop\app.zip,app.zip /out:artifacts\Somiti-360-PC.exe src-desktop\Program.cs /reference:System.IO.Compression.dll,System.IO.Compression.FileSystem.dll,System.Windows.Forms.dll,System.Drawing.dll
+
+      - name: Backup Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: Somiti-360-Windows-EXE
+          path: artifacts/*.exe
+          retention-days: 1
+
+      - name: Publish Windows PC App Direct to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: always() && !cancelled()
+        with:
+          tag_name: latest
+          name: "Somiti 360 Latest Multi-Platform Release"
+          files: artifacts/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    name: 🍏 Build macOS App (Intel & Apple Silicon M-Series)
+    runs-on: macos-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Build Web Production Assets
+        run: npm run build
+
+      - name: Package macOS Multi-Architecture Binaries (Intel x64 & Apple Silicon arm64)
+        run: |
+          mkdir -p artifacts
+          npx electron-builder --mac --x64 --arm64 --publish never
+          for f in dist-electron/*x64*.dmg; do [ -f "$f" ] && cp "$f" "artifacts/Somiti-360-Mac-Intel-x64.dmg" || true; done
+          for f in dist-electron/*arm64*.dmg; do [ -f "$f" ] && cp "$f" "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg" || true; done
+          for f in dist-electron/*x64*.zip; do [ -f "$f" ] && cp "$f" "artifacts/Somiti-360-Mac-Intel-x64.zip" || true; done
+          for f in dist-electron/*arm64*.zip; do [ -f "$f" ] && cp "$f" "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.zip" || true; done
+          cp dist-electron/*.dmg artifacts/ 2>/dev/null || true
+          cp dist-electron/*.zip artifacts/ 2>/dev/null || true
+          echo "=== Generated macOS Artifacts ==="
+          ls -lh artifacts/
+
+      - name: Backup Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: Somiti-360-macOS-DMG
+          path: artifacts/*
+          retention-days: 1
+
+      - name: Publish macOS App Direct to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: always() && !cancelled()
+        with:
+          tag_name: latest
+          name: "Somiti 360 Latest Multi-Platform Release"
+          fail_on_unmatched_files: false
+          files: |
+            artifacts/*.dmg
+            artifacts/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

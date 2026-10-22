@@ -1,19 +1,15 @@
 # সমিতি ৩৬০ (Somiti 360)
 **ডিজিটাল সমিতি, সমবায় সংস্থা, সঞ্চয় ও ঋণদান ব্যবস্থাপনা প্ল্যাটফর্ম**
 
-সমিতি ৩৬০ হলো সমবায় সমিতি, ক্ষুদ্র সঞ্চয় ও ঋণদান সংস্থা, বণিক সমিতি, এবং কল্যাণ সমিতির জন্য একটি সম্পূর্ণ ডিজিটাল এবং মাল্টি-প্ল্যাটফর্ম সফটওয়্যার সলিউশন।
+![সমিতি ৩৬০](https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=800)
 
----
-
-## 📥 ডাউনলোড ও ইন্সটলেশন (Downloads & Apps)
-
-| প্ল্যাটফর্ম | ডাউনলোড লিংক | বিবরণ |
-| :--- | :--- | :--- |
-| 📱 **Android Mobile** | [Somiti-360.apk](https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360.apk) | যেকোনো অ্যান্ড্রয়েড ফোনে সরাসরি ইন্সটলযোগ্য APK |
-| 💻 **Windows Desktop** | [Somiti-360-Setup.exe](https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360-Setup.exe) | উইন্ডোজ ১০ ও ১১ পিসির জন্য ফুল ইন্সটলার |
-| ⚡ **Windows Portable** | [Somiti-360-PC.exe](https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360-PC.exe) | কোনো ইন্সটলেশন ছাড়াই ১-ক্লিকে চালুর জন্য পোর্টেবল অ্যাপ |
-| 🍏 **MacBook (Intel)** | [Somiti-360-Mac-Intel-x64.dmg](https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360-Mac-Intel-x64.dmg) | Intel Core প্রসেসরযুক্ত ম্যাকবুক ও ম্যাক পিসির জন্য |
-| 🍏 **MacBook (Apple Silicon)** | [Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg](https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg) | Apple M1, M2, M3, M4 চিপের জন্য অপ্টিমাইজড নেটিভ অ্যাপ |
+## 🌐 লাইভ ও ডাউনলোড লিংকসমূহ:
+| প্ল্যাটফর্ম | লিংক / ডাউনলোড | বিবরণ |
+|---|---|---|
+| 📱 **Android Mobile APK** | [সর্বশেষ রিলিজ থেকে Somiti-360.apk ডাউনলোড করুন](https://github.com/sajjadhossan/somiti-360/releases/latest) | স্মার্টফোনে সরাসরি ব্যবহারযোগ্য |
+| 💻 **Windows Desktop Setup** | [Somiti-360-Setup.exe](https://github.com/sajjadhossan/somiti-360/releases/latest) | উইন্ডোজ পিসি ইন্সটলার |
+| ⚡ **Windows Portable** | [Somiti-360-PC.exe](https://github.com/sajjadhossan/somiti-360/releases/latest) | এক ক্লিকে ইনস্টল ছাড়াই চালনার পোর্টেবল অ্যাপ |
+| 🍏 **MacBook (Intel & M-Series)** | [Somiti-360-Mac.dmg](https://github.com/sajjadhossan/somiti-360/releases/latest) | ম্যাক ওএস সংস্করণ |
 | 🌐 **Vercel Web App** | [https://somiti-360.vercel.app](https://somiti-360.vercel.app) | ক্লাউড ব্রাউজার সংস্করণ (যেকোনো ডিভাইসে ব্যবহারের জন্য) |
 
 ---
@@ -30,7 +26,7 @@
 ---
 
 ## 🛠️ ডেভেলপার কমান্ডসমূহ:
-\`\`\`bash
+```bash
 # লোকাল ওয়েব প্রিভিউ
 npm install
 npm run dev
@@ -40,4 +36,4 @@ npm run electron:build
 
 # ম্যাকবুক অ্যাপ বিল্ড (Intel ও M-Series)
 npm run electron:build:mac
-\`\`\`
+```

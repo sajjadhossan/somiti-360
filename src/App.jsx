@@ -52,6 +52,7 @@ function MainView() {
   const [verifyData, setVerifyData] = useState(null);
 
   useEffect(() => {
+    // Check if query string contains verify parameters
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('verify') || params.get('ref') || params.get('title')) {
@@ -71,14 +72,14 @@ function MainView() {
 
   if (viewMode === 'verify') {
     return (
-      <SamityDocVerificationView
-        verifyData={verifyData}
+      <SamityDocVerificationView 
+        verifyData={verifyData} 
         onBackToApp={() => {
           setViewMode('hub');
           if (typeof window !== 'undefined' && window.history.pushState) {
             window.history.pushState({}, '', window.location.pathname);
           }
-        }}
+        }} 
       />
     );
   }

@@ -88,7 +88,7 @@ namespace Somiti360
                 form.FormClosing += (s, e) =>
                 {
                     isRunning = false;
-                    try { listener?.Stop(); } catch { }
+                    try { if (listener != null) listener.Stop(); } catch { }
                 };
 
                 Application.Run(form);
@@ -100,7 +100,7 @@ namespace Somiti360
             finally
             {
                 isRunning = false;
-                try { listener?.Stop(); } catch { }
+                try { if (listener != null) listener.Stop(); } catch { }
             }
         }
 

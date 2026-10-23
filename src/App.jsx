@@ -164,11 +164,11 @@ function MainView() {
               </div>
               <button
                 onClick={logout}
-                title="লগআউট করুন"
+                title={lang === 'en' ? 'Logout' : 'লগআউট করুন'}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">লগআউট</span>
+                <span className="hidden sm:inline">{lang === 'en' ? 'Logout' : 'লগআউট'}</span>
               </button>
             </div>
           )}

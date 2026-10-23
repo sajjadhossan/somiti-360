@@ -114,7 +114,9 @@ function MainView() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-base md:text-lg text-white leading-tight">সমিতি ৩৬০</h1>
+              <h1 className="font-bold text-base md:text-lg text-white leading-tight">
+                {lang === 'en' ? 'Somiti 360' : 'সমিতি ৩৬০'}
+              </h1>
               <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">
                 PRO v1.0
               </span>

@@ -109,8 +109,8 @@ function MainView() {
     <div className="min-h-screen bg-[#070b12] text-slate-100 flex flex-col font-sans">
       <header className="sticky top-0 z-40 bg-[#0d1424]/90 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 border border-teal-500/30 flex items-center justify-center shadow-lg shadow-teal-500/15 overflow-hidden p-0.5">
-            <img src="/logo.png" alt="Somiti 360 Logo" className="w-full h-full object-contain rounded-lg" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/20 to-slate-900 border border-teal-500/40 flex items-center justify-center shadow-lg shadow-teal-500/20 overflow-hidden p-1 shrink-0">
+            <img src="/somiti-emblem.svg" alt="Somiti 360 Logo" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = '/logo.png'; }} />
           </div>
           <div>
             <div className="flex items-center gap-2">

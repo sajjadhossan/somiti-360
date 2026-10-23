@@ -8,6 +8,27 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('somiti360_lang') || 'bn';
   });
 
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('somiti360_theme') || localStorage.getItem('hisabkitab_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('somiti360_theme', theme);
+    localStorage.setItem('hisabkitab_theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'light' || theme === 'nordic_clean') {
+      document.documentElement.classList.add('light-theme');
+      document.documentElement.classList.remove('dark-theme');
+    } else {
+      document.documentElement.classList.add('dark-theme');
+      document.documentElement.classList.remove('light-theme');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' || prev === 'nordic_clean') ? 'dark' : 'light');
+  };
+
   const [toastMessage, setToastMessage] = useState(null);
 
   // Authentication State
@@ -60,6 +81,9 @@ export const AppProvider = ({ children }) => {
   const value = {
     lang,
     setLang,
+    theme,
+    setTheme,
+    toggleTheme,
     showToast,
     businessSettings,
     setBusinessSettings,
@@ -74,7 +98,7 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={value}>
       {children}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-slate-900 border border-teal-500/40 text-teal-300 px-4 py-3 rounded-xl shadow-2xl shadow-teal-500/20 animate-fade-in text-sm font-medium">
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(45, 212, 191, 0.5)', color: '#2dd4bf', padding: '12px 18px', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', fontSize: '0.86rem', fontWeight: '700' }}>
           <span>{toastMessage.message}</span>
         </div>
       )}
@@ -88,6 +112,9 @@ export const useApp = () => {
     return {
       lang: 'bn',
       setLang: () => {},
+      theme: 'dark',
+      setTheme: () => {},
+      toggleTheme: () => {},
       showToast: () => {},
       businessSettings: { companyName: 'সমিতি ৩৬০', phone: '', address: '', companyLogo: '' },
       user: null,

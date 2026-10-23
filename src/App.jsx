@@ -123,7 +123,7 @@ function MainView() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #070b12)', color: 'var(--text-main, #f8fafc)', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #070b12)', color: 'var(--text-main, #f8fafc)', display: 'flex', flexDirection: 'column', paddingBottom: 'env(safe-area-inset-bottom, 0px)', fontFamily: "'Inter', 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif" }}>
       {/* ==================================================================== */}
       {/* EXECUTIVE TOP HEADER BAR (Compact 38px Logo, Pixel-Perfect, High Contrast) */}
       {/* ==================================================================== */}
@@ -135,7 +135,10 @@ function MainView() {
           background: isLight ? '#ffffff' : 'rgba(9, 13, 22, 0.95)',
           backdropFilter: 'blur(16px)',
           borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
-          padding: '8px 16px',
+          paddingTop: 'max(8px, env(safe-area-inset-top, 8px))',
+          paddingRight: 'max(16px, env(safe-area-inset-right, 16px))',
+          paddingBottom: '8px',
+          paddingLeft: 'max(16px, env(safe-area-inset-left, 16px))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

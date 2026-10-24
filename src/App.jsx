@@ -127,82 +127,192 @@ function MainView() {
       {/* ==================================================================== */}
       {/* EXECUTIVE TOP HEADER BAR (Compact 38px Logo, Pixel-Perfect, High Contrast) */}
       {/* ==================================================================== */}
+      {/* Mobile-First Executive Responsive Stylesheet */}
+      <style>{`
+        .somiti-top-header {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          backdrop-filter: blur(16px);
+          padding-top: max(8px, env(safe-area-inset-top, 8px));
+          padding-right: max(12px, env(safe-area-inset-right, 12px));
+          padding-bottom: 8px;
+          padding-left: max(12px, env(safe-area-inset-left, 12px));
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          transition: all 0.2s ease;
+        }
+        @media (min-width: 992px) {
+          .somiti-top-header {
+            flex-direction: row;
+            align-items: center;
+            justifyContent: space-between;
+            gap: 12px;
+            padding-bottom: 10px;
+          }
+        }
+        .somiti-brand-profile-row {
+          display: flex;
+          align-items: center;
+          justifyContent: space-between;
+          width: 100%;
+          gap: 10px;
+        }
+        @media (min-width: 992px) {
+          .somiti-brand-profile-row {
+            width: auto;
+            justify-content: flex-start;
+            gap: 16px;
+          }
+        }
+        .somiti-controls-track {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          overflow-x: auto;
+          white-space: nowrap;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+          padding: 3px 2px 4px 2px;
+          width: 100%;
+        }
+        .somiti-controls-track::-webkit-scrollbar {
+          display: none;
+        }
+        @media (min-width: 992px) {
+          .somiti-controls-track {
+            width: auto;
+            overflow-x: visible;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          }
+        }
+      `}</style>
+
+      {/* ==================================================================== */}
+      {/* EXECUTIVE TOP HEADER BAR (Mobile APK Touch-Optimized & Modernized) */}
+      {/* ==================================================================== */}
       <header
+        className="somiti-top-header"
         style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
           background: isLight ? '#ffffff' : 'rgba(9, 13, 22, 0.95)',
-          backdropFilter: 'blur(16px)',
           borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
-          paddingTop: 'max(8px, env(safe-area-inset-top, 8px))',
-          paddingRight: 'max(16px, env(safe-area-inset-right, 16px))',
-          paddingBottom: '8px',
-          paddingLeft: 'max(16px, env(safe-area-inset-left, 16px))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '10px',
           boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : '0 4px 20px rgba(0,0,0,0.3)'
         }}
       >
-        {/* Left: Master Somiti 360 Brand Logo & Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            title="Somiti 360 Master Logo"
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '13px',
-              background: isLight ? '#ffffff' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(15, 23, 42, 0.95))',
-              border: isLight ? '1.5px solid #059669' : '1.5px solid rgba(45, 212, 191, 0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              padding: '2px',
-              boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 14px rgba(0,0,0,0.3)',
-              cursor: 'pointer'
-            }}
-          >
-            <img
-              src="/somiti-emblem.png"
-              alt="Somiti 360 Logo"
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              onError={(e) => { e.currentTarget.src = '/Somiti_360_Official_Logo.png'; }}
-            />
+        {/* Tier 1: Brand Emblem & Master User Profile + Logout */}
+        <div className="somiti-brand-profile-row">
+          {/* Brand Identity */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              title="Somiti 360 Master Logo"
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: isLight ? '#ffffff' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(15, 23, 42, 0.95))',
+                border: isLight ? '1.5px solid #059669' : '1.5px solid rgba(45, 212, 191, 0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                padding: '2px',
+                boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 14px rgba(0,0,0,0.3)',
+                cursor: 'pointer'
+              }}
+            >
+              <img
+                src="/somiti-emblem.png"
+                alt="Somiti 360 Logo"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                onError={(e) => { e.currentTarget.src = '/Somiti_360_Official_Logo.png'; }}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+                  {lang === 'en' ? 'Somiti 360' : 'সমিতি ৩৬০'}
+                </h1>
+                <span
+                  style={{
+                    fontSize: '0.62rem',
+                    fontWeight: '800',
+                    background: isLight ? '#e0f2fe' : 'rgba(16, 185, 129, 0.15)',
+                    color: isLight ? '#0369a1' : '#34d399',
+                    border: isLight ? '1px solid #bae6fd' : '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '1px 6px',
+                    borderRadius: '8px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.4px'
+                  }}
+                >
+                  PRO v1.0
+                </span>
+              </div>
+              <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>
+                {lang === 'en' ? 'Smart Cooperative & Savings ERP' : 'হিসাব ও ব্যবস্থাপনা প্ল্যাটফর্ম'}
+              </p>
+            </div>
           </div>
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-                {lang === 'en' ? 'Somiti 360' : 'সমিতি ৩৬০'}
-              </h1>
-              <span
-                style={{
-                  fontSize: '0.65rem',
-                  fontWeight: '800',
-                  background: isLight ? '#e0f2fe' : 'rgba(16, 185, 129, 0.15)',
-                  color: isLight ? '#0369a1' : '#34d399',
-                  border: isLight ? '1px solid #bae6fd' : '1px solid rgba(16, 185, 129, 0.3)',
-                  padding: '1px 7px',
-                  borderRadius: '10px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}
-              >
-                PRO v1.0
+          {/* User Profile Chip & Logout (সাজ্জাদ হোসেন - প্রধান এডমিন) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: '11px' }}>👑</span>
+                {user?.name || (lang === 'en' ? 'Sajjad Hossan' : 'সাজ্জাদ হোসেন')}
+              </span>
+              <span style={{ fontSize: '0.64rem', fontWeight: '800', color: isLight ? '#059669' : '#34d399' }}>
+                {lang === 'en' ? 'Head Admin' : 'প্রধান এডমিন'}
               </span>
             </div>
-            <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>
-              {lang === 'en' ? 'Smart Cooperative & Savings ERP' : 'হিসাব ও ব্যবস্থাপনা প্ল্যাটফর্ম'}
-            </p>
+
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '9px',
+                background: isLight ? 'rgba(5, 150, 105, 0.12)' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(15, 23, 42, 0.95))',
+                border: isLight ? '1.5px solid #059669' : '1.5px solid rgba(45, 212, 191, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isLight ? '#059669' : '#34d399',
+                fontWeight: '900',
+                fontSize: '0.75rem',
+                textTransform: 'uppercase'
+              }}
+            >
+              {user?.name ? user.name[0] : 'S'}
+            </div>
+
+            <button
+              onClick={logout}
+              title={lang === 'en' ? 'Logout' : 'লগআউট করুন'}
+              style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                padding: '5px 8px',
+                fontSize: '0.72rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              <LogOut size={13} />
+              <span style={{ display: 'inline' }}>{lang === 'en' ? 'Logout' : 'লগআউট'}</span>
+            </button>
           </div>
         </div>
 
-        {/* Right: Executive Controls (Device Mesh, Day/Night, Theme, Lang, Verify, User, Logout) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Tier 2: Executive Touch-Swipeable Control Pill Track (৪টি প্ল্যাটফর্ম, ডে মোড, থিম, ইংলিশ, ভেরিফিকেশন) */}
+        <div className="somiti-controls-track">
           {/* 0. Live Cross-Platform Device Mesh Status Button */}
           <button
             onClick={() => setIsDeviceMeshModalOpen(true)}
@@ -219,6 +329,7 @@ function MainView() {
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
+              flexShrink: 0,
               boxShadow: '0 2px 6px rgba(16, 185, 129, 0.15)'
             }}
           >
@@ -242,15 +353,16 @@ function MainView() {
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
+              flexShrink: 0,
               boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
             }}
           >
             {isLight ? <Moon size={14} color="#4f46e5" /> : <Sun size={14} color="#fbbf24" />}
-            <span style={{ display: 'inline' }}>{isLight ? (lang === 'en' ? 'Night' : 'নাইট মোড') : (lang === 'en' ? 'Day' : 'ডে মোড')}</span>
+            <span>{isLight ? (lang === 'en' ? 'Night' : 'নাইট মোড') : (lang === 'en' ? 'Day' : 'ডে মোড')}</span>
           </button>
 
           {/* 2. Multi-Theme Palette Selector */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             <button
               onClick={() => setIsThemeDropdownOpen(prev => !prev)}
               title={lang === 'en' ? 'Choose Theme Color' : 'থিম কালার পছন্দ করুন'}
@@ -328,7 +440,7 @@ function MainView() {
             )}
           </div>
 
-          {/* 3. Bilingual Language Switcher (100% Solid & High-Contrast) */}
+          {/* 3. Bilingual Language Switcher */}
           <button
             onClick={() => {
               const next = lang === 'en' ? 'bn' : 'en';
@@ -347,6 +459,7 @@ function MainView() {
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
+              flexShrink: 0,
               boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
             }}
           >
@@ -369,67 +482,13 @@ function MainView() {
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
+              flexShrink: 0,
               boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
             }}
           >
             <ShieldCheck size={14} color={isLight ? '#059669' : '#34d399'} />
-            <span style={{ display: 'inline' }}>{lang === 'en' ? 'Verification' : 'ভেরিফিকেশন'}</span>
+            <span>{lang === 'en' ? 'Verification' : 'ভেরিফিকেশন'}</span>
           </button>
-
-          {/* 5. User Profile Chip & Logout */}
-          {user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '8px', borderLeft: isLight ? '1.5px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.12)' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: isLight ? '#0f172a' : '#f8fafc', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-                  <span style={{ fontSize: '10px' }}>👑</span>
-                  {user.name || user.email?.split('@')[0]}
-                </span>
-                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: isLight ? '#059669' : '#34d399' }}>
-                  {user.role === 'admin' ? (lang === 'en' ? 'Admin' : 'প্রধান এডমিন') : (user.samityName || 'Authorized')}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '9px',
-                  background: isLight ? 'rgba(5, 150, 105, 0.12)' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(15, 23, 42, 0.95))',
-                  border: isLight ? '1.5px solid #059669' : '1.5px solid rgba(45, 212, 191, 0.5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: isLight ? '#059669' : '#34d399',
-                  fontWeight: '900',
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase'
-                }}
-              >
-                {user.name ? user.name[0] : (user.email ? user.email[0] : 'U')}
-              </div>
-
-              <button
-                onClick={logout}
-                title={lang === 'en' ? 'Logout' : 'লগআউট করুন'}
-                style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: '8px',
-                  padding: '5px 8px',
-                  fontSize: '0.72rem',
-                  fontWeight: '800',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                <LogOut size={13} />
-                <span style={{ display: 'inline' }}>{lang === 'en' ? 'Logout' : 'লগআউট'}</span>
-              </button>
-            </div>
-          )}
         </div>
       </header>
 

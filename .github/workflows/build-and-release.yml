@@ -47,6 +47,7 @@ jobs:
           chmod +x android/gradlew
           mkdir -p ~/.android
           cp android/app/debug.keystore ~/.android/debug.keystore || true
+          sed -i 's|\.\./\.\./node_modules|\.\./node_modules|g' android/capacitor.settings.gradle || true
 
       - name: Build Android APK
         run: |

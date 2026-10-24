@@ -4,6 +4,7 @@ import { SamityManagementHub } from './components/samity/SamityManagementHub';
 import { SamityDocVerificationView } from './components/samity/SamityDocVerificationView';
 import { SomitiAuthView } from './components/auth/SomitiAuthView';
 import { DeviceMeshStatusModal } from './components/samity/DeviceMeshStatusModal';
+import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { Users, ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check } from 'lucide-react';
 
 // Error Boundary to prevent any blank screen
@@ -64,6 +65,14 @@ function MainView() {
   const [verifyData, setVerifyData] = useState(null);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
+  const [onlineDevices, setOnlineDevices] = useState(() => getOnlineDevicesList());
+
+  useEffect(() => {
+    const unsub = subscribeDevicePresence((list) => {
+      if (Array.isArray(list)) setOnlineDevices(list);
+    });
+    return () => unsub();
+  }, []);
 
   const isLight = theme === 'light' || theme === 'nordic_clean';
 
@@ -318,9 +327,9 @@ function MainView() {
             onClick={() => setIsDeviceMeshModalOpen(true)}
             title={lang === 'en' ? 'Cross-Platform Mesh Status' : '৪টি প্ল্যাটফর্ম লাইভ সিঙ্ক স্ট্যাটাস (APK, Web, PC, Mac)'}
             style={{
-              background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)',
+              background: onlineDevices.length > 1 ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)') : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)'),
               color: isLight ? '#15803d' : '#34d399',
-              border: isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)',
+              border: onlineDevices.length > 1 ? '1.5px solid #10b981' : (isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)'),
               borderRadius: '9px',
               padding: '6px 11px',
               fontSize: '0.74rem',
@@ -330,11 +339,15 @@ function MainView() {
               gap: '6px',
               cursor: 'pointer',
               flexShrink: 0,
-              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.15)'
+              boxShadow: onlineDevices.length > 1 ? '0 0 12px rgba(16, 185, 129, 0.4)' : '0 2px 6px rgba(16, 185, 129, 0.15)'
             }}
           >
             <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
-            <span>{lang === 'en' ? '4 Platforms Synced ⚡' : '৪টি প্ল্যাটফর্ম সিঙ্কড ⚡'}</span>
+            <span>
+              {onlineDevices.length > 1
+                ? (lang === 'en' ? `4 Platforms (${onlineDevices.length} Online) ⚡` : `৪টি প্ল্যাটফর্ম (${onlineDevices.length}টি অনলাইন) ⚡`)
+                : (lang === 'en' ? '4 Platforms Synced ⚡' : '৪টি প্ল্যাটফর্ম সিঙ্কড ⚡')}
+            </span>
           </button>
 
           {/* 1. Day / Night Toggle Button */}

@@ -403,3 +403,224 @@ export const formatVendorSupportWhatsAppMessage = (userInfo, shopName, appVersio
 
 ধন্যবাদ!`;
 };
+
+/**
+ * Determine globally reachable base URL
+ */
+/**
+ * Determine globally reachable base URL for document verification
+ * Prioritizes:
+ * 1. Explicitly configured verificationBaseUrl in currentSamity
+ * 2. Custom domain saved in localStorage (somiti_live_domain / hk360_custom_verify_domain)
+ * 3. Browser window.location.origin (supports localhost, 127.0.0.1, Wi-Fi LAN IP 192.168.x.x, Vercel deployments)
+ * 4. currentSamity?.liveDomain or fallback
+ */
+export const getGlobalVerificationBaseUrl = (currentSamity) => {
+  // 1. Explicitly configured verification domain in Samity settings
+  if (currentSamity?.verificationBaseUrl && currentSamity.verificationBaseUrl.trim()) {
+    let url = currentSamity.verificationBaseUrl.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    return url.replace(/\/$/, '');
+  }
+
+  // 2. Custom domain from localStorage (configured via settings or QR verifier)
+  if (typeof window !== 'undefined') {
+    try {
+      const savedCustomDomain = localStorage.getItem('hk360_custom_verify_domain') || localStorage.getItem('somiti_live_domain');
+      if (savedCustomDomain && savedCustomDomain.trim()) {
+        let url = savedCustomDomain.trim();
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+        return url.replace(/\/$/, '');
+      }
+
+      // 3. Current active browser origin
+      const origin = window.location.origin;
+      if (origin && !origin.includes('capacitor://') && !origin.includes('electron://') && !origin.includes('file://')) {
+        return origin + (window.location.pathname.endsWith('/') ? window.location.pathname.slice(0, -1) : window.location.pathname);
+      }
+    } catch (_) {}
+  }
+
+  // 4. Samity live domain
+  if (currentSamity?.liveDomain && !currentSamity.liveDomain.includes('somiti360.vercel.app')) {
+    return currentSamity.liveDomain.startsWith('http') ? currentSamity.liveDomain : `https://${currentSamity.liveDomain}`;
+  }
+
+  return 'https://hisabkitab360.vercel.app';
+};
+
+/**
+ * Generates globally accessible Verification URL for Samity Deposit Receipts
+ */
+export const createSamityReceiptVerificationUrl = (deposit, currentSamity) => {
+  if (!deposit) return 'https://hisabkitab360.vercel.app';
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const formattedReceiptNo = deposit.receiptNo || deposit.voucherNo || `RCPT-${deposit.id || '001'}`;
+  const memberName = deposit.memberName || deposit.depositorName || 'সদস্য';
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const samityReg = currentSamity?.regNo || 'সছস-২০২৪/০৯';
+  const docHash = `HK360-RCPT-${(deposit.id || '0000').slice(0, 8).toUpperCase()}`;
+
+  const payload = {
+    t: 'receipt',
+    rn: formattedReceiptNo,
+    m: memberName,
+    mid: deposit.memberId || '',
+    d: deposit.depositorName || memberName,
+    rel: deposit.depositorRelation || 'নিজে (Self)',
+    a: Number(deposit.amount || 0),
+    type: deposit.depositType || 'মাসিক সঞ্চয়/চাঁদা',
+    month: deposit.paymentMonth || deposit.month || '',
+    year: deposit.paymentYear || deposit.year || '',
+    method: deposit.depositMethod || deposit.method || 'নগদ',
+    dt: deposit.depositDate || deposit.date || new Date().toISOString().split('T')[0],
+    sam: samityName,
+    reg: samityReg,
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=receipt&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&depositor=${encodeURIComponent(payload.d)}&relation=${encodeURIComponent(payload.rel)}&method=${encodeURIComponent(payload.method)}&month=${encodeURIComponent(payload.month)}&year=${encodeURIComponent(payload.year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(samityReg)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=receipt&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&samity=${encodeURIComponent(samityName)}`;
+  }
+};
+
+/**
+ * Generates globally accessible Verification URL for Samity Due Notices
+ */
+export const createSamityDueNoticeVerificationUrl = (notice, currentSamity) => {
+  if (!notice) return 'https://hisabkitab360.vercel.app';
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const member = notice.member || {};
+  const status = notice.status || {};
+  const memberName = member.nameBn || member.nameEn || 'সম্মানিত সদস্য';
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const dueMonths = (notice.dueMonthsList && notice.dueMonthsList.length > 0) ? notice.dueMonthsList.join(', ') : 'চলতি বকেয়া';
+  const dueAmount = Number(status.totalDue ?? status.totalCumulativeDue ?? notice.totalDue ?? 0);
+  const deadline = notice.deadline || `${currentSamity?.subscriptionDueDay || 10} তারিখের মধ্যে`;
+  const docHash = `HK360-DUE-${(member.id || '0000').toUpperCase()}`;
+
+  const payload = {
+    t: 'due_notice',
+    m: memberName,
+    mid: member.id || '',
+    due: dueAmount,
+    months: dueMonths,
+    dl: deadline,
+    sam: samityName,
+    reg: currentSamity?.regNo || 'সছস-২০২৪/০৯',
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=due_notice&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(member.id || '')}&due=${dueAmount}&months=${encodeURIComponent(dueMonths)}&deadline=${encodeURIComponent(deadline)}&samity=${encodeURIComponent(samityName)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=due_notice&member=${encodeURIComponent(memberName)}&due=${dueAmount}&samity=${encodeURIComponent(samityName)}`;
+  }
+};
+
+/**
+ * Generates globally accessible Verification URL for Official Documents / Resolutions
+ */
+export const createSamityOfficialDocVerificationUrl = (doc, currentSamity) => {
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const ref = doc?.ref || 'সছস/২০২৬/০১';
+  const title = doc?.title || 'অফিসিয়াল নোটিশ ও রেজুলেশন';
+  const date = doc?.date || new Date().toISOString().split('T')[0];
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
+  const docHash = `HK360-DOC-${Date.now().toString(36).toUpperCase()}`;
+
+  const payload = {
+    t: 'samity_doc',
+    ref,
+    title,
+    date,
+    sam: samityName,
+    reg: regNo,
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=samity_doc&ref=${encodeURIComponent(ref)}&title=${encodeURIComponent(title)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&hash=${encodeURIComponent(docHash)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=samity_doc&ref=${encodeURIComponent(ref)}&title=${encodeURIComponent(title)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}`;
+  }
+};
+
+/**
+ * Generates globally accessible Verification URL for Membership Certificates
+ */
+export const createSamityMembershipCertVerificationUrl = (member, currentSamity) => {
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const memberName = member?.nameBn || member?.nameEn || 'সম্মানিত সদস্য';
+  const memberId = member?.id || member?.memberCode || 'SM-001';
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
+  const docHash = `HK360-CERT-${(memberId || '0000').toUpperCase()}`;
+
+  const payload = {
+    t: 'membership_cert',
+    m: memberName,
+    mid: memberId,
+    nid: member?.nidNumber || member?.nid || 'প্রযোজ্য নয়',
+    joining: member?.joiningDate || member?.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+    type: member?.membershipType || 'সাধারণ সদস্য',
+    blood: member?.bloodGroup || 'O+',
+    mobile: member?.mobile || '',
+    sam: samityName,
+    reg: regNo,
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=membership_cert&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=membership_cert&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}`;
+  }
+};
+
+/**
+ * Generates globally accessible Verification URL for Bulk Bank Deposit Reports
+ */
+export const createSamityBulkDepositVerificationUrl = (report, currentSamity) => {
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const voucherNo = report?.bulkVoucherNo || report?.id || 'BULK-2026-001';
+  const slipNo = report?.bankReceiptNo || 'SLIP-001';
+  const bankName = report?.bankName || 'ব্যাংক';
+  const totalAmount = Number(report?.totalSlipAmount || report?.allocatedAmount || 0);
+  const count = (report?.items || []).length;
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const docHash = `HK360-BULK-${Date.now().toString(36).toUpperCase()}`;
+
+  const payload = {
+    t: 'bulk_deposit',
+    vn: voucherNo,
+    sn: slipNo,
+    bn: bankName,
+    branch: report?.branchName || 'প্রধান শাখা',
+    accNo: report?.bankAccNo || '',
+    a: totalAmount,
+    c: count,
+    dt: report?.depositDate || report?.date || new Date().toISOString().split('T')[0],
+    sam: samityName,
+    reg: currentSamity?.regNo || 'সছস-২০২৪/০৯',
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=bulk_deposit&voucher=${encodeURIComponent(voucherNo)}&slip=${encodeURIComponent(slipNo)}&bank=${encodeURIComponent(bankName)}&amount=${totalAmount}&count=${count}&samity=${encodeURIComponent(samityName)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=bulk_deposit&voucher=${encodeURIComponent(voucherNo)}&amount=${totalAmount}&samity=${encodeURIComponent(samityName)}`;
+  }
+};

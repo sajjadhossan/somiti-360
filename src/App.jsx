@@ -6,7 +6,7 @@ import { SomitiAuthView } from './components/auth/SomitiAuthView';
 import { DeviceMeshStatusModal } from './components/samity/DeviceMeshStatusModal';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { getPendingQueueCount } from './services/somitiOfflineStore';
-import { Users, ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare } from 'lucide-react';
+import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare } from 'lucide-react';
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -59,6 +59,438 @@ const THEME_OPTIONS = [
   { id: 'cyber_slate', nameBn: 'সাইবার স্লেট', nameEn: 'Cyber Slate', color: '#0284c7', icon: '⚡' },
   { id: 'oled', nameBn: 'ওলেড ব্ল্যাক', nameEn: 'OLED Pure Black', color: '#000000', icon: '🖤' }
 ];
+
+// Helper style & text evaluators to eliminate nested ternaries
+function getMeshButtonBg(isOnline, pendingQueueCount, deviceCount, isLight) {
+  if (!isOnline) return 'rgba(245, 158, 11, 0.18)';
+  if (pendingQueueCount > 0) return 'rgba(168, 85, 247, 0.2)';
+  if (deviceCount > 1) return isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)';
+  return isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)';
+}
+
+function getMeshButtonColor(isOnline, pendingQueueCount, isLight) {
+  if (!isOnline) return '#f59e0b';
+  if (pendingQueueCount > 0) return '#c084fc';
+  if (isLight) return '#15803d';
+  return '#34d399';
+}
+
+function getMeshButtonBorder(isOnline, pendingQueueCount, deviceCount, isLight) {
+  if (!isOnline) return '1.5px solid #f59e0b';
+  if (pendingQueueCount > 0) return '1.5px solid #a855f7';
+  if (deviceCount > 1) return '1.5px solid #10b981';
+  return isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)';
+}
+
+function getMeshButtonLabel(isOnline, pendingQueueCount, deviceCount, lang) {
+  const isEn = lang === 'en';
+  if (!isOnline) {
+    return isEn ? 'Offline (IndexedDB Ready)' : 'অফলাইন (IndexedDB সক্রিয়)';
+  }
+  if (pendingQueueCount > 0) {
+    return isEn ? `Pending Queue (${pendingQueueCount})` : `পেন্ডিং কিউ (${pendingQueueCount})`;
+  }
+  if (deviceCount > 1) {
+    return isEn ? `4 Platforms (${deviceCount} Online) ⚡` : `৪টি প্ল্যাটফর্ম (${deviceCount}টি অনলাইন) ⚡`;
+  }
+  return isEn ? '4 Platforms Synced ⚡' : '৪টি প্ল্যাটফর্ম সিঙ্কড ⚡';
+}
+
+function getDayNightButtonTitle(isLight, lang) {
+  const isEn = lang === 'en';
+  if (isLight) {
+    return isEn ? 'Switch to Night Mode' : 'নাইট মোডে যান';
+  }
+  return isEn ? 'Switch to Day Mode' : 'ডে মোডে যান';
+}
+
+function getDayNightButtonLabel(isLight, lang) {
+  const isEn = lang === 'en';
+  if (isLight) {
+    return isEn ? 'Night' : 'নাইট মোড';
+  }
+  return isEn ? 'Day' : 'ডে মোড';
+}
+
+function getVerifyButtonBg(isVerifyActive, isLight) {
+  if (isVerifyActive) return 'rgba(16, 185, 129, 0.2)';
+  return isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.9)';
+}
+
+// Subcomponent: Executive Header Brand & User Profile
+function ExecutiveHeaderBrand({ isLight, lang, user, onLogout }) {
+  const isEn = lang === 'en';
+  return (
+    <div className="somiti-brand-profile-row">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          title="Somiti 360 Master Logo"
+          style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: isLight ? '#ffffff' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(15, 23, 42, 0.95))',
+            border: isLight ? '1.5px solid #059669' : '1.5px solid rgba(45, 212, 191, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            padding: '2px',
+            boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 14px rgba(0,0,0,0.3)',
+            cursor: 'pointer'
+          }}
+        >
+          <img
+            src="/somiti-emblem.png"
+            alt="Somiti 360 Logo"
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            onError={(e) => { e.currentTarget.src = '/Somiti_360_Official_Logo.png'; }}
+          />
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              {isEn ? 'Somiti 360' : 'সমিতি ৩৬০'}
+            </h1>
+            <span
+              style={{
+                fontSize: '0.62rem',
+                fontWeight: '800',
+                background: isLight ? '#e0f2fe' : 'rgba(16, 185, 129, 0.15)',
+                color: isLight ? '#0369a1' : '#34d399',
+                border: isLight ? '1px solid #bae6fd' : '1px solid rgba(16, 185, 129, 0.3)',
+                padding: '1px 6px',
+                borderRadius: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.4px'
+              }}
+            >
+              PRO v1.0.11
+            </span>
+          </div>
+          <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>
+            {isEn ? 'Smart Cooperative & Savings ERP' : 'হিসাব ও ব্যবস্থাপনা প্ল্যাটফর্ম'}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: '11px' }}>👑</span>
+            {user?.name || (isEn ? 'Sajjad Hossan' : 'সাজ্জাদ হোসেন')}
+          </span>
+          <span style={{ fontSize: '0.64rem', fontWeight: '800', color: isLight ? '#059669' : '#34d399' }}>
+            {isEn ? 'Head Admin' : 'প্রধান এডমিন'}
+          </span>
+        </div>
+
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '9px',
+            background: isLight ? 'rgba(5, 150, 105, 0.12)' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(15, 23, 42, 0.95))',
+            border: isLight ? '1.5px solid #059669' : '1.5px solid rgba(45, 212, 191, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: isLight ? '#059669' : '#34d399',
+            fontWeight: '900',
+            fontSize: '0.75rem',
+            textTransform: 'uppercase'
+          }}
+        >
+          {user?.name ? user.name[0] : 'S'}
+        </div>
+
+        <button
+          onClick={onLogout}
+          title={isEn ? 'Logout' : 'লগআউট করুন'}
+          style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            color: '#ef4444',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '8px',
+            padding: '5px 8px',
+            fontSize: '0.72rem',
+            fontWeight: '800',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          <LogOut size={13} />
+          <span style={{ display: 'inline' }}>{isEn ? 'Logout' : 'লগআউট'}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Subcomponent: Executive Touch-Swipeable Control Pill Track
+function ExecutiveControlsTrack({
+  lang,
+  setLang,
+  theme,
+  setTheme,
+  toggleTheme,
+  isLight,
+  isOnline,
+  pendingQueueCount,
+  onlineDevices,
+  setIsDeviceMeshModalOpen,
+  viewMode,
+  setViewMode,
+  chatCount,
+  isThemeDropdownOpen,
+  setIsThemeDropdownOpen
+}) {
+  const isEn = lang === 'en';
+  const meshBg = getMeshButtonBg(isOnline, pendingQueueCount, onlineDevices.length, isLight);
+  const meshColor = getMeshButtonColor(isOnline, pendingQueueCount, isLight);
+  const meshBorder = getMeshButtonBorder(isOnline, pendingQueueCount, onlineDevices.length, isLight);
+  const meshLabel = getMeshButtonLabel(isOnline, pendingQueueCount, onlineDevices.length, lang);
+  const dayNightTitle = getDayNightButtonTitle(isLight, lang);
+  const verifyBg = getVerifyButtonBg(viewMode === 'verify', isLight);
+
+  return (
+    <div className="somiti-controls-track">
+      {/* 0. Live Cross-Platform Device Mesh Status Button */}
+      <button
+        onClick={() => setIsDeviceMeshModalOpen(true)}
+        title={isEn ? 'Cross-Platform Mesh Status' : '৪টি প্ল্যাটফর্ম লাইভ সিঙ্ক স্ট্যাটাস (APK, Web, PC, Mac)'}
+        style={{
+          background: meshBg,
+          color: meshColor,
+          border: meshBorder,
+          borderRadius: '9px',
+          padding: '6px 11px',
+          fontSize: '0.74rem',
+          fontWeight: '800',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'pointer',
+          flexShrink: 0,
+          boxShadow: onlineDevices.length > 1 ? '0 0 12px rgba(16, 185, 129, 0.4)' : '0 2px 6px rgba(16, 185, 129, 0.15)'
+        }}
+      >
+        {!isOnline ? (
+          <WifiOff size={13} color="#f59e0b" />
+        ) : pendingQueueCount > 0 ? (
+          <Database size={13} color="#c084fc" />
+        ) : (
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+        )}
+        <span>{meshLabel}</span>
+      </button>
+
+      {/* 1. Day / Night Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        title={dayNightTitle}
+        style={{
+          background: isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.9)',
+          color: isLight ? '#0f172a' : '#f8fafc',
+          border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: '9px',
+          padding: '6px 10px',
+          fontSize: '0.76rem',
+          fontWeight: '800',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'pointer',
+          flexShrink: 0,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
+        }}
+      >
+        {isLight ? <Moon size={14} color="#4f46e5" /> : <Sun size={14} color="#fbbf24" />}
+        <span>{getDayNightButtonLabel(isLight, lang)}</span>
+      </button>
+
+      {/* 2. Multi-Theme Palette Selector */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <button
+          onClick={() => setIsThemeDropdownOpen(prev => !prev)}
+          title={isEn ? 'Choose Theme Color' : 'থিম কালার পছন্দ করুন'}
+          style={{
+            background: isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.9)',
+            color: isLight ? '#0f172a' : '#f8fafc',
+            border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '9px',
+            padding: '6px 10px',
+            fontSize: '0.76rem',
+            fontWeight: '800',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
+          }}
+        >
+          <Palette size={14} color={isLight ? '#059669' : '#34d399'} />
+          <span>{isEn ? 'Theme' : 'থিম'}</span>
+        </button>
+
+        {isThemeDropdownOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 8px)',
+              left: 0,
+              zIndex: 100,
+              minWidth: '220px',
+              background: isLight ? '#ffffff' : '#0f172a',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '12px',
+              padding: '6px',
+              boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px'
+            }}
+          >
+            {THEME_OPTIONS.map(opt => {
+              const isSelected = theme === opt.id;
+              let itemBg = 'transparent';
+              if (isSelected) {
+                itemBg = isLight ? '#e0f2fe' : 'rgba(16, 185, 129, 0.18)';
+              }
+              let itemColor = isLight ? '#0f172a' : '#cbd5e1';
+              if (isSelected) {
+                itemColor = isLight ? '#0284c7' : '#34d399';
+              }
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => {
+                    setTheme(opt.id);
+                    setIsThemeDropdownOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 10px',
+                    borderRadius: '8px',
+                    background: itemBg,
+                    color: itemColor,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.76rem',
+                    fontWeight: isSelected ? '800' : '600',
+                    textAlign: 'left'
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>{opt.icon}</span>
+                    <span>{isEn ? opt.nameEn : opt.nameBn}</span>
+                  </span>
+                  {isSelected && <Check size={14} />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Bilingual Language Switcher */}
+      <button
+        onClick={() => {
+          const next = lang === 'en' ? 'bn' : 'en';
+          if (setLang) setLang(next);
+        }}
+        title={isEn ? 'বাংলা ভাষায় পরিবর্তন করুন' : 'Switch to English'}
+        style={{
+          background: isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.9)',
+          color: isLight ? '#0f172a' : '#f8fafc',
+          border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: '9px',
+          padding: '6px 12px',
+          fontSize: '0.76rem',
+          fontWeight: '800',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'pointer',
+          flexShrink: 0,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
+        }}
+      >
+        <Globe size={14} color={isLight ? '#2563eb' : '#38bdf8'} />
+        <span>{isEn ? '🇧🇩 বাংলা' : '🇬🇧 English'}</span>
+      </button>
+
+      {/* 4. Verification Portal Button */}
+      <button
+        onClick={() => setViewMode(viewMode === 'verify' ? 'hub' : 'verify')}
+        style={{
+          background: verifyBg,
+          color: isLight ? '#0f172a' : '#f8fafc',
+          border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: '9px',
+          padding: '6px 12px',
+          fontSize: '0.76rem',
+          fontWeight: '800',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'pointer',
+          flexShrink: 0,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
+        }}
+      >
+        <ShieldCheck size={14} color={isLight ? '#059669' : '#34d399'} />
+        <span>{isEn ? 'Verification' : 'ভেরিফিকেশন'}</span>
+      </button>
+
+      {/* 5. Internal Staff Chat & Notice Board Button */}
+      <button
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('hk360_open_internal_chat'));
+        }}
+        title={isEn ? 'Internal Staff Chat & Notices' : 'অভ্যন্তরীণ স্টাফ চ্যাট ও জরুরি নোটিশ বোর্ড'}
+        style={{
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(139, 92, 246, 0.22))',
+          color: isLight ? '#4f46e5' : '#a78bfa',
+          border: isLight ? '1.5px solid #c7d2fe' : '1px solid rgba(167, 139, 250, 0.45)',
+          borderRadius: '9px',
+          padding: '6px 12px',
+          fontSize: '0.76rem',
+          fontWeight: '800',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'pointer',
+          flexShrink: 0,
+          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.15)'
+        }}
+      >
+        <MessageSquare size={14} color={isLight ? '#4f46e5' : '#c084fc'} />
+        <span>{isEn ? 'Internal Chat' : 'অভ্যন্তরীণ চ্যাট'}</span>
+        {chatCount > 0 && (
+          <span
+            style={{
+              background: '#ef4444',
+              color: '#fff',
+              fontSize: '0.62rem',
+              fontWeight: '900',
+              padding: '1px 5px',
+              borderRadius: '10px',
+              lineHeight: 1
+            }}
+          >
+            {chatCount}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
 
 function MainView() {
   const { lang = 'bn', setLang, theme = 'dark', setTheme, toggleTheme, user, logout, authLoading, isAuthenticated } = useApp();
@@ -122,15 +554,11 @@ function MainView() {
     try {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('verify') || params.get('ref') || params.get('title')) {
+        if (params.get('verify') || params.get('ref') || params.get('title') || params.get('receipt_no') || params.get('doc_verify')) {
+          const allParams = Object.fromEntries(params.entries());
           setVerifyData({
-            ref: params.get('ref'),
-            title: params.get('title'),
-            samity: params.get('samity'),
-            reg: params.get('reg'),
-            date: params.get('date'),
-            body: params.get('body'),
-            hash: params.get('hash')
+            ...allParams,
+            type: params.get('verify') || allParams.t || 'samity_doc'
           });
           setViewMode('verify');
         }
@@ -252,368 +680,30 @@ function MainView() {
           boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.04)' : '0 4px 20px rgba(0,0,0,0.3)'
         }}
       >
-        {/* Tier 1: Brand Emblem & Master User Profile + Logout */}
-        <div className="somiti-brand-profile-row">
-          {/* Brand Identity */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              title="Somiti 360 Master Logo"
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                background: isLight ? '#ffffff' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(15, 23, 42, 0.95))',
-                border: isLight ? '1.5px solid #059669' : '1.5px solid rgba(45, 212, 191, 0.45)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                padding: '2px',
-                boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 14px rgba(0,0,0,0.3)',
-                cursor: 'pointer'
-              }}
-            >
-              <img
-                src="/somiti-emblem.png"
-                alt="Somiti 360 Logo"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                onError={(e) => { e.currentTarget.src = '/Somiti_360_Official_Logo.png'; }}
-              />
-            </div>
+        <ExecutiveHeaderBrand
+          isLight={isLight}
+          lang={lang}
+          user={user}
+          onLogout={logout}
+        />
 
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-                  {lang === 'en' ? 'Somiti 360' : 'সমিতি ৩৬০'}
-                </h1>
-                <span
-                  style={{
-                    fontSize: '0.62rem',
-                    fontWeight: '800',
-                    background: isLight ? '#e0f2fe' : 'rgba(16, 185, 129, 0.15)',
-                    color: isLight ? '#0369a1' : '#34d399',
-                    border: isLight ? '1px solid #bae6fd' : '1px solid rgba(16, 185, 129, 0.3)',
-                    padding: '1px 6px',
-                    borderRadius: '8px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.4px'
-                  }}
-                >
-                  PRO v1.0.11
-                </span>
-              </div>
-              <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>
-                {lang === 'en' ? 'Smart Cooperative & Savings ERP' : 'হিসাব ও ব্যবস্থাপনা প্ল্যাটফর্ম'}
-              </p>
-            </div>
-          </div>
-
-          {/* User Profile Chip & Logout (সাজ্জাদ হোসেন - প্রধান এডমিন) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-                <span style={{ fontSize: '11px' }}>👑</span>
-                {user?.name || (lang === 'en' ? 'Sajjad Hossan' : 'সাজ্জাদ হোসেন')}
-              </span>
-              <span style={{ fontSize: '0.64rem', fontWeight: '800', color: isLight ? '#059669' : '#34d399' }}>
-                {lang === 'en' ? 'Head Admin' : 'প্রধান এডমিন'}
-              </span>
-            </div>
-
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '9px',
-                background: isLight ? 'rgba(5, 150, 105, 0.12)' : 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(15, 23, 42, 0.95))',
-                border: isLight ? '1.5px solid #059669' : '1.5px solid rgba(45, 212, 191, 0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: isLight ? '#059669' : '#34d399',
-                fontWeight: '900',
-                fontSize: '0.75rem',
-                textTransform: 'uppercase'
-              }}
-            >
-              {user?.name ? user.name[0] : 'S'}
-            </div>
-
-            <button
-              onClick={logout}
-              title={lang === 'en' ? 'Logout' : 'লগআউট করুন'}
-              style={{
-                background: 'rgba(239, 68, 68, 0.12)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '8px',
-                padding: '5px 8px',
-                fontSize: '0.72rem',
-                fontWeight: '800',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              <LogOut size={13} />
-              <span style={{ display: 'inline' }}>{lang === 'en' ? 'Logout' : 'লগআউট'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tier 2: Executive Touch-Swipeable Control Pill Track (৪টি প্ল্যাটফর্ম, ডে মোড, থিম, ইংলিশ, ভেরিফিকেশন) */}
-        <div className="somiti-controls-track">
-          {/* 0. Live Cross-Platform Device Mesh Status Button */}
-          <button
-            onClick={() => setIsDeviceMeshModalOpen(true)}
-            title={lang === 'en' ? 'Cross-Platform Mesh Status' : '৪টি প্ল্যাটফর্ম লাইভ সিঙ্ক স্ট্যাটাস (APK, Web, PC, Mac)'}
-            style={{
-              background: !isOnline
-                ? 'rgba(245, 158, 11, 0.18)'
-                : pendingQueueCount > 0
-                ? 'rgba(168, 85, 247, 0.2)'
-                : onlineDevices.length > 1
-                ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)')
-                : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)'),
-              color: !isOnline
-                ? '#f59e0b'
-                : pendingQueueCount > 0
-                ? '#c084fc'
-                : isLight
-                ? '#15803d'
-                : '#34d399',
-              border: !isOnline
-                ? '1.5px solid #f59e0b'
-                : pendingQueueCount > 0
-                ? '1.5px solid #a855f7'
-                : onlineDevices.length > 1
-                ? '1.5px solid #10b981'
-                : (isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)'),
-              borderRadius: '9px',
-              padding: '6px 11px',
-              fontSize: '0.74rem',
-              fontWeight: '800',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              flexShrink: 0,
-              boxShadow: onlineDevices.length > 1 ? '0 0 12px rgba(16, 185, 129, 0.4)' : '0 2px 6px rgba(16, 185, 129, 0.15)'
-            }}
-          >
-            {!isOnline ? (
-              <WifiOff size={13} color="#f59e0b" />
-            ) : pendingQueueCount > 0 ? (
-              <Database size={13} color="#c084fc" />
-            ) : (
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
-            )}
-            <span>
-              {!isOnline
-                ? (lang === 'en' ? 'Offline (IndexedDB Ready)' : 'অফলাইন (IndexedDB সক্রিয়)')
-                : pendingQueueCount > 0
-                ? (lang === 'en' ? `Pending Queue (${pendingQueueCount})` : `পেন্ডিং কিউ (${pendingQueueCount})`)
-                : onlineDevices.length > 1
-                ? (lang === 'en' ? `4 Platforms (${onlineDevices.length} Online) ⚡` : `৪টি প্ল্যাটফর্ম (${onlineDevices.length}টি অনলাইন) ⚡`)
-                : (lang === 'en' ? '4 Platforms Synced ⚡' : '৪টি প্ল্যাটফর্ম সিঙ্কড ⚡')}
-            </span>
-          </button>
-
-          {/* 1. Day / Night Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            title={isLight ? (lang === 'en' ? 'Switch to Night Mode' : 'নাইট মোডে যান') : (lang === 'en' ? 'Switch to Day Mode' : 'ডে মোডে যান')}
-            style={{
-              background: isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.9)',
-              color: isLight ? '#0f172a' : '#f8fafc',
-              border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '9px',
-              padding: '6px 10px',
-              fontSize: '0.76rem',
-              fontWeight: '800',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              flexShrink: 0,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
-            }}
-          >
-            {isLight ? <Moon size={14} color="#4f46e5" /> : <Sun size={14} color="#fbbf24" />}
-            <span>{isLight ? (lang === 'en' ? 'Night' : 'নাইট মোড') : (lang === 'en' ? 'Day' : 'ডে মোড')}</span>
-          </button>
-
-          {/* 2. Multi-Theme Palette Selector */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <button
-              onClick={() => setIsThemeDropdownOpen(prev => !prev)}
-              title={lang === 'en' ? 'Choose Theme Color' : 'থিম কালার পছন্দ করুন'}
-              style={{
-                background: isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.9)',
-                color: isLight ? '#0f172a' : '#f8fafc',
-                border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '9px',
-                padding: '6px 10px',
-                fontSize: '0.76rem',
-                fontWeight: '800',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
-              }}
-            >
-              <Palette size={14} color={isLight ? '#059669' : '#2dd4bf'} />
-              <span>{lang === 'en' ? 'Themes' : 'থিম'}</span>
-            </button>
-
-            {isThemeDropdownOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '6px',
-                  zIndex: 100,
-                  background: isLight ? '#ffffff' : '#0f172a',
-                  border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                  borderRadius: '12px',
-                  padding: '6px',
-                  minWidth: '190px',
-                  boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px'
-                }}
-              >
-                {THEME_OPTIONS.map(opt => {
-                  const isSelected = theme === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => {
-                        setTheme(opt.id);
-                        setIsThemeDropdownOpen(false);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '7px 10px',
-                        borderRadius: '8px',
-                        background: isSelected ? (isLight ? '#e0f2fe' : 'rgba(16, 185, 129, 0.18)') : 'transparent',
-                        color: isSelected ? (isLight ? '#0284c7' : '#34d399') : (isLight ? '#0f172a' : '#cbd5e1'),
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '0.76rem',
-                        fontWeight: isSelected ? '800' : '600',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{opt.icon}</span>
-                        <span>{lang === 'en' ? opt.nameEn : opt.nameBn}</span>
-                      </span>
-                      {isSelected && <Check size={14} />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* 3. Bilingual Language Switcher */}
-          <button
-            onClick={() => {
-              const next = lang === 'en' ? 'bn' : 'en';
-              if (setLang) setLang(next);
-            }}
-            title={lang === 'en' ? 'বাংলা ভাষায় পরিবর্তন করুন' : 'Switch to English'}
-            style={{
-              background: isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.9)',
-              color: isLight ? '#0f172a' : '#f8fafc',
-              border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '9px',
-              padding: '6px 12px',
-              fontSize: '0.76rem',
-              fontWeight: '800',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              flexShrink: 0,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
-            }}
-          >
-            <Globe size={14} color={isLight ? '#2563eb' : '#38bdf8'} />
-            <span>{lang === 'en' ? '🇧🇩 বাংলা' : '🇬🇧 English'}</span>
-          </button>
-
-          {/* 4. Verification Portal Button */}
-          <button
-            onClick={() => setViewMode(viewMode === 'verify' ? 'hub' : 'verify')}
-            style={{
-              background: viewMode === 'verify' ? 'rgba(16, 185, 129, 0.2)' : (isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.9)'),
-              color: isLight ? '#0f172a' : '#f8fafc',
-              border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '9px',
-              padding: '6px 12px',
-              fontSize: '0.76rem',
-              fontWeight: '800',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              flexShrink: 0,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.06)'
-            }}
-          >
-            <ShieldCheck size={14} color={isLight ? '#059669' : '#34d399'} />
-            <span>{lang === 'en' ? 'Verification' : 'ভেরিফিকেশন'}</span>
-          </button>
-
-          {/* 5. Internal Staff Chat & Notice Board Button */}
-          <button
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('hk360_open_internal_chat'));
-            }}
-            title={lang === 'en' ? 'Internal Staff Chat & Notices' : 'অভ্যন্তরীণ স্টাফ চ্যাট ও জরুরি নোটিশ বোর্ড'}
-            style={{
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(139, 92, 246, 0.22))',
-              color: isLight ? '#4f46e5' : '#a78bfa',
-              border: isLight ? '1.5px solid #c7d2fe' : '1px solid rgba(167, 139, 250, 0.45)',
-              borderRadius: '9px',
-              padding: '6px 12px',
-              fontSize: '0.76rem',
-              fontWeight: '800',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.15)'
-            }}
-          >
-            <MessageSquare size={14} color={isLight ? '#4f46e5' : '#c084fc'} />
-            <span>{lang === 'en' ? 'Internal Chat' : 'অভ্যন্তরীণ চ্যাট'}</span>
-            {chatCount > 0 && (
-              <span
-                style={{
-                  background: '#ef4444',
-                  color: '#fff',
-                  fontSize: '0.62rem',
-                  fontWeight: '900',
-                  padding: '1px 5px',
-                  borderRadius: '10px',
-                  lineHeight: 1
-                }}
-              >
-                {chatCount}
-              </span>
-            )}
-          </button>
-        </div>
+        <ExecutiveControlsTrack
+          lang={lang}
+          setLang={setLang}
+          theme={theme}
+          setTheme={setTheme}
+          toggleTheme={toggleTheme}
+          isLight={isLight}
+          isOnline={isOnline}
+          pendingQueueCount={pendingQueueCount}
+          onlineDevices={onlineDevices}
+          setIsDeviceMeshModalOpen={setIsDeviceMeshModalOpen}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          chatCount={chatCount}
+          isThemeDropdownOpen={isThemeDropdownOpen}
+          setIsThemeDropdownOpen={setIsThemeDropdownOpen}
+        />
       </header>
 
       <main style={{ flex: 1, width: '100%' }}>
@@ -625,7 +715,7 @@ function MainView() {
         isOpen={isDeviceMeshModalOpen}
         onClose={() => setIsDeviceMeshModalOpen(false)}
         isLight={isLight}
-        t={(bn, en) => lang === 'en' ? (en || bn) : bn}
+        t={(bn, en) => (lang === 'en' && en ? en : bn)}
       />
     </div>
   );

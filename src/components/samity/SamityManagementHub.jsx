@@ -110,7 +110,14 @@ import {
   exportReportToExcel
 } from '../../services/samityService';
 import * as XLSX from 'xlsx';
-import { generateQrDataUrl } from '../../services/qrService';
+import {
+  generateQrDataUrl,
+  createSamityReceiptVerificationUrl,
+  createSamityDueNoticeVerificationUrl,
+  createSamityMembershipCertVerificationUrl,
+  createSamityBulkDepositVerificationUrl,
+  getGlobalVerificationBaseUrl
+} from '../../services/qrService';
 import { playButtonClick, playSuccessChime } from '../../services/soundFeedback';
 import { hapticFeedback } from '../../services/nativeAppService';
 import { broadcastLiveEvent, subscribeLiveSync } from '../../services/liveSyncService';
@@ -135,6 +142,7 @@ import { SamityInternalChatHub } from './SamityInternalChatHub';
 import { DeviceMeshStatusModal } from './DeviceMeshStatusModal';
 import { SupervisorLiveRadarModal } from './SupervisorLiveRadarModal';
 import { SamityAIAssistantModal } from './SamityAIAssistantModal';
+import { UniversalQrVerifierModal } from './UniversalQrVerifierModal';
 import { optimizeImage } from '../../utils/imageOptimizer';
 import { parseBioDataFile } from '../../services/bioDataDocumentParser';
 
@@ -1408,6 +1416,92 @@ export const SamityManagementHub = ({ onClose }) => {
     });
     return () => { isMounted = false; };
   }, [currentSamity.nameBn, currentSamity.regNo, padDocRefNo, padDocTitle, padDocDate]);
+
+  // Real QR Verification Data URL for Paid Deposit Receipt (স্ক্যানযোগ্য ডিজিটাল রসিদ কিউআর কোড)
+  const [receiptQrDataUrl, setReceiptQrDataUrl] = useState('');
+  useEffect(() => {
+    let isMounted = true;
+    if (!activePrintReceipt) {
+      setReceiptQrDataUrl('');
+      return;
+    }
+    const verifyUrl = createSamityReceiptVerificationUrl(activePrintReceipt, currentSamity);
+    generateQrDataUrl(verifyUrl, { width: 180, margin: 1 }).then(url => {
+      if (isMounted && url) setReceiptQrDataUrl(url);
+    });
+    return () => { isMounted = false; };
+  }, [activePrintReceipt, currentSamity]);
+
+  // Real QR Verification Data URL for Due Notice (স্ক্যানযোগ্য বকেয়া নোটিশ কিউআর কোড)
+  const [noticeQrDataUrl, setNoticeQrDataUrl] = useState('');
+  useEffect(() => {
+    let isMounted = true;
+    if (!activePrintNotice) {
+      setNoticeQrDataUrl('');
+      return;
+    }
+    const verifyUrl = createSamityDueNoticeVerificationUrl(activePrintNotice, currentSamity);
+    generateQrDataUrl(verifyUrl, { width: 180, margin: 1 }).then(url => {
+      if (isMounted && url) setNoticeQrDataUrl(url);
+    });
+    return () => { isMounted = false; };
+  }, [activePrintNotice, currentSamity]);
+
+  // Universal QR Verifier Hub State
+  const [isUniversalVerifierOpen, setIsUniversalVerifierOpen] = useState(false);
+
+  // Real QR Verification Data URL for Membership Certificate
+  const [certQrDataUrl, setCertQrDataUrl] = useState('');
+  useEffect(() => {
+    let isMounted = true;
+    if (!isDocPrintModalOpen || selectedDocTemplate?.id !== 'membership_cert') {
+      setCertQrDataUrl('');
+      return;
+    }
+    const targetMem = data.members.find(m => m.id === selectedDocMemberId) || data.members[0];
+    if (targetMem) {
+      const verifyUrl = createSamityMembershipCertVerificationUrl(targetMem, currentSamity);
+      generateQrDataUrl(verifyUrl, { width: 160, margin: 1 }).then(url => {
+        if (isMounted && url) setCertQrDataUrl(url);
+      });
+    }
+    return () => { isMounted = false; };
+  }, [isDocPrintModalOpen, selectedDocTemplate?.id, selectedDocMemberId, data.members, currentSamity]);
+
+  // Real QR Verification Data URL for Template Documents (Meeting Notice / Bank Resolution / Final Due Notice)
+  const [templateDocQrDataUrl, setTemplateDocQrDataUrl] = useState('');
+  useEffect(() => {
+    let isMounted = true;
+    if (!isDocPrintModalOpen || selectedDocTemplate?.id === 'membership_cert') {
+      setTemplateDocQrDataUrl('');
+      return;
+    }
+    const docData = {
+      ref: `${currentSamity.id || 'SAM'}/${selectedDocTemplate?.id?.toUpperCase() || 'DOC'}/${new Date().getFullYear()}`,
+      title: selectedDocTemplate?.title || 'অফিসিয়াল নোটিশ ও রেজুলেশন',
+      date: new Date().toISOString().split('T')[0]
+    };
+    const verifyUrl = createSamityOfficialDocVerificationUrl(docData, currentSamity);
+    generateQrDataUrl(verifyUrl, { width: 160, margin: 1 }).then(url => {
+      if (isMounted && url) setTemplateDocQrDataUrl(url);
+    });
+    return () => { isMounted = false; };
+  }, [isDocPrintModalOpen, selectedDocTemplate?.id, currentSamity]);
+
+  // Real QR Verification Data URL for Bulk Bank Deposit Report
+  const [bulkReportQrDataUrl, setBulkReportQrDataUrl] = useState('');
+  useEffect(() => {
+    let isMounted = true;
+    if (!activeConsolidatedReport) {
+      setBulkReportQrDataUrl('');
+      return;
+    }
+    const verifyUrl = createSamityBulkDepositVerificationUrl(activeConsolidatedReport, currentSamity);
+    generateQrDataUrl(verifyUrl, { width: 160, margin: 1 }).then(url => {
+      if (isMounted && url) setBulkReportQrDataUrl(url);
+    });
+    return () => { isMounted = false; };
+  }, [activeConsolidatedReport, currentSamity]);
 
   // New Officer Signature & Seal Modal State
   const [isOfficerModalOpen, setIsOfficerModalOpen] = useState(false);
@@ -2859,6 +2953,7 @@ export const SamityManagementHub = ({ onClose }) => {
     const amount = Number(deposit.amount || 0);
     const memberName = deposit.memberName || deposit.depositorName || 'সম্মানিত সদস্য';
     const copyLabel = copyType === 'duplicate' ? 'দ্বিতীয় অনুলিপি (Duplicate)' : copyType === 'member' ? 'গ্রাহক অনুলিপি (Member Copy)' : copyType === 'office' ? 'অফিস কপি (Office Copy)' : 'মূল কপি (Original)';
+    const verifyUrl = createSamityReceiptVerificationUrl(deposit, samity);
 
     return `🧾 *${samity.nameBn}*
 *পরিশোধ রিসিট / PAYMENT RECEIPT* (${copyLabel})
@@ -2866,13 +2961,16 @@ export const SamityManagementHub = ({ onClose }) => {
 রিসিট নং: *${rcptNo}*
 তারিখ: ${date}
 সদস্য: *${memberName}* (আইডি: ${deposit.memberId || 'N/A'})
+টাকা জমা দিয়েছেন: *${deposit.depositorName || memberName}* [${deposit.depositorRelation || 'নিজে'}]
 জমার খাত: ${deposit.depositType || 'মাসিক চাঁদা'} (${deposit.paymentMonth || ''} ${deposit.paymentYear || ''})
-পরিশোধের মাধ্যম: ${deposit.depositMethod || 'ব্যাংক'} ${deposit.bankReceiptNo ? `(স্লিপ: ${deposit.bankReceiptNo})` : ''}
+পরিশোধের মাধ্যম: ${deposit.depositMethod || 'নগদ/ব্যাংক'} ${deposit.bankReceiptNo ? `(স্লিপ: ${deposit.bankReceiptNo})` : ''}
 *জমা টাকার পরিমাণ: ৳ ${amount.toLocaleString('en-IN')}/-*
 কথায়: ${numberToBanglaWords(amount)}
 স্ট্যাটাস: ${deposit.approvalStatus === 'cancelled' ? '❌ বাতিলকৃত (Cancelled)' : '✅ পরিশোধিত ও অনুমোদিত (PAID)'}
 -----------------------------------------
-এটি একটি ডিজিটাল ভেরিফাইড রসিদ।
+🔍 *স্মার্টফোনে রসিদের ডিজিটাল সত্যতা যাচাই করতে লিংকে চাপ দিন:*
+${verifyUrl}
+-----------------------------------------
 হেল্পলাইন: ${samity.mobile || ''}`;
   };
 
@@ -4091,6 +4189,35 @@ export const SamityManagementHub = ({ onClose }) => {
             >
               <Sparkles size={15} color="#c084fc" />
               <span>🎙️ এআই ভয়েস রোল</span>
+            </button>
+
+            {/* Universal Document QR Verifier Hub Button */}
+            <button
+              onClick={() => {
+                playButtonClick?.();
+                triggerHaptic();
+                setIsUniversalVerifierOpen(true);
+              }}
+              className="full-width-mobile"
+              style={{
+                background: isLight ? 'rgba(20, 184, 166, 0.12)' : 'rgba(20, 184, 166, 0.22)',
+                color: isLight ? '#0f766e' : '#2dd4bf',
+                border: isLight ? '1.5px solid #99f6e4' : '1px solid rgba(45, 212, 191, 0.45)',
+                borderRadius: '10px',
+                padding: '8px 13px',
+                fontSize: '0.8rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(20, 184, 166, 0.2)'
+              }}
+              title={t('ডকুমেন্ট কিউআর কোড স্ক্যানার ও লাইভ ভেরিফিকেশন টেস্ট', 'Document QR Code Scanner & Live Verification Test')}
+            >
+              <QrCode size={15} color="#2dd4bf" />
+              <span>{t('🔍 কিউআর যাচাই', '🔍 Verify QR')}</span>
             </button>
 
             {/* Financial Recycle Bin Button */}
@@ -17930,6 +18057,40 @@ export const SamityManagementHub = ({ onClose }) => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Digital Verification QR Code */}
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #d97706' }}>
+                    <div
+                      onClick={() => {
+                        const targetMem = data.members.find(m => m.id === selectedDocMemberId) || data.members[0];
+                        if (targetMem) {
+                          const verifyUrl = createSamityMembershipCertVerificationUrl(targetMem, currentSamity);
+                          window.open(verifyUrl, '_blank');
+                        }
+                      }}
+                      style={{
+                        padding: '4px',
+                        background: '#ffffff',
+                        border: '1.5px solid #d97706',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+                      }}
+                      title="ক্লিক করে সনদপত্র সরাসরি টেস্ট করুন"
+                    >
+                      {certQrDataUrl ? (
+                        <img src={certQrDataUrl} alt="Certificate Verification QR" style={{ width: '64px', height: '64px', display: 'block', borderRadius: '4px' }} />
+                      ) : (
+                        <QrCode size={36} color="#d97706" />
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'left', fontSize: '0.7rem', color: '#92400e', lineHeight: '1.4' }}>
+                      <strong style={{ color: '#78350f' }}>ডিজিটাল সত্যায়িত সনদপত্র QR</strong><br />
+                      মোবাইলে স্ক্যান করে কেন্দ্রীয় ডাটাবেজ থেকে সদস্যের বৈধতা যাচাই করুন<br />
+                      <span style={{ fontSize: '0.62rem', color: '#b45309' }}>✓ অপরিবর্তনযোগ্য ক্রিপ্টোগ্রাফিক রেকর্ড</span>
+                    </div>
+                  </div>
                 </div>
               );
             })() : (
@@ -18001,24 +18162,59 @@ export const SamityManagementHub = ({ onClose }) => {
                   )}
                 </div>
 
-                {/* Signatures & Seal */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '40px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: '130px', borderTop: '1px solid #0f172a', paddingTop: '4px', fontSize: '0.74rem', fontWeight: '700' }}>
-                      সাধারণ সম্পাদক
+                {/* Signatures, Seal & QR Code */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '40px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      onClick={() => {
+                        const docData = {
+                          ref: `${currentSamity.id || 'SAM'}/${selectedDocTemplate?.id?.toUpperCase() || 'DOC'}/${new Date().getFullYear()}`,
+                          title: selectedDocTemplate?.title || 'অফিসিয়াল নোটিশ ও রেজুলেশন',
+                          date: new Date().toISOString().split('T')[0]
+                        };
+                        const verifyUrl = createSamityOfficialDocVerificationUrl(docData, currentSamity);
+                        window.open(verifyUrl, '_blank');
+                      }}
+                      style={{
+                        padding: '4px',
+                        background: '#ffffff',
+                        border: '1.5px solid #0284c7',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'inline-flex'
+                      }}
+                      title="ক্লিক করে রেজুলেশন সরাসরি টেস্ট করুন"
+                    >
+                      {templateDocQrDataUrl ? (
+                        <img src={templateDocQrDataUrl} alt="Document QR" style={{ width: '58px', height: '58px', display: 'block', borderRadius: '4px' }} />
+                      ) : (
+                        <QrCode size={36} color="#0284c7" />
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.66rem', color: '#475569', lineHeight: '1.4' }}>
+                      <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />
+                      স্ক্যান করে নোটিশ সত্যতা যাচাই করুন
                     </div>
                   </div>
 
-                  <div style={{ position: 'relative', textAlign: 'center' }}>
-                    <div style={{ position: 'absolute', top: '-44px', left: '-18px', pointerEvents: 'none' }}>
-                      <CircularOfficialSeal samityName={currentSamity.nameBn} designation="অনুমোদিত" size={76} sealColor="#1e3a8a" />
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '30px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: '120px', borderTop: '1px solid #0f172a', paddingTop: '4px', fontSize: '0.74rem', fontWeight: '700' }}>
+                        সাধারণ সম্পাদক
+                      </div>
                     </div>
-                    <div style={{ width: '76px', height: '14px' }}></div>
-                  </div>
 
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: '130px', borderTop: '1px solid #0f172a', paddingTop: '4px', fontSize: '0.74rem', fontWeight: '700' }}>
-                      সভাপতি
+                    <div style={{ position: 'relative', textAlign: 'center' }}>
+                      <div style={{ position: 'absolute', top: '-44px', left: '-18px', pointerEvents: 'none' }}>
+                        <CircularOfficialSeal samityName={currentSamity.nameBn} designation="অনুমোদিত" size={72} sealColor="#1e3a8a" />
+                      </div>
+                      <div style={{ width: '72px', height: '14px' }}></div>
+                    </div>
+
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: '120px', borderTop: '1px solid #0f172a', paddingTop: '4px', fontSize: '0.74rem', fontWeight: '700' }}>
+                        সভাপতি
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -19291,8 +19487,46 @@ export const SamityManagementHub = ({ onClose }) => {
                 </table>
               </div>
 
+              {/* Digital Verification QR Code Block */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1', flexWrap: 'wrap', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    onClick={() => {
+                      const verifyUrl = createSamityBulkDepositVerificationUrl(activeConsolidatedReport, currentSamity);
+                      window.open(verifyUrl, '_blank');
+                    }}
+                    style={{
+                      padding: '4px',
+                      background: '#ffffff',
+                      border: '1.5px solid #16a34a',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+                    }}
+                    title="ক্লিক করে ব্যাংক ভাউচার সরাসরি টেস্ট করুন"
+                  >
+                    {bulkReportQrDataUrl ? (
+                      <img src={bulkReportQrDataUrl} alt="Bulk Deposit Verification QR" style={{ width: '64px', height: '64px', display: 'block', borderRadius: '4px' }} />
+                    ) : (
+                      <QrCode size={36} color="#16a34a" />
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: '1.4' }}>
+                    <strong style={{ color: '#0f172a' }}>ডিজিটাল ব্যাংক ভেরিফিকেশন QR</strong><br />
+                    ভাউচার নং: {activeConsolidatedReport.bulkVoucherNo || activeConsolidatedReport.id}<br />
+                    সেন্ট্রাল ক্লাউড ব্যাংক লেজারে সত্যায়িত রেকর্ড
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right', fontSize: '0.7rem', color: '#64748b' }}>
+                  প্রিন্ট ও ভেরিফিকেশন তারিখ: {new Date().toLocaleDateString('bn-BD')} খ্রি.<br />
+                  <span style={{ color: '#16a34a', fontWeight: '800' }}>✓ ডিজিটালি অডিটেড প্রতিবেদন</span>
+                </div>
+              </div>
+
               {/* Signatures */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '40px', paddingTop: '20px', borderTop: '1px dashed #cbd5e1', fontSize: '0.8rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '30px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
                 <div style={{ textAlign: 'center', width: '160px' }}>
                   <div style={{ borderTop: '1px solid #475569', paddingTop: '4px', fontWeight: '700' }}>
                     কোষাধ্যক্ষের স্বাক্ষর
@@ -20218,34 +20452,27 @@ export const SamityManagementHub = ({ onClose }) => {
                       }}
                       title="ক্লিক করে QR কোড সত্যতা যাচাই করুন"
                     >
-                      <svg width="68" height="68" viewBox="0 0 100 100">
-                        <rect width="100" height="100" fill="#ffffff" />
-                        <rect x="5" y="5" width="28" height="28" fill="#0f172a" />
-                        <rect x="9" y="9" width="20" height="20" fill="#fff" />
-                        <rect x="13" y="13" width="12" height="12" fill="#0f172a" />
-                        <rect x="67" y="5" width="28" height="28" fill="#0f172a" />
-                        <rect x="71" y="9" width="20" height="20" fill="#fff" />
-                        <rect x="75" y="13" width="12" height="12" fill="#0f172a" />
-                        <rect x="5" y="67" width="28" height="28" fill="#0f172a" />
-                        <rect x="9" y="71" width="20" height="20" fill="#fff" />
-                        <rect x="13" y="75" width="12" height="12" fill="#0f172a" />
-                        <rect x="40" y="10" width="8" height="8" fill="#0f172a" />
-                        <rect x="52" y="15" width="8" height="8" fill="#0f172a" />
-                        <rect x="40" y="40" width="20" height="20" fill="#0f172a" />
-                        <rect x="45" y="45" width="10" height="10" fill="#fff" />
-                        <rect x="10" y="42" width="8" height="8" fill="#0f172a" />
-                        <rect x="22" y="48" width="8" height="8" fill="#0f172a" />
-                        <rect x="70" y="45" width="12" height="8" fill="#0f172a" />
-                        <rect x="85" y="55" width="10" height="10" fill="#0f172a" />
-                        <rect x="40" y="72" width="10" height="8" fill="#0f172a" />
-                        <rect x="55" y="80" width="14" height="12" fill="#0f172a" />
-                        <rect x="75" y="75" width="20" height="8" fill="#0f172a" />
-                      </svg>
+                      {receiptQrDataUrl ? (
+                        <img
+                          src={receiptQrDataUrl}
+                          alt="Official Digital Verification QR"
+                          style={{
+                            width: '68px',
+                            height: '68px',
+                            display: 'block',
+                            borderRadius: '4px'
+                          }}
+                        />
+                      ) : (
+                        <div style={{ width: '68px', height: '68px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <QrCode size={40} color="#0f172a" />
+                        </div>
+                      )}
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: '1.4' }}>
                       <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />
                       রসিদ নং: {formattedReceiptNo}<br />
-                      স্ক্যান করে তাৎক্ষণিক সত্যতা যাচাই করুন
+                      মোবাইল ক্যামেরা দিয়ে স্ক্যান করলেই ভেরিফাই হবে
                     </div>
                   </div>
 
@@ -20736,34 +20963,44 @@ export const SamityManagementHub = ({ onClose }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '24px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', gap: '16px' }}>
                   {/* 13. QR Code for verification */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '64px', height: '64px', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '3px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="56" height="56" viewBox="0 0 100 100" style={{ shapeRendering: 'crispEdges' }}>
-                        <rect width="100" height="100" fill="#fff" />
-                        <rect x="5" y="5" width="28" height="28" fill="#0f172a" />
-                        <rect x="9" y="9" width="20" height="20" fill="#fff" />
-                        <rect x="13" y="13" width="12" height="12" fill="#0f172a" />
-                        <rect x="67" y="5" width="28" height="28" fill="#0f172a" />
-                        <rect x="71" y="9" width="20" height="20" fill="#fff" />
-                        <rect x="75" y="13" width="12" height="12" fill="#0f172a" />
-                        <rect x="5" y="67" width="28" height="28" fill="#0f172a" />
-                        <rect x="9" y="71" width="20" height="20" fill="#fff" />
-                        <rect x="13" y="75" width="12" height="12" fill="#0f172a" />
-                        <rect x="40" y="10" width="8" height="8" fill="#0f172a" />
-                        <rect x="52" y="15" width="8" height="8" fill="#0f172a" />
-                        <rect x="40" y="40" width="20" height="20" fill="#0f172a" />
-                        <rect x="45" y="45" width="10" height="10" fill="#fff" />
-                        <rect x="10" y="42" width="8" height="8" fill="#0f172a" />
-                        <rect x="22" y="48" width="8" height="8" fill="#0f172a" />
-                        <rect x="70" y="45" width="12" height="8" fill="#0f172a" />
-                        <rect x="85" y="55" width="10" height="10" fill="#0f172a" />
-                        <rect x="40" y="72" width="10" height="8" fill="#0f172a" />
-                        <rect x="55" y="80" width="14" height="12" fill="#0f172a" />
-                        <rect x="75" y="75" width="20" height="8" fill="#0f172a" />
-                      </svg>
+                    <div
+                      onClick={() => {
+                        const verifyUrl = createSamityDueNoticeVerificationUrl(activePrintNotice, currentSamity);
+                        window.open(verifyUrl, '_blank');
+                      }}
+                      style={{
+                        padding: '4px',
+                        background: '#ffffff',
+                        border: '1.5px solid #ef4444',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)'
+                      }}
+                      title="ক্লিক করে কিউআর কোড সত্যতা সরাসরি টেস্ট করুন"
+                    >
+                      {noticeQrDataUrl ? (
+                        <img
+                          src={noticeQrDataUrl}
+                          alt="Official Due Notice QR"
+                          style={{
+                            width: '68px',
+                            height: '68px',
+                            display: 'block',
+                            borderRadius: '4px'
+                          }}
+                        />
+                      ) : (
+                        <div style={{ width: '68px', height: '68px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <QrCode size={38} color="#ef4444" />
+                        </div>
+                      )}
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: '1.4' }}>
-                      <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন কোড</strong><br />
-                      মোবাইল ক্যামেরা বা স্ক্যানার দিয়ে<br />সরাসরি সত্যতা যাচাই করুন
+                      <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />
+                      মোবাইল ক্যামেরা দিয়ে স্ক্যান করলেই<br />সরকারি নিবন্ধন ও বকেয়া খতিয়ান আসবে
                     </div>
                   </div>
 
@@ -23012,6 +23249,21 @@ export const SamityManagementHub = ({ onClose }) => {
           </div>
         </div>
       )}
+
+      {/* Universal QR Code Document Verifier & Test Center Modal */}
+      <UniversalQrVerifierModal
+        isOpen={isUniversalVerifierOpen}
+        onClose={() => setIsUniversalVerifierOpen(false)}
+        currentSamity={currentSamity}
+        data={data}
+        onUpdateSamitySettings={(updater) => {
+          updateAndSave(prev => ({
+            ...prev,
+            samities: (prev.samities || []).map(s => s.id === currentSamity.id ? updater(s) : s)
+          }), { action: 'UPDATE_SAMITY_VERIFY_DOMAIN', module: 'SETTINGS' });
+        }}
+        showToast={showToast}
+      />
     </div>
   );
 };

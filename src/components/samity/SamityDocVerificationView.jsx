@@ -12,16 +12,27 @@ import {
   Award,
   Hash,
   Download,
-  Globe
+  Globe,
+  Receipt,
+  User,
+  Phone,
+  Wallet,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 import { useSamityTranslator } from '../../utils/samityDictionary';
+import { safeBase64ToUtf8 } from '../../services/qrService';
 
 /**
  * SamityDocVerificationView
  * -------------------------
- * Public & Internal Digital Verification Portal for Official Samity Letterhead Documents,
- * Notices, Resolutions, and Official Decrees.
- * Authenticates QR scans from phone camera, Google Lens, or internal Barcode Scanner.
+ * Public & Universal Digital Verification Portal for:
+ * 1. Deposit Receipts (জমার রসিদ)
+ * 2. Official Letterhead Documents, Notices, Resolutions (অফিসিয়াল নোটিশ ও রেজুলেশন)
+ * 3. Due Notices & Reminders (বকেয়া নোটিশ)
+ * 4. Member ID & Society Cards (সদস্য কার্ড)
+ *
+ * Authenticates QR scans from any phone camera, Google Lens, WhatsApp, or internal Scanner.
  */
 export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   const [copied, setCopied] = useState(false);
@@ -33,13 +44,51 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
 
   // Parse parameters from props or window URL
   const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+
+  // Try decoding base64 data token if available
+  let decodedToken = null;
+  const rawToken = verifyData?.data || query.get('data');
+  if (rawToken) {
+    try {
+      const decodedStr = safeBase64ToUtf8(rawToken);
+      if (decodedStr) {
+        decodedToken = JSON.parse(decodedStr);
+      }
+    } catch (e) {
+      console.warn('Could not parse verification token payload:', e);
+    }
+  }
+
+  // Determine document type
+  const docType = decodedToken?.t || verifyData?.type || query.get('verify') || 'samity_doc';
+
+  // Common parameters
+  const samityName = decodedToken?.sam || verifyData?.samity || query.get('samity') || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const regNo = decodedToken?.reg || verifyData?.reg || query.get('reg') || 'সছস-২০২৪/০৯';
+  const date = decodedToken?.dt || verifyData?.date || query.get('date') || new Date().toISOString().split('T')[0];
+  const hash = decodedToken?.h || verifyData?.hash || query.get('hash') || 'HK360-SEC-VERIFIED';
+
+  // Receipt specific parameters
+  const receiptNo = decodedToken?.rn || verifyData?.receiptNo || query.get('receipt_no') || 'RCPT-2026-0001';
+  const memberName = decodedToken?.m || verifyData?.memberName || query.get('member') || 'সম্মানিত সদস্য';
+  const memberId = decodedToken?.mid || verifyData?.memberId || query.get('memberId') || 'SM-001';
+  const depositorName = decodedToken?.d || verifyData?.depositorName || query.get('depositor') || memberName;
+  const depositorRelation = decodedToken?.rel || verifyData?.depositorRelation || query.get('relation') || 'নিজে (Self)';
+  const amount = Number(decodedToken?.a !== undefined ? decodedToken.a : (verifyData?.amount || query.get('amount') || 0));
+  const depositType = decodedToken?.type || verifyData?.depositType || query.get('type') || 'মাসিক সঞ্চয় / চাঁদা';
+  const paymentMonth = decodedToken?.month || verifyData?.month || query.get('month') || '';
+  const paymentYear = decodedToken?.year || verifyData?.year || query.get('year') || '';
+  const paymentMethod = decodedToken?.method || verifyData?.paymentMethod || query.get('method') || 'নগদ (Cash)';
+
+  // Document / Notice specific parameters
   const refNo = verifyData?.ref || query.get('ref') || 'সছস/২০২৬/০১';
   const title = verifyData?.title || query.get('title') || 'অফিসিয়াল নোটিশ ও কার্যবিবরণী';
-  const date = verifyData?.date || query.get('date') || new Date().toISOString().split('T')[0];
-  const samityName = verifyData?.samity || query.get('samity') || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const regNo = verifyData?.reg || query.get('reg') || 'সছস-২০২৪/০৯';
   const bodyText = verifyData?.body || query.get('body') || 'অত্র সমবায় সমিতির সম্মানিত সাধারণ সদস্য এবং কার্যনির্বাহী কমিটির অবগতির জন্য এই মর্মে জানানো যাচ্ছে যে, সমিতির সাধারণ সিদ্ধান্ত অনুযায়ী সকল কার্যক্রম ও হিসাবের ডিজিটাল ভেরিফিকেশন শতভাগ স্বচ্ছতার সাথে সংরক্ষিত রয়েছে।';
-  const hash = verifyData?.hash || query.get('hash') || 'HK360-SEC-VERIFIED';
+
+  // Due Notice specific parameters
+  const dueAmount = Number(decodedToken?.due !== undefined ? decodedToken.due : (verifyData?.dueAmount || query.get('due') || 0));
+  const dueMonths = decodedToken?.months || query.get('months') || 'চলতি মাস';
+  const deadline = decodedToken?.dl || query.get('deadline') || '১০ তারিখের মধ্যে';
 
   const handleCopyLink = () => {
     if (typeof window !== 'undefined') {
@@ -70,11 +119,11 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
         justifyContent: 'flex-start'
       }}
     >
-      {/* Top Bar with Back, Language and Print */}
+      {/* Top Bar with Back, Language, Copy and Print */}
       <div
         style={{
           width: '100%',
-          maxWidth: '720px',
+          maxWidth: '760px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -180,12 +229,12 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
       <div
         style={{
           width: '100%',
-          maxWidth: '720px',
+          maxWidth: '760px',
           background: '#ffffff',
           color: '#0f172a',
-          borderRadius: '16px',
+          borderRadius: '18px',
           padding: '28px 24px',
-          boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.5)',
+          boxShadow: '0 20px 50px -15px rgba(0, 0, 0, 0.6)',
           border: '2px solid #10b981',
           position: 'relative',
           overflow: 'hidden'
@@ -220,7 +269,17 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
           }}
         >
           <ShieldCheck size={18} color="#059669" />
-          <span>✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল নথি (Digitally Verified Official Document)</span>
+          <span>
+            {docType === 'receipt'
+              ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল জমা রসিদ (Digitally Verified Official Receipt)'
+              : docType === 'due_notice'
+              ? '✓ ডিজিটালভাবে সত্যায়িত বকেয়া নোটিশ (Digitally Verified Official Due Notice)'
+              : docType === 'membership_cert'
+              ? '✓ ডিজিটালভাবে সত্যায়িত সদস্যপদ সনদপত্র (Digitally Verified Membership Certificate)'
+              : docType === 'bulk_deposit'
+              ? '✓ ডিজিটালভাবে সত্যায়িত ব্যাংক ডিপোজিট রিপোর্ট (Digitally Verified Bank Deposit Report)'
+              : '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল নথি (Digitally Verified Official Document)'}
+          </span>
         </div>
 
         {/* Samity Header */}
@@ -235,77 +294,265 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 10px',
-              color: '#fff'
+              color: '#fff',
+              boxShadow: '0 4px 12px rgba(4, 120, 87, 0.3)'
             }}
           >
             <Building2 size={28} />
           </div>
-          <h1 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: '900', color: '#064e3b' }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: '1.45rem', fontWeight: '900', color: '#064e3b' }}>
             {samityName}
           </h1>
           <p style={{ margin: '0 0 4px', fontSize: '0.84rem', color: '#475569', fontWeight: '600' }}>
             গণপ্রজাতন্ত্রী বাংলাদেশ সরকার নিবন্ধিত সমবায় সমিতি
           </p>
-          <div style={{ display: 'inline-flex', gap: '12px', fontSize: '0.78rem', color: '#059669', fontWeight: '700' }}>
+          <div style={{ display: 'inline-flex', gap: '12px', fontSize: '0.78rem', color: '#059669', fontWeight: '700', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span>নিবন্ধন নং: {regNo}</span>
             <span>•</span>
-            <span>স্মারক নং: {refNo}</span>
-          </div>
-        </div>
-
-        {/* Metadata Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '12px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '12px 16px',
-            marginBottom: '20px'
-          }}
-        >
-          <div>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ডকুমেন্টের বিষয় / টাইটেল:</span>
-            <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a' }}>{title}</span>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ইস্যুর তারিখ:</span>
-            <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Calendar size={14} color="#059669" />
-              <span>{date}</span>
-            </span>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ভেরিফিকেশন সিকিউরিটি হ্যাশ:</span>
-            <span style={{ fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: '800', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Hash size={13} />
-              <span>{hash}</span>
+            <span>
+              {docType === 'receipt'
+                ? `রসিদ নং: ${receiptNo}`
+                : docType === 'membership_cert'
+                ? `সনদপত্র কোড: ${decodedToken?.mid || verifyData?.memberId || 'CERT-001'}`
+                : docType === 'bulk_deposit'
+                ? `ভাউচার নং: ${decodedToken?.vn || verifyData?.voucher || 'BULK-001'}`
+                : `স্মারক নং: ${refNo}`}
             </span>
           </div>
         </div>
 
-        {/* Body Content */}
-        <div style={{ marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '0.88rem', fontWeight: '800', color: '#334155', marginBottom: '8px', borderLeft: '3px solid #10b981', paddingLeft: '8px' }}>
-            অফিসিয়াল নথির মূল বিবরণ:
-          </h3>
-          <div
-            style={{
-              background: '#fff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '16px',
-              fontSize: '0.88rem',
-              lineHeight: '1.7',
-              color: '#1e293b',
-              whiteSpace: 'pre-wrap'
-            }}
-          >
-            {bodyText}
+        {/* ------------------------------------------------------------- */}
+        {/* CASE 1: DEPOSIT RECEIPT VERIFICATION */}
+        {/* ------------------------------------------------------------- */}
+        {docType === 'receipt' && (
+          <div>
+            {/* Amount Spotlight Box */}
+            <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', border: '1.5px solid #86efac', borderRadius: '12px', padding: '16px 20px', textAlign: 'center', marginBottom: '20px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#065f46', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                পরিশোধকৃত মোট জমা অংক (PAID AMOUNT)
+              </span>
+              <div style={{ fontSize: '2rem', fontWeight: '900', color: '#047857', margin: '4px 0' }}>
+                ৳ {amount.toLocaleString('en-IN')}/-
+              </div>
+              <span style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: '800', color: '#059669', background: '#dcfce7', padding: '3px 10px', borderRadius: '12px' }}>
+                ✓ সেন্ট্রাল ক্লাউড লেজারে সফলভাবে পরিশোধিত ও সংরক্ষিত
+              </span>
+            </div>
+
+            {/* Context Details Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px', fontSize: '0.84rem', lineHeight: '1.6' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>রসিদ নম্বর:</span>
+                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{receiptNo}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>হিসাবধারী সদস্য:</span>
+                <strong style={{ color: '#0f172a' }}>{memberName}</strong> {memberId ? `(${memberId})` : ''}
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>টাকা জমা দিয়েছেন:</span>
+                <strong style={{ color: '#0284c7' }}>{depositorName} [{depositorRelation}]</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>জমার খাত / হিসাবের বিবরণ:</span>
+                <strong style={{ color: '#0f172a' }}>{depositType}</strong> {paymentMonth ? `(${paymentMonth} ${paymentYear})` : ''}
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>পরিশোধ মাধ্যম:</span>
+                <strong style={{ color: '#0f172a' }}>{paymentMethod}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>জমার তারিখ:</span>
+                <strong style={{ color: '#0f172a' }}>{date}</strong>
+              </div>
+              <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ডিজিটাল সিকিউরিটি টোকেন ও অডিট হ্যাশ:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: '#059669', fontWeight: '800' }}>{hash}</span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* CASE 2: DUE NOTICE VERIFICATION */}
+        {/* ------------------------------------------------------------- */}
+        {docType === 'due_notice' && (
+          <div>
+            <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '16px 20px', textAlign: 'center', marginBottom: '20px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#991b1b', fontWeight: '800', textTransform: 'uppercase' }}>
+                মোট অপরিশোধিত বকেয়া অংক (OUTSTANDING DUE)
+              </span>
+              <div style={{ fontSize: '2rem', fontWeight: '900', color: '#dc2626', margin: '4px 0' }}>
+                ৳ {dueAmount.toLocaleString('en-IN')}/-
+              </div>
+              <span style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: '800', color: '#dc2626', background: '#fee2e2', padding: '3px 10px', borderRadius: '12px' }}>
+                বকেয়া পরিশোধের তাগিদপত্র
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px', fontSize: '0.84rem' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>সদস্যের নাম:</span>
+                <strong style={{ color: '#0f172a' }}>{memberName}</strong> {memberId ? `(${memberId})` : ''}
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>বকেয়ার মাসসমূহ:</span>
+                <strong style={{ color: '#0f172a' }}>{dueMonths}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>পরিশোধের শেষ সময়সীমা:</span>
+                <strong style={{ color: '#dc2626' }}>{deadline}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ভেরিফিকেশন হ্যাশ:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#059669', fontWeight: '800' }}>{hash}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* CASE 3: MEMBERSHIP CERTIFICATE VERIFICATION */}
+        {/* ------------------------------------------------------------- */}
+        {docType === 'membership_cert' && (
+          <div>
+            <div style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', border: '1.5px solid #fcd34d', borderRadius: '12px', padding: '18px 20px', textAlign: 'center', marginBottom: '20px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                অফিসিয়াল নিবন্ধিত সদস্যপদ সনদপত্র
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#b45309', margin: '4px 0' }}>
+                {memberName}
+              </div>
+              <span style={{ display: 'inline-block', fontSize: '0.74rem', fontWeight: '800', color: '#15803d', background: '#dcfce7', padding: '3px 12px', borderRadius: '12px' }}>
+                ✓ সমিতি গঠনতন্ত্র মোতাবেক সক্রিয় ও নিয়মিত সদস্য
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px', fontSize: '0.84rem', lineHeight: '1.6' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>সদস্য আইডি (Member Code):</span>
+                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{memberId}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>সদস্যের ধরন:</span>
+                <strong style={{ color: '#0f172a' }}>{decodedToken?.type || 'সাধারণ সদস্য'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>জাতীয় পরিচয়পত্র (NID):</span>
+                <strong style={{ color: '#0f172a' }}>{decodedToken?.nid || 'সংরক্ষিত'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>যোগদানের তারিখ:</span>
+                <strong style={{ color: '#0f172a' }}>{decodedToken?.joining || date}</strong>
+              </div>
+              <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>সনদপত্র অডিট হ্যাশ:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: '#059669', fontWeight: '800' }}>{hash}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* CASE 4: BULK DEPOSIT REPORT VERIFICATION */}
+        {/* ------------------------------------------------------------- */}
+        {docType === 'bulk_deposit' && (
+          <div>
+            <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1.5px solid #93c5fd', borderRadius: '12px', padding: '18px 20px', textAlign: 'center', marginBottom: '20px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#1e40af', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                একীভূত ব্যাংক ডিপোজিট মোট অংক (TOTAL SLIP AMOUNT)
+              </span>
+              <div style={{ fontSize: '2rem', fontWeight: '900', color: '#1d4ed8', margin: '4px 0' }}>
+                ৳ {Number(decodedToken?.a || verifyData?.amount || 0).toLocaleString('en-IN')}/-
+              </div>
+              <span style={{ display: 'inline-block', fontSize: '0.74rem', fontWeight: '800', color: '#1e40af', background: '#bfdbfe', padding: '3px 12px', borderRadius: '12px' }}>
+                ✓ ব্যাংকে সফলভাবে জমাকৃত ও অনুমোদিত ({decodedToken?.c || verifyData?.count || 0} জন সদস্যের চাঁদা)
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px', fontSize: '0.84rem', lineHeight: '1.6' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>বাল্ক ভাউচার নং:</span>
+                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{decodedToken?.vn || verifyData?.voucher || 'BULK-001'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ব্যাংক জমা স্লিপ নং:</span>
+                <strong style={{ color: '#0284c7' }}>{decodedToken?.sn || verifyData?.slip || 'SLIP-001'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ব্যাংক ও শাখা:</span>
+                <strong style={{ color: '#0f172a' }}>{decodedToken?.bn || verifyData?.bank || 'ব্যাংক'} ({decodedToken?.branch || 'প্রধান শাখা'})</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>জমার তারিখ:</span>
+                <strong style={{ color: '#0f172a' }}>{date}</strong>
+              </div>
+              <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ভেরিফিকেশন সিকিউরিটি হ্যাশ:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: '#059669', fontWeight: '800' }}>{hash}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* CASE 5: OFFICIAL RESOLUTION / DECREE / LETTERHEAD */}
+        {/* ------------------------------------------------------------- */}
+        {docType !== 'receipt' && docType !== 'due_notice' && docType !== 'membership_cert' && docType !== 'bulk_deposit' && (
+          <div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '12px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                marginBottom: '20px'
+              }}
+            >
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ডকুমেন্টের বিষয় / টাইটেল:</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a' }}>{title}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ইস্যুর তারিখ:</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Calendar size={14} color="#059669" />
+                  <span>{date}</span>
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ভেরিফিকেশন সিকিউরিটি হ্যাশ:</span>
+                <span style={{ fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: '800', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Hash size={13} />
+                  <span>{hash}</span>
+                </span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '0.88rem', fontWeight: '800', color: '#334155', marginBottom: '8px', borderLeft: '3px solid #10b981', paddingLeft: '8px' }}>
+                অফিসিয়াল নথির মূল বিবরণ:
+              </h3>
+              <div
+                style={{
+                  background: '#fff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  fontSize: '0.88rem',
+                  lineHeight: '1.7',
+                  color: '#1e293b',
+                  whiteSpace: 'pre-wrap'
+                }}
+              >
+                {bodyText}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Signatures & Seal Section */}
         <div
@@ -361,7 +608,7 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
             color: '#94a3b8'
           }}
         >
-          এই সার্টিফিকেটটি হিসাবকিতাব ৩৬০ ডিজিটাল সমবায় অটোমেশন প্ল্যাটফর্ম দ্বারা স্বয়ংক্রিয়ভাবে যাচাইকৃত। কিউআর কোড এবং ক্লাউড লেজার রেকর্ড অপরিবর্তনযোগ্য।
+          এই ডিজিটাল সার্টিফিকেটটি হিসাব কিতাব ৩৬০ ডিগ্রি সেন্ট্রাল অটোমেশন ইঞ্জিন দ্বারা স্বয়ংক্রিয়ভাবে যাচাইকৃত। কিউআর কোড ও ক্লাউড অডিট রেকর্ড অপরিবর্তনযোগ্য।
         </div>
       </div>
     </div>

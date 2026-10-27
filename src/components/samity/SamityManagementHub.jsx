@@ -136,6 +136,7 @@ import { DeviceMeshStatusModal } from './DeviceMeshStatusModal';
 import { SupervisorLiveRadarModal } from './SupervisorLiveRadarModal';
 import { SamityAIAssistantModal } from './SamityAIAssistantModal';
 import { optimizeImage } from '../../utils/imageOptimizer';
+import { parseBioDataFile } from '../../services/bioDataDocumentParser';
 
 // Bilingual Numeral Formatter (English when lang='en', Bengali otherwise)
 // Bilingual Numeral Formatter (English when lang='en', Bengali otherwise)
@@ -349,23 +350,33 @@ export const parseBioDataText = (raw) => {
   const t = raw.trim();
   const res = {};
 
-  // Extract Phone Numbers
-  const phoneMatches = t.match(/01[3-9]\d{8}/g);
+  // Extract Phone Numbers (013 - 019, 11 digits or with +880)
+  const phoneMatches = t.match(/(?:\+?88)?01[3-9]\d{8}/g);
   if (phoneMatches && phoneMatches.length > 0) {
-    res.mobile = phoneMatches[0];
-    if (phoneMatches.length > 1) res.altMobile = phoneMatches[1];
+    res.mobile = phoneMatches[0].replace(/^\+?88/, '');
+    if (phoneMatches.length > 1) res.altMobile = phoneMatches[1].replace(/^\+?88/, '');
   }
 
-  // Extract NID
-  const nidMatch = t.match(/(?:এনআইডি|NID|জাতীয় পরিচয়পত্র|ভোটার আইডি|আইডি নম্বর)[:\s]*([0-9]{10,17})/i) || t.match(/\b([0-9]{10}|[0-9]{13}|[0-9]{17})\b/);
+  // Extract NID (10, 13 or 17 digits)
+  const nidMatch = t.match(/(?:এনআইডি|NID|জাতীয় পরিচয়পত্র|ভোটার আইডি|আইডি নম্বর|National ID)[:\s\-]*([0-9]{10,17})/i) || t.match(/\b([0-9]{10}|[0-9]{13}|[0-9]{17})\b/);
   if (nidMatch) res.nidNumber = nidMatch[1] || nidMatch[0];
 
+  // Extract Date of Birth
+  const dobMatch = t.match(/(?:জন্ম তারিখ|জন্ম|DOB|Date of Birth|Birth Date)[:\s\-]*([0-9]{1,4}[-/.][0-9]{1,2}[-/.][0-9]{1,4})/i);
+  if (dobMatch) {
+    res.dateOfBirth = dobMatch[1];
+  }
+
   // Extract Blood Group
-  const bloodMatch = t.match(/\b(A|B|AB|O)[+-]\b/i) || t.match(/(?:রক্তের গ্রুপ|ব্লাড গ্রুপ|রক্ত)[:\s]*([ABO+-]{1,3})/i);
+  const bloodMatch = t.match(/\b(A|B|AB|O)[+-]\b/i) || t.match(/(?:রক্তের গ্রুপ|ব্লাড গ্রুপ|রক্ত|Blood Group|Blood)[:\s\-]*([ABO+-]{1,3})/i);
   if (bloodMatch) res.bloodGroup = (bloodMatch[1] || bloodMatch[0]).toUpperCase();
 
+  // Extract Gender
+  if (/পুরুষ|male\b/i.test(t)) res.gender = 'Male';
+  else if (/মহিলা|নারী|female\b/i.test(t)) res.gender = 'Female';
+
   // Extract Name (Bangla or English)
-  const nameMatch = t.match(/(?:নাম|সদস্যের নাম|Name)[:\s]*([^\n,;]+)/i);
+  const nameMatch = t.match(/(?:নাম|সদস্যের নাম|পূর্ণ নাম|Name|Full Name)[:\s\-]*([^\n,;]+)/i);
   if (nameMatch) {
     const rawName = nameMatch[1].trim();
     if (/[\u0980-\u09FF]/.test(rawName)) res.nameBn = rawName;
@@ -373,23 +384,27 @@ export const parseBioDataText = (raw) => {
   }
 
   // Extract Father's Name
-  const fatherMatch = t.match(/(?:পিতা|পিতার নাম|Father's Name|Father)[:\s]*([^\n,;]+)/i);
+  const fatherMatch = t.match(/(?:পিতা|পিতার নাম|Father's Name|Father)[:\s\-]*([^\n,;]+)/i);
   if (fatherMatch) res.fatherName = fatherMatch[1].trim();
 
   // Extract Mother's Name
-  const motherMatch = t.match(/(?:মাতা|মাতার নাম|Mother's Name|Mother)[:\s]*([^\n,;]+)/i);
+  const motherMatch = t.match(/(?:মাতা|মাতার নাম|Mother's Name|Mother)[:\s\-]*([^\n,;]+)/i);
   if (motherMatch) res.motherName = motherMatch[1].trim();
 
   // Extract Occupation
-  const occMatch = t.match(/(?:পেশা|Occupation|কাজ)[:\s]*([^\n,;]+)/i);
+  const occMatch = t.match(/(?:পেশা|Occupation|কাজ|Profession)[:\s\-]*([^\n,;]+)/i);
   if (occMatch) res.occupation = occMatch[1].trim();
 
   // Extract Present Address
-  const addrMatch = t.match(/(?:ঠিকানা|বর্তমান ঠিকানা|গ্রাম|Address)[:\s]*([^\n]+)/i);
+  const addrMatch = t.match(/(?:ঠিকানা|বর্তমান ঠিকানা|গ্রাম|Address|Present Address)[:\s\-]*([^\n]+)/i);
   if (addrMatch) res.presentAddress = addrMatch[1].trim();
 
+  // Extract Permanent Address
+  const permAddrMatch = t.match(/(?:স্থায়ী ঠিকানা|Permanent Address)[:\s\-]*([^\n]+)/i);
+  if (permAddrMatch) res.permanentAddress = permAddrMatch[1].trim();
+
   // Extract Subscription / Monthly Fee (e.g. 10000 or 500)
-  const feeMatch = t.match(/(?:চাঁদা|মাসিক চাঁদা|ফি|টাকা|Subscription|Fee)[:\s]*([0-9]+)/i);
+  const feeMatch = t.match(/(?:চাঁদা|মাসিক চাঁদা|ফি|টাকা|Subscription|Fee|Monthly Fee)[:\s\-]*([0-9]+)/i);
   if (feeMatch) {
     res.customSubscription = Number(feeMatch[1]);
     res.monthlySubscription = Number(feeMatch[1]);
@@ -437,9 +452,72 @@ export const SamityManagementHub = ({ onClose }) => {
   const [globalModuleSearchQuery, setGlobalModuleSearchQuery] = useState('');
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
 
-  // AI Member Bio-Data Ingestion State
+  // AI Member Bio-Data Ingestion State (Text, PDF & Picture Upload)
   const [isBioDataInputOpen, setIsBioDataInputOpen] = useState(false);
   const [bioDataRawInput, setBioDataRawInput] = useState('');
+  const [isBioDataProcessing, setIsBioDataProcessing] = useState(false);
+  const [bioDataProgressMsg, setBioDataProgressMsg] = useState('');
+  const [bioDataFilePreview, setBioDataFilePreview] = useState(null);
+  const [bioDataFileName, setBioDataFileName] = useState('');
+  const [attachBioDataImageAsPhoto, setAttachBioDataImageAsPhoto] = useState(true);
+  const bioDataFileInputRef = useRef(null);
+
+  const handleBioDataFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    playButtonClick?.();
+    triggerHaptic?.();
+    setIsBioDataProcessing(true);
+    setBioDataProgressMsg('ফাইল প্রসেসিং শুরু হচ্ছে...');
+    setBioDataFileName(file.name);
+
+    try {
+      const res = await parseBioDataFile(file, (p) => {
+        setBioDataProgressMsg(p.message || 'বিশ্লেষণ চলছে...');
+      });
+
+      if (res.text && res.text.trim()) {
+        setBioDataRawInput(res.text.trim());
+        setBioDataFilePreview(res.previewUrl || null);
+
+        // Auto-extract parsed fields into form
+        const parsed = parseBioDataText(res.text);
+        if (parsed.nameBn || parsed.nameEn || parsed.mobile || parsed.nidNumber) {
+          setMemberForm(prev => ({
+            ...prev,
+            ...parsed,
+            nameBn: parsed.nameBn || prev.nameBn,
+            nameEn: parsed.nameEn || prev.nameEn,
+            fatherName: parsed.fatherName || prev.fatherName,
+            motherName: parsed.motherName || prev.motherName,
+            mobile: parsed.mobile || prev.mobile,
+            altMobile: parsed.altMobile || prev.altMobile,
+            nidNumber: parsed.nidNumber || prev.nidNumber,
+            dateOfBirth: parsed.dateOfBirth || prev.dateOfBirth,
+            bloodGroup: parsed.bloodGroup || prev.bloodGroup,
+            gender: parsed.gender || prev.gender,
+            occupation: parsed.occupation || prev.occupation,
+            presentAddress: parsed.presentAddress || prev.presentAddress,
+            permanentAddress: parsed.permanentAddress || prev.permanentAddress,
+            customSubscription: parsed.customSubscription !== undefined ? parsed.customSubscription : prev.customSubscription,
+            monthlySubscription: parsed.monthlySubscription !== undefined ? parsed.monthlySubscription : prev.monthlySubscription,
+            photo: (res.fileType === 'image' && attachBioDataImageAsPhoto) ? (res.previewUrl || prev.photo) : prev.photo
+          }));
+          showToast?.(`✨ ${file.name} থেকে মেম্বারের তথ্য ও ফিল্ড পূরণ করা হয়েছে!`, 'success');
+        } else {
+          showToast?.(`ফাইল থেকে টেক্সট পড়া হয়েছে। নিচে এডিট করে 'ফর্ম পূরণ করুন' বাটনে চাপুন।`, 'info');
+        }
+      } else {
+        showToast?.('ফাইল থেকে কোনো পাঠযোগ্য টেক্সট পাওয়া যায়নি। স্পষ্ট ছবি বা ডিজিটাল PDF দিন।', 'warning');
+      }
+    } catch (err) {
+      showToast?.(err.message || 'ফাইল বিশ্লেষণে ত্রুটি হয়েছে', 'error');
+    } finally {
+      setIsBioDataProcessing(false);
+      setBioDataProgressMsg('');
+      if (e.target) e.target.value = '';
+    }
+  };
 
   const handleSwitchUserRole = (roleKey) => {
     setActiveUserRole(roleKey);
@@ -16187,27 +16265,154 @@ export const SamityManagementHub = ({ onClose }) => {
                     background: isBioDataInputOpen ? 'rgba(239, 68, 68, 0.2)' : 'rgba(45, 212, 191, 0.2)',
                     color: isBioDataInputOpen ? '#f87171' : '#2dd4bf',
                     border: '1px solid ' + (isBioDataInputOpen ? 'rgba(239, 68, 68, 0.4)' : 'rgba(45, 212, 191, 0.4)'),
-                    padding: '3px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.72rem',
+                    padding: '4px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.74rem',
                     fontWeight: '800',
                     cursor: 'pointer'
                   }}
                 >
-                  {isBioDataInputOpen ? 'বক্স বন্ধ করুন' : '✨ টেক্সট পেস্ট করে অটো-ফিল করুন'}
+                  {isBioDataInputOpen ? 'বক্স বন্ধ করুন' : '✨ ছবি, PDF বা টেক্সট দিয়ে অটো-ফিল'}
                 </button>
               </div>
 
+              {/* Hidden File Input for PDF / Picture Ingestion */}
+              <input
+                type="file"
+                ref={bioDataFileInputRef}
+                accept=".pdf,image/*,.txt"
+                style={{ display: 'none' }}
+                onChange={handleBioDataFileUpload}
+              />
+
               {isBioDataInputOpen && (
-                <div style={{ marginTop: '10px' }}>
-                  <p style={{ margin: '0 0 6px', fontSize: '0.72rem', color: '#cbd5e1' }}>
-                    মেম্বারের বায়োডাটা টেক্সট (WhatsApp, Word বা PDF থেকে কপি করা যেকোনো লেখা) এখানে পেস্ট করুন:
+                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: '#cbd5e1' }}>
+                    মেম্বারের <strong>পিডিএফ (PDF)</strong>, <strong>ছবি/পিকচার (NID বা জীবনবৃত্তান্তের ছবি)</strong> আপলোড করুন অথবা নিচের বক্সে টেক্সট পেস্ট করুন:
                   </p>
+
+                  {/* Upload Actions: Image & PDF buttons */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                    <button
+                      type="button"
+                      disabled={isBioDataProcessing}
+                      onClick={() => {
+                        if (bioDataFileInputRef.current) {
+                          bioDataFileInputRef.current.accept = 'image/*';
+                          bioDataFileInputRef.current.click();
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.15)',
+                        border: '1px dashed rgba(59, 130, 246, 0.45)',
+                        borderRadius: '10px',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: isBioDataProcessing ? 'wait' : 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.25)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ImageIcon size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#60a5fa' }}>
+                          📷 ছবি / পিকচার আপলোড
+                        </div>
+                        <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                          NID, জীবনবৃত্তান্ত বা ফরমের ছবি (OCR)
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isBioDataProcessing}
+                      onClick={() => {
+                        if (bioDataFileInputRef.current) {
+                          bioDataFileInputRef.current.accept = '.pdf,application/pdf';
+                          bioDataFileInputRef.current.click();
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(245, 158, 11, 0.15)',
+                        border: '1px dashed rgba(245, 158, 11, 0.45)',
+                        borderRadius: '10px',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: isBioDataProcessing ? 'wait' : 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.25)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <FileText size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#fbbf24' }}>
+                          📄 পিডিএফ (PDF) আপলোড
+                        </div>
+                        <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                          ডিজিটাল বায়োডাটা বা আবেদনপত্র
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Processing Status Bar */}
+                  {isBioDataProcessing && (
+                    <div style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.35)', borderRadius: '8px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <RefreshCw size={16} className="animate-spin" color="#818cf8" />
+                      <div style={{ fontSize: '0.74rem', color: '#c7d2fe', fontWeight: '700' }}>
+                        {bioDataProgressMsg || 'ফাইল থেকে এআই টেক্সট শনাক্তকরণ চলছে...'}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Picture Thumbnail Preview */}
+                  {bioDataFilePreview && (
+                    <div style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <img
+                          src={bioDataFilePreview}
+                          alt="Uploaded File"
+                          style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', border: '1.5px solid #38bdf8' }}
+                        />
+                        <div>
+                          <div style={{ fontSize: '0.74rem', fontWeight: '800', color: '#fff' }}>
+                            {bioDataFileName || 'আপলোডকৃত ছবি'}
+                          </div>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.68rem', color: '#10b981', cursor: 'pointer', marginTop: '2px' }}>
+                            <input
+                              type="checkbox"
+                              checked={attachBioDataImageAsPhoto}
+                              onChange={(e) => setAttachBioDataImageAsPhoto(e.target.checked)}
+                            />
+                            <span>এই ছবিটি সদস্যের প্রোফাইল ছবি হিসেবে সেভ করুন</span>
+                          </label>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBioDataFilePreview(null);
+                          setBioDataFileName('');
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+
                   <textarea
                     rows={4}
                     value={bioDataRawInput}
                     onChange={(e) => setBioDataRawInput(e.target.value)}
-                    placeholder="উদাহরণ: নাম: মোঃ আরিফুল ইসলাম, পিতা: আব্দুল জব্বার, মাতা: ফাতেমা বেগম, মোবাইল: 01712345678, রক্ত: B+, এনআইডি: 1990269123456, পেশা: শিক্ষক, ঠিকানা: মিরপুর-১০, ঢাকা, চাঁদা: ১০০০ টাকা"
+                    placeholder="অথবা সরাসরি লেখা পেস্ট করুন: নাম: মোঃ আরিফুল ইসলাম, পিতা: আব্দুল জব্বার, মাতা: ফাতেমা বেগম, মোবাইল: 01712345678, রক্ত: B+, এনআইডি: 1990269123456, পেশা: শিক্ষক, ঠিকানা: মিরপুর-১০, ঢাকা, চাঁদা: ১০০০ টাকা"
                     style={{
                       width: '100%',
                       padding: '8px 10px',
@@ -16219,9 +16424,20 @@ export const SamityManagementHub = ({ onClose }) => {
                       lineHeight: '1.4'
                     }}
                   />
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px', gap: '8px' }}>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    {bioDataRawInput && (
+                      <button
+                        type="button"
+                        onClick={() => setBioDataRawInput('')}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}
+                      >
+                        ক্লিয়ার করুন
+                      </button>
+                    )}
                     <button
                       type="button"
+                      disabled={isBioDataProcessing}
                       onClick={() => {
                         const parsed = parseBioDataText(bioDataRawInput);
                         if (!parsed.nameBn && !parsed.nameEn && !parsed.mobile) {
@@ -16238,11 +16454,15 @@ export const SamityManagementHub = ({ onClose }) => {
                           mobile: parsed.mobile || prev.mobile,
                           altMobile: parsed.altMobile || prev.altMobile,
                           nidNumber: parsed.nidNumber || prev.nidNumber,
+                          dateOfBirth: parsed.dateOfBirth || prev.dateOfBirth,
                           bloodGroup: parsed.bloodGroup || prev.bloodGroup,
+                          gender: parsed.gender || prev.gender,
                           occupation: parsed.occupation || prev.occupation,
                           presentAddress: parsed.presentAddress || prev.presentAddress,
+                          permanentAddress: parsed.permanentAddress || prev.permanentAddress,
                           customSubscription: parsed.customSubscription !== undefined ? parsed.customSubscription : prev.customSubscription,
-                          monthlySubscription: parsed.monthlySubscription !== undefined ? parsed.monthlySubscription : prev.monthlySubscription
+                          monthlySubscription: parsed.monthlySubscription !== undefined ? parsed.monthlySubscription : prev.monthlySubscription,
+                          photo: (bioDataFilePreview && attachBioDataImageAsPhoto) ? bioDataFilePreview : prev.photo
                         }));
                         showToast?.('✨ এআই সফলভাবে বায়োডাটা শনাক্ত করে ৩৮টি ফিল্ডে বসিয়ে দিয়েছে!', 'success');
                         setIsBioDataInputOpen(false);
@@ -16251,9 +16471,9 @@ export const SamityManagementHub = ({ onClose }) => {
                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                         color: '#fff',
                         border: 'none',
-                        padding: '6px 14px',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
+                        padding: '7px 16px',
+                        borderRadius: '8px',
+                        fontSize: '0.76rem',
                         fontWeight: '800',
                         cursor: 'pointer',
                         display: 'inline-flex',

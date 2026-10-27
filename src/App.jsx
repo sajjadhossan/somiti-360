@@ -299,7 +299,7 @@ function MainView() {
                     letterSpacing: '0.4px'
                   }}
                 >
-                  PRO v1.0.10
+                  PRO v1.0.11
                 </span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>

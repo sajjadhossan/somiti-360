@@ -13,9 +13,14 @@ import {
   RefreshCw,
   Trash2,
   QrCode,
-  Volume2
+  Volume2,
+  Upload,
+  Image as ImageIcon,
+  FileUp,
+  Loader2
 } from 'lucide-react';
 import { parseBioDataText } from './SamityManagementHub';
+import { parseBioDataFile } from '../../services/bioDataDocumentParser';
 import { playButtonClick, playSuccessChime } from '../../services/soundFeedback';
 import { hapticFeedback } from '../../services/nativeAppService';
 
@@ -39,7 +44,14 @@ export const SamityAIAssistantModal = ({
   const [bioDataInput, setBioDataInput] = useState('');
   const [detectedAction, setDetectedAction] = useState(null);
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [fileProgressMessage, setFileProgressMessage] = useState('');
+  const [uploadedFilePreview, setUploadedFilePreview] = useState(null);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [uploadedFileType, setUploadedFileType] = useState(null);
+  const [attachImageAsPhoto, setAttachImageAsPhoto] = useState(true);
   const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -265,19 +277,52 @@ export const SamityAIAssistantModal = ({
     }
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    playButtonClick?.();
+    hapticFeedback();
+    setIsProcessingFile(true);
+    setFileProgressMessage('ফাইল প্রসেসিং শুরু হচ্ছে...');
+    setUploadedFileName(file.name);
+    try {
+      const res = await parseBioDataFile(file, (p) => {
+        setFileProgressMessage(p.message || 'বিশ্লেষণ চলছে...');
+      });
+      if (res.text && res.text.trim()) {
+        setBioDataInput(res.text.trim());
+        setUploadedFilePreview(res.previewUrl || null);
+        setUploadedFileType(res.fileType);
+        showToast?.(`✨ ${file.name} থেকে টেক্সট সফলভাবে বের করা হয়েছে!`, 'success');
+      } else {
+        showToast?.('ফাইল থেকে টেক্সট পাওয়া যায়নি। স্পষ্ট ছবি বা ডিজিটাল পিডিএফ নির্বাচন করুন।', 'warning');
+      }
+    } catch (err) {
+      showToast?.(err.message || 'ফাইল বিশ্লেষণে সমস্যা হয়েছে', 'error');
+    } finally {
+      setIsProcessingFile(false);
+      setFileProgressMessage('');
+      if (e.target) e.target.value = '';
+    }
+  };
+
   const handleParseBioData = () => {
     playButtonClick?.();
     hapticFeedback();
     if (!bioDataInput.trim()) {
-      showToast?.('মেম্বারের বায়োডাটা টেক্সট পেস্ট করুন', 'warning');
+      showToast?.('মেম্বারের বায়োডাটা টেক্সট পেস্ট করুন অথবা PDF / ছবি আপলোড করুন', 'warning');
       return;
     }
 
     const parsed = parseBioDataText(bioDataInput);
+    if (uploadedFilePreview && attachImageAsPhoto) {
+      parsed.photo = uploadedFilePreview;
+    }
+
     if (!parsed.nameBn && !parsed.nameEn && !parsed.mobile) {
       showToast?.('পর্যাপ্ত তথ্য পাওয়া যায়নি, ম্যানুয়াল নিবন্ধন ফরম খুলছি...', 'info');
     } else {
-      showToast?.('✨ বায়োডাটা থেকে তথ্য শনাক্ত করা হয়েছে!', 'success');
+      showToast?.('✨ বায়োডাটা থেকে তথ্য শনাক্ত করে ফর্মে বসানো হয়েছে!', 'success');
     }
 
     onOpenMemberModalWithData(parsed);
@@ -564,41 +609,227 @@ export const SamityAIAssistantModal = ({
           </div>
         )}
 
-        {/* MODE 2: BIO-DATA AUTO FILL */}
+        {/* MODE 2: BIO-DATA AUTO FILL (TEXT, PDF & PICTURE / IMAGE UPLOAD) */}
         {activeMode === 'biodata' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <p style={{ margin: 0, fontSize: '0.76rem', color: isLight ? '#475569' : '#cbd5e1' }}>
-              মেম্বারের যেকোনো বায়োডাটা লেখা (WhatsApp, মেসেজ, Word বা CV থেকে কপি করা লেখা) নিচে পেস্ট করুন। এআই স্বয়ংক্রিয়ভাবে ফিল্ডগুলো শনাক্ত করে নতুন মেম্বার ফর্মে বসিয়ে দেবে:
-            </p>
-            <textarea
-              rows={6}
-              value={bioDataInput}
-              onChange={(e) => setBioDataInput(e.target.value)}
-              placeholder="উদাহরণ: নাম: মোঃ আরিফুল ইসলাম, পিতা: আব্দুল জব্বার, মাতা: ফাতেমা বেগম, মোবাইল: 01712345678, রক্ত: B+, এনআইডি: 1990269123456, পেশা: শিক্ষক, ঠিকানা: মিরপুর-১০, ঢাকা, চাঁদা: ১০০০ টাকা"
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '12px',
-                border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                background: isLight ? '#f8fafc' : '#0f172a',
-                color: isLight ? '#0f172a' : '#fff',
-                fontSize: '0.78rem',
-                lineHeight: '1.5'
-              }}
+            {/* Header Description */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <p style={{ margin: 0, fontSize: '0.76rem', color: isLight ? '#475569' : '#cbd5e1' }}>
+                মেম্বারের <strong>পিডিএফ (PDF)</strong>, <strong>ছবি/পিকচার (NID বা বায়োডাটার ছবি)</strong> আপলোড করুন অথবা সরাসরি টেক্সট পেস্ট করুন:
+              </p>
+            </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".pdf,image/*,.txt"
+              style={{ display: 'none' }}
+              onChange={handleFileUpload}
             />
 
+            {/* Upload Action Deck: Image vs PDF */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+              {/* Button 1: Picture / Image Upload with OCR */}
+              <button
+                type="button"
+                disabled={isProcessingFile}
+                onClick={() => {
+                  if (fileInputRef.current) {
+                    fileInputRef.current.accept = 'image/*';
+                    fileInputRef.current.click();
+                  }
+                }}
+                style={{
+                  background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)',
+                  border: isLight ? '1.5px dashed #93c5fd' : '1.5px dashed rgba(59, 130, 246, 0.45)',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: isProcessingFile ? 'wait' : 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <ImageIcon size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '800', color: isLight ? '#1d4ed8' : '#60a5fa' }}>
+                    📷 ছবি / পিকচার আপলোড
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                    NID কার্ড, জীবনবৃত্তান্ত বা ফরমের ছবি (OCR)
+                  </div>
+                </div>
+              </button>
+
+              {/* Button 2: PDF Document Upload */}
+              <button
+                type="button"
+                disabled={isProcessingFile}
+                onClick={() => {
+                  if (fileInputRef.current) {
+                    fileInputRef.current.accept = '.pdf,application/pdf';
+                    fileInputRef.current.click();
+                  }
+                }}
+                style={{
+                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)',
+                  border: isLight ? '1.5px dashed #fde68a' : '1.5px dashed rgba(245, 158, 11, 0.45)',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: isProcessingFile ? 'wait' : 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '800', color: isLight ? '#b45309' : '#fbbf24' }}>
+                    📄 পিডিএফ (PDF) আপলোড
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                    ডিজিটাল বায়োডাটা, রেজ্যুমে বা মেম্বার ফর্ম
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Processing / Progress State */}
+            {isProcessingFile && (
+              <div
+                style={{
+                  background: 'rgba(99, 102, 241, 0.12)',
+                  border: '1.5px solid rgba(99, 102, 241, 0.35)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}
+              >
+                <Loader2 size={24} className="animate-spin" color="#818cf8" />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#818cf8' }}>
+                    {uploadedFileName || 'ফাইল'} প্রসেস করা হচ্ছে...
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: isLight ? '#475569' : '#cbd5e1' }}>
+                    {fileProgressMessage || 'এআই দিয়ে টেক্সট শনাক্তকরণ চলছে...'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Uploaded File Thumbnail / Attachment Preview */}
+            {uploadedFilePreview && (
+              <div
+                style={{
+                  background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.04)',
+                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <img
+                    src={uploadedFilePreview}
+                    alt="Preview"
+                    style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', border: '1.5px solid #38bdf8' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: '800', color: isLight ? '#0f172a' : '#fff' }}>
+                      {uploadedFileName || 'আপলোডকৃত ছবি'}
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: '#10b981', cursor: 'pointer', marginTop: '3px' }}>
+                      <input
+                        type="checkbox"
+                        checked={attachImageAsPhoto}
+                        onChange={(e) => setAttachImageAsPhoto(e.target.checked)}
+                      />
+                      <span>এই ছবিটি মেম্বারের ছবি হিসেবে ব্যবহার করুন</span>
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadedFilePreview(null);
+                    setUploadedFileName('');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '4px'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* Textarea for Raw Text / Extracted OCR Result */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.74rem', fontWeight: '800', color: isLight ? '#475569' : '#cbd5e1' }}>
+                  শনাক্তকৃত টেক্সট ডেটা (সরাসরি এডিটও করতে পারবেন):
+                </label>
+                {bioDataInput && (
+                  <button
+                    type="button"
+                    onClick={() => setBioDataInput('')}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    ক্লিয়ার করুন
+                  </button>
+                )}
+              </div>
+              <textarea
+                rows={5}
+                value={bioDataInput}
+                onChange={(e) => setBioDataInput(e.target.value)}
+                placeholder="উদাহরণ: নাম: মোঃ আরিফুল ইসলাম, পিতা: আব্দুল জব্বার, মাতা: ফাতেমা বেগম, মোবাইল: 01712345678, রক্ত: B+, এনআইডি: 1990269123456, পেশা: শিক্ষক, ঠিকানা: মিরপুর-১০, ঢাকা, চাঁদা: ১০০০ টাকা"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+                  background: isLight ? '#f8fafc' : '#0f172a',
+                  color: isLight ? '#0f172a' : '#fff',
+                  fontSize: '0.78rem',
+                  lineHeight: '1.5'
+                }}
+              />
+            </div>
+
+            {/* Submit Action Button */}
             <button
               type="button"
+              disabled={isProcessingFile}
               onClick={handleParseBioData}
               style={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 color: '#fff',
                 border: 'none',
-                padding: '11px',
-                borderRadius: '10px',
+                padding: '12px',
+                borderRadius: '12px',
                 fontWeight: '800',
-                fontSize: '0.84rem',
-                cursor: 'pointer',
+                fontSize: '0.86rem',
+                cursor: isProcessingFile ? 'wait' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -606,8 +837,8 @@ export const SamityAIAssistantModal = ({
                 boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
               }}
             >
-              <Sparkles size={16} />
-              <span>✨ এআই দিয়ে বায়োডাটা পার্স করুন ও ফর্ম ওপেন করুন</span>
+              <Sparkles size={17} />
+              <span>✨ এআই দিয়ে ফর্ম অটো-পূরণ ও মেম্বার ফর্ম খুলুন</span>
             </button>
           </div>
         )}

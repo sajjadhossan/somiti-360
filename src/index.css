@@ -69,6 +69,133 @@
   --radius-md: 12px;
   --radius-lg: 18px;
   --radius-xl: 24px;
+
+  /* Safe Area Environmental Inset Variables (Android APK & iOS) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* =========================================================
+   Global Viewport & Mobile Safe-Area Foundation (Zero Cutoff)
+   ========================================================= */
+html {
+  box-sizing: border-box;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background-color: var(--bg-primary, #0a0d14);
+  color: var(--text-main, #f1f5f9);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Safe Area Utility Containers */
+.safe-screen-container {
+  padding-top: max(8px, var(--safe-top));
+  padding-bottom: max(16px, var(--safe-bottom));
+  padding-left: max(12px, var(--safe-left));
+  padding-right: max(12px, var(--safe-right));
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.safe-screen-header {
+  padding-top: max(8px, var(--safe-top));
+  padding-left: max(12px, var(--safe-left));
+  padding-right: max(12px, var(--safe-right));
+}
+
+.safe-screen-footer {
+  padding-bottom: max(16px, var(--safe-bottom));
+  padding-left: max(12px, var(--safe-left));
+  padding-right: max(12px, var(--safe-right));
+}
+
+/* Modal Bottom-Sheet & Responsive Dialog System */
+.somiti-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) max(16px, var(--safe-bottom)) max(12px, var(--safe-left));
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.somiti-modal-card {
+  width: 100%;
+  max-width: 680px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  border-radius: 20px;
+}
+
+@media (max-width: 640px) {
+  .somiti-modal-backdrop {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .somiti-modal-card {
+    max-height: calc(90dvh - var(--safe-top)) !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-top-left-radius: 24px !important;
+    border-top-right-radius: 24px !important;
+    padding-bottom: max(20px, var(--safe-bottom)) !important;
+  }
+}
+
+/* Horizontal Table Safe Scrollers */
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  position: relative;
+  border-radius: 12px;
+}
+
+.table-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
 }
 
 /* Light Theme Variables - Ultra-Clean, Airy & Crisp */

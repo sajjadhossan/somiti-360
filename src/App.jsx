@@ -5,7 +5,8 @@ import { SamityDocVerificationView } from './components/samity/SamityDocVerifica
 import { SomitiAuthView } from './components/auth/SomitiAuthView';
 import { DeviceMeshStatusModal } from './components/samity/DeviceMeshStatusModal';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
-import { Users, ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check } from 'lucide-react';
+import { getPendingQueueCount } from './services/somitiOfflineStore';
+import { Users, ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database } from 'lucide-react';
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -66,12 +67,34 @@ function MainView() {
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
   const [onlineDevices, setOnlineDevices] = useState(() => getOnlineDevicesList());
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [pendingQueueCount, setPendingQueueCount] = useState(0);
 
   useEffect(() => {
     const unsub = subscribeDevicePresence((list) => {
       if (Array.isArray(list)) setOnlineDevices(list);
     });
-    return () => unsub();
+
+    const updateNetwork = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', updateNetwork);
+    window.addEventListener('offline', updateNetwork);
+
+    getPendingQueueCount().then(c => setPendingQueueCount(c)).catch(() => {});
+    const handleQueueChange = (e) => {
+      if (e?.detail?.count !== undefined) {
+        setPendingQueueCount(e.detail.count);
+      } else {
+        getPendingQueueCount().then(c => setPendingQueueCount(c)).catch(() => {});
+      }
+    };
+    window.addEventListener('somiti_offline_queue_changed', handleQueueChange);
+
+    return () => {
+      unsub();
+      window.removeEventListener('online', updateNetwork);
+      window.removeEventListener('offline', updateNetwork);
+      window.removeEventListener('somiti_offline_queue_changed', handleQueueChange);
+    };
   }, []);
 
   const isLight = theme === 'light' || theme === 'nordic_clean';
@@ -257,7 +280,7 @@ function MainView() {
                     letterSpacing: '0.4px'
                   }}
                 >
-                  PRO v1.0
+                  PRO v1.0.8
                 </span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>
@@ -327,9 +350,27 @@ function MainView() {
             onClick={() => setIsDeviceMeshModalOpen(true)}
             title={lang === 'en' ? 'Cross-Platform Mesh Status' : '৪টি প্ল্যাটফর্ম লাইভ সিঙ্ক স্ট্যাটাস (APK, Web, PC, Mac)'}
             style={{
-              background: onlineDevices.length > 1 ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)') : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)'),
-              color: isLight ? '#15803d' : '#34d399',
-              border: onlineDevices.length > 1 ? '1.5px solid #10b981' : (isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)'),
+              background: !isOnline
+                ? 'rgba(245, 158, 11, 0.18)'
+                : pendingQueueCount > 0
+                ? 'rgba(168, 85, 247, 0.2)'
+                : onlineDevices.length > 1
+                ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)')
+                : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)'),
+              color: !isOnline
+                ? '#f59e0b'
+                : pendingQueueCount > 0
+                ? '#c084fc'
+                : isLight
+                ? '#15803d'
+                : '#34d399',
+              border: !isOnline
+                ? '1.5px solid #f59e0b'
+                : pendingQueueCount > 0
+                ? '1.5px solid #a855f7'
+                : onlineDevices.length > 1
+                ? '1.5px solid #10b981'
+                : (isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)'),
               borderRadius: '9px',
               padding: '6px 11px',
               fontSize: '0.74rem',
@@ -342,9 +383,19 @@ function MainView() {
               boxShadow: onlineDevices.length > 1 ? '0 0 12px rgba(16, 185, 129, 0.4)' : '0 2px 6px rgba(16, 185, 129, 0.15)'
             }}
           >
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+            {!isOnline ? (
+              <WifiOff size={13} color="#f59e0b" />
+            ) : pendingQueueCount > 0 ? (
+              <Database size={13} color="#c084fc" />
+            ) : (
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+            )}
             <span>
-              {onlineDevices.length > 1
+              {!isOnline
+                ? (lang === 'en' ? 'Offline (IndexedDB Ready)' : 'অফলাইন (IndexedDB সক্রিয়)')
+                : pendingQueueCount > 0
+                ? (lang === 'en' ? `Pending Queue (${pendingQueueCount})` : `পেন্ডিং কিউ (${pendingQueueCount})`)
+                : onlineDevices.length > 1
                 ? (lang === 'en' ? `4 Platforms (${onlineDevices.length} Online) ⚡` : `৪টি প্ল্যাটফর্ম (${onlineDevices.length}টি অনলাইন) ⚡`)
                 : (lang === 'en' ? '4 Platforms Synced ⚡' : '৪টি প্ল্যাটফর্ম সিঙ্কড ⚡')}
             </span>

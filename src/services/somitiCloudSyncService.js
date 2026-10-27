@@ -17,6 +17,7 @@
 
 import { getSupabase, isSupabaseReady } from './supabaseClient';
 import { backupToTelegram } from './somitiTelegramBackupService';
+import { saveStateToIndexedDB } from './somitiOfflineStore';
 
 const MESH_CHANNEL_NAME = 'hk360_somiti_mesh_sync';
 const STORAGE_KEY = 'hk360_samity_hub_data';
@@ -327,8 +328,17 @@ const handleIncomingBroadcast = (payload, isResponse = false) => {
     // Deep merge incoming state with local state
     const mergedData = mergeSamityState(localData, payload.data);
 
-    // Persist to local storage
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedData));
+    // Persist to local storage with quota protection
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedData));
+    } catch (stErr) {
+      console.warn('[SomitiSync] localStorage quota exceeded, IndexedDB saving:', stErr);
+    }
+    // Asynchronously update IndexedDB
+    try {
+      saveStateToIndexedDB(mergedData).catch(() => {});
+    } catch {}
+
     localStorage.setItem(LAST_SYNC_TS_KEY, String(payload.timestamp || Date.now()));
     localStorage.setItem(LAST_SYNC_DEVICE_KEY, payload.senderDeviceName || 'অন্য ডিভাইস');
     if (payload.actionMeta) {

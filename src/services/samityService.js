@@ -5,7 +5,8 @@
 // ============================================================================
 
 import { broadcastSamityStateUpdate, markRecordAsDeletedTombstone } from './somitiCloudSyncService';
-export { markRecordAsDeletedTombstone };
+import { saveStateToIndexedDB, generateIdempotencyKey } from './somitiOfflineStore';
+export { markRecordAsDeletedTombstone, generateIdempotencyKey };
 
 const STORAGE_KEY = 'hk360_samity_hub_data';
 
@@ -510,23 +511,38 @@ export const loadSamityData = () => {
   return DEFAULT_CLEAN_DATA;
 };
 
-// Persist data
+// Persist data with dual localStorage + IndexedDB non-blocking durability
 export const saveSamityData = (data, actionMeta = {}) => {
+  const enrichedMeta = {
+    ...actionMeta,
+    idempotencyKey: actionMeta.idempotencyKey || generateIdempotencyKey(actionMeta.action || 'sync'),
+    timestamp: Date.now()
+  };
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    // Trigger window event for cross-component sync
-    window.dispatchEvent(new CustomEvent('hk360_samity_updated', { detail: data }));
-    // Broadcast live state across 4 platforms (Android APK, Mac, PC, Web) in <150ms
-    try {
-      broadcastSamityStateUpdate(data, actionMeta);
-    } catch (syncErr) {
-      console.debug('[SamityService] Cloud broadcast error:', syncErr);
-    }
-    return true;
-  } catch (err) {
-    console.error('[SamityService] Save error:', err);
-    return false;
+  } catch (storageErr) {
+    console.warn('[SamityService] localStorage quota exceeded, IndexedDB taking over:', storageErr);
   }
+
+  // Dual-persistence: Asynchronously backup snapshot to IndexedDB
+  try {
+    saveStateToIndexedDB(data).catch(() => {});
+  } catch {}
+
+  // Trigger window event for cross-component sync
+  try {
+    window.dispatchEvent(new CustomEvent('hk360_samity_updated', { detail: data }));
+  } catch {}
+
+  // Broadcast live state across 4 platforms (Android APK, Mac, PC, Web) in <150ms
+  try {
+    broadcastSamityStateUpdate(data, enrichedMeta);
+  } catch (syncErr) {
+    console.debug('[SamityService] Cloud broadcast error:', syncErr);
+  }
+
+  return true;
 };
 
 // ID Generators

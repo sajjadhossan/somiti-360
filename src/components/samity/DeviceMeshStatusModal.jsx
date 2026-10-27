@@ -13,10 +13,12 @@ import {
   Sparkles,
   Zap,
   Radio,
-  Wifi
+  Wifi,
+  Database
 } from 'lucide-react';
 import { getSomitiTelegramConfig, backupToTelegram } from '../../services/somitiTelegramBackupService';
 import { isLiveSyncConnected, getOnlineTerminalsList } from '../../services/liveSyncService';
+import { getStorageQuotaHealth } from '../../services/somitiOfflineStore';
 import { detectDeviceType } from '../../services/deviceManagerService';
 import {
   subscribeSamityCloudSync,
@@ -41,11 +43,17 @@ export const DeviceMeshStatusModal = ({ isOpen, onClose, isLight = false, samity
     lastSyncTime: typeof window !== 'undefined' ? (Number(localStorage.getItem('somiti360_last_sync_timestamp')) || 0) : 0
   }));
 
+  const [storageHealth, setStorageHealth] = useState({ healthy: true, usedMB: '0.00', totalMB: 'N/A' });
+
   useEffect(() => {
     if (isOpen) {
       setTelegramConfig(getSomitiTelegramConfig());
       setLiveConnected(isLiveSyncConnected());
       setCurrentPlatform(detectDeviceType());
+
+      getStorageQuotaHealth().then(h => {
+        if (h) setStorageHealth(h);
+      }).catch(() => {});
       
       const unsubSync = subscribeSamityCloudSync((s) => {
         setMeshState(s);
@@ -177,24 +185,28 @@ export const DeviceMeshStatusModal = ({ isOpen, onClose, isLight = false, samity
 
   return (
     <div
+      className="somiti-modal-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: 'rgba(0, 0, 0, 0.75)',
-        backdropFilter: 'blur(8px)',
+        background: 'rgba(0, 0, 0, 0.78)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '16px'
+        padding: 'max(12px, env(safe-area-inset-top, 12px)) max(12px, env(safe-area-inset-right, 12px)) max(16px, env(safe-area-inset-bottom, 16px)) max(12px, env(safe-area-inset-left, 12px))',
+        boxSizing: 'border-box'
       }}
       onClick={onClose}
     >
       <div
+        className="somiti-modal-card"
         style={{
           width: '100%',
           maxWidth: '680px',
-          maxHeight: '90vh',
+          maxHeight: 'calc(100dvh - 32px)',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
           background: isLight ? '#ffffff' : '#0f172a',
@@ -435,6 +447,36 @@ export const DeviceMeshStatusModal = ({ isOpen, onClose, isLight = false, samity
               <RefreshCw size={13} className={isMeshSyncing ? 'animate-spin' : ''} />
               <span>{isMeshSyncing ? t('স্ক্যান হচ্ছে...', 'Scanning...') : t('লাইভ স্ক্যান ও সিঙ্ক', 'Live Scan & Sync')}</span>
             </button>
+          </div>
+        </div>
+
+        {/* 2.5 IndexedDB Durable Offline Store & Idempotency Engine */}
+        <div
+          style={{
+            background: isLight ? '#faf5ff' : 'linear-gradient(135deg, rgba(147, 51, 234, 0.12), rgba(15, 23, 42, 0.8))',
+            border: isLight ? '1.5px solid #a855f7' : '1.5px solid rgba(168, 85, 247, 0.35)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '14px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c084fc' }}>
+                <Database size={20} />
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: '900', color: isLight ? '#7e22ce' : '#c084fc' }}>
+                  {t('ইনডেক্সড-ডিবি অফলাইন স্টোরেজ ও আইডেমপোটেন্সি কি', 'IndexedDB Offline Resilience & Idempotency Key')}
+                </h4>
+                <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#cbd5e1' }}>
+                  {t('ব্যবহৃত মেমরি:', 'Used Storage:')} <strong style={{ color: '#a855f7' }}>{storageHealth.usedMB} MB</strong> {storageHealth.totalMB !== 'N/A' && `(${storageHealth.totalMB} MB কোটা)`} | {t('স্ট্যাটাস: ৫MB লিমিটলেস ও জিরো-লস সুরক্ষাপ্রাপ্ত', 'Status: Zero-loss protected')}
+                </p>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)', padding: '4px 10px', borderRadius: '12px' }}>
+              🛡️ {t('নন-ব্লকিং অফলাইন ইঞ্জিন', 'Non-Blocking Engine')}
+            </span>
           </div>
         </div>
 

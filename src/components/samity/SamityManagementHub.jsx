@@ -134,6 +134,8 @@ import {
 import { SamityInternalChatHub } from './SamityInternalChatHub';
 import { DeviceMeshStatusModal } from './DeviceMeshStatusModal';
 import { SupervisorLiveRadarModal } from './SupervisorLiveRadarModal';
+import { SamityAIAssistantModal } from './SamityAIAssistantModal';
+import { optimizeImage } from '../../utils/imageOptimizer';
 
 // Bilingual Numeral Formatter (English when lang='en', Bengali otherwise)
 // Bilingual Numeral Formatter (English when lang='en', Bengali otherwise)
@@ -521,6 +523,10 @@ export const SamityManagementHub = ({ onClose }) => {
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
   const [isSupervisorRadarOpen, setIsSupervisorRadarOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [isRecycleBinModalOpen, setIsRecycleBinModalOpen] = useState(false);
+  const [deleteDepositTarget, setDeleteDepositTarget] = useState(null);
+  const [deleteDepositReason, setDeleteDepositReason] = useState('টেস্টিং / অপ্রয়োজনীয় রেকর্ড');
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [onlineDevicesListState, setOnlineDevicesListState] = useState(() => getOnlineDevicesList());
   const onlineDevicesCount = Math.max(1, onlineDevicesListState.length);
   const [lastScanTimestamp, setLastScanTimestamp] = useState(() => {
@@ -544,12 +550,19 @@ export const SamityManagementHub = ({ onClose }) => {
       if (s.lastSyncTime) setLastScanTimestamp(s.lastSyncTime);
     });
     const handleOpenChat = () => setIsChatModalOpen(true);
+    const handleOpenAI = () => setIsAIAssistantOpen(true);
+    const handleOpenRecycle = () => setIsRecycleBinModalOpen(true);
+
     window.addEventListener('hk360_open_internal_chat', handleOpenChat);
+    window.addEventListener('hk360_open_ai_assistant', handleOpenAI);
+    window.addEventListener('hk360_open_recycle_bin', handleOpenRecycle);
 
     return () => {
       unsubPresence();
       unsubSync();
       window.removeEventListener('hk360_open_internal_chat', handleOpenChat);
+      window.removeEventListener('hk360_open_ai_assistant', handleOpenAI);
+      window.removeEventListener('hk360_open_recycle_bin', handleOpenRecycle);
     };
   }, []);
 
@@ -1387,30 +1400,51 @@ export const SamityManagementHub = ({ onClose }) => {
     setIsMemberModalOpen(true);
   };
 
-  const handleMemberPhotoUpload = (e) => {
+  const handleOpenMemberModalWithData = (parsedData = {}) => {
+    setEditingMember(null);
+    const newMemberId = generateMemberId(data.members, currentSamity.memberIdPrefix || 'SM-');
+    const baseForm = createDefaultMemberObject(activeSamityId, data.members.length + 1, {
+      id: newMemberId,
+      memberCode: newMemberId,
+      monthlySubscription: currentSamity.monthlySubscription || 500
+    });
+    setMemberForm({
+      ...baseForm,
+      ...parsedData,
+      id: newMemberId,
+      nameBn: parsedData.nameBn || baseForm.nameBn || '',
+      nameEn: parsedData.nameEn || baseForm.nameEn || '',
+      mobile: parsedData.mobile || baseForm.mobile || '',
+      customSubscription: parsedData.customSubscription !== undefined ? parsedData.customSubscription : baseForm.customSubscription,
+      monthlySubscription: parsedData.monthlySubscription !== undefined ? parsedData.monthlySubscription : baseForm.monthlySubscription
+    });
+    setMemberFormActiveTab('basic');
+    setIsMemberModalOpen(true);
+  };
+
+  const handleMemberPhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showToast?.('ছবির সাইজ সর্বোচ্চ ২ মেগাবাইট হতে পারবে', 'error');
-      return;
+    try {
+      showToast?.('ছবি অপ্টিমাইজ করা হচ্ছে...', 'info');
+      const optimized = await optimizeImage(file, { maxWidth: 600, maxHeight: 600, quality: 0.82 });
+      setMemberForm(prev => ({ ...prev, photo: optimized }));
+      showToast?.('ছবি সফলভাবে অপ্টিমাইজ করে যুক্ত হয়েছে', 'success');
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        setMemberForm(prev => ({ ...prev, photo: uploadEvent.target.result }));
+        showToast?.('ছবি সফলভাবে যুক্ত হয়েছে', 'success');
+      };
+      reader.readAsDataURL(file);
     }
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      setMemberForm(prev => ({ ...prev, photo: uploadEvent.target.result }));
-      showToast?.('ছবি সফলভাবে যুক্ত হয়েছে', 'success');
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSaveMember = (e) => {
     e.preventDefault();
+    const effectiveName = (memberForm.nameBn || '').trim() || (memberForm.nameEn || '').trim() || (memberForm.mobile ? `সদস্য (${memberForm.mobile})` : `সদস্য (${memberForm.id || 'নতুন'})`);
     if (!memberForm.nameBn.trim() && !memberForm.nameEn.trim()) {
-      showToast?.('সদস্যের নাম (বাংলা বা ইংরেজি) প্রদান করুন', 'error');
-      return;
-    }
-    if (!memberForm.mobile.trim()) {
-      showToast?.('সদস্যের ব্যক্তিগত মোবাইল নম্বর আবশ্যক', 'error');
-      return;
+      memberForm.nameBn = effectiveName;
     }
 
     playSuccessChime?.();
@@ -1904,6 +1938,7 @@ export const SamityManagementHub = ({ onClose }) => {
       chequeNo: '',
       chequeDate: '',
       depositorName: targetMember ? (targetMember.nameBn || targetMember.nameEn) : '',
+      depositorRelation: 'নিজে (Self)',
       depositorPhone: targetMember?.mobile || '',
       depositorWhatsApp: targetMember?.whatsappNumber || targetMember?.mobile || '',
       memberId: prefillMemberId,
@@ -1927,19 +1962,22 @@ export const SamityManagementHub = ({ onClose }) => {
     setIsDepositModalOpen(true);
   };
 
-  const handleDepositImageUpload = (field, e) => {
+  const handleDepositImageUpload = async (field, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      showToast?.('ছবির সর্বোচ্চ সাইজ ৩ মেগাবাইট হতে হবে', 'warning');
-      return;
+    try {
+      showToast?.('স্লিপের ছবি অপ্টিমাইজ করা হচ্ছে...', 'info');
+      const optimized = await optimizeImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
+      setDepositForm(prev => ({ ...prev, [field]: optimized }));
+      showToast?.('স্লিপ সফলভাবে অপ্টিমাইজ করে আপলোড হয়েছে', 'success');
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setDepositForm(prev => ({ ...prev, [field]: event.target.result }));
+        showToast?.('ছবি আপলোড হয়েছে', 'success');
+      };
+      reader.readAsDataURL(file);
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setDepositForm(prev => ({ ...prev, [field]: event.target.result }));
-      showToast?.('ছবি সফলভাবে আপলোড হয়েছে', 'success');
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSaveDeposit = (e) => {
@@ -1961,6 +1999,7 @@ export const SamityManagementHub = ({ onClose }) => {
       amount: Number(depositForm.amount),
       memberName,
       depositorName,
+      depositorRelation: depositForm.depositorRelation || 'নিজে (Self)',
       samityId: activeSamityId,
       samityName: currentSamity?.nameBn || depositForm.samityName,
       month: depositForm.paymentMonth, // backward compat for calculateMemberPaymentStatus
@@ -2000,23 +2039,164 @@ export const SamityManagementHub = ({ onClose }) => {
   };
 
   const handleDeleteDeposit = (depositId) => {
-    const target = data.deposits.find(d => d.id === depositId);
+    const target = (data.deposits || []).find(d => String(d.id) === String(depositId));
     if (!target) return;
-    if (!window.confirm(`আপনি কি নিশ্চিত যে ভাউচার "${target.voucherNo}" মুছে ফেলতে চান?`)) {
-      return;
-    }
     playButtonClick?.();
     triggerHaptic?.();
+    setDeleteDepositTarget(target);
+    setDeleteDepositReason('টেস্টিং / অপ্রয়োজনীয় রেকর্ড');
+  };
+
+  const handleConfirmDeleteDeposit = () => {
+    if (!deleteDepositTarget) return;
+    playButtonClick?.();
+    triggerHaptic?.();
+
+    const target = deleteDepositTarget;
+    const targetId = target.id;
+    const reason = deleteDepositReason || 'টেস্টিং / অপ্রয়োজনীয় রেকর্ড';
+    const deletedRecord = {
+      ...target,
+      deletedAt: new Date().toISOString(),
+      deletedBy: activeUserRole || 'Super Admin',
+      deleteReason: reason
+    };
+
     updateAndSave(prev => ({
       ...prev,
-      deposits: prev.deposits.filter(d => d.id !== depositId)
+      deposits: (prev.deposits || []).filter(d => String(d.id) !== String(targetId)),
+      recycleBinDeposits: [deletedRecord, ...(prev.recycleBinDeposits || []).filter(d => String(d.id) !== String(targetId))]
     }), {
-      action: 'DELETE_DEPOSIT',
+      action: 'DELETE_DEPOSIT_TO_RECYCLE_BIN',
       module: 'DEPOSITS',
-      recordId: target.voucherNo,
-      details: { amount: target.amount, member: target.memberName }
+      recordId: target.voucherNo || targetId,
+      details: { amount: target.amount, reason }
     });
-    showToast?.(`ভাউচার ${target.voucherNo} মুছে ফেলা হয়েছে`, 'info');
+
+    if (activePrintReceipt?.id === targetId) {
+      setActivePrintReceipt(null);
+    }
+
+    setDeleteDepositTarget(null);
+    showToast?.(`ভাউচার #${target.voucherNo || target.receiptNo} রিসাইকেল বিনে পাঠানো হয়েছে।`, 'info');
+  };
+
+  const handleRestoreDeposit = (recordId) => {
+    playSuccessChime?.();
+    triggerHaptic?.();
+
+    const currentBin = data.recycleBinDeposits || [];
+    const target = currentBin.find(d => String(d.id) === String(recordId));
+    if (!target) return;
+
+    const restored = {
+      ...target,
+      restoredAt: new Date().toISOString(),
+      restoredBy: activeUserRole || 'Super Admin'
+    };
+    delete restored.deleteReason;
+    delete restored.deletedAt;
+    delete restored.deletedBy;
+
+    updateAndSave(prev => ({
+      ...prev,
+      deposits: [restored, ...(prev.deposits || []).filter(d => String(d.id) !== String(recordId))],
+      recycleBinDeposits: (prev.recycleBinDeposits || []).filter(d => String(d.id) !== String(recordId))
+    }), {
+      action: 'RESTORE_DEPOSIT_FROM_RECYCLE_BIN',
+      module: 'DEPOSITS',
+      recordId: recordId,
+      details: { amount: restored.amount }
+    });
+
+    showToast?.(`ভাউচার #${restored.voucherNo || restored.receiptNo} সফলভাবে পুনরুদ্ধার (Restored) করা হয়েছে।`, 'success');
+  };
+
+  const handlePermanentDeleteDeposit = (recordId) => {
+    playButtonClick?.();
+    triggerHaptic?.();
+
+    updateAndSave(prev => ({
+      ...prev,
+      recycleBinDeposits: (prev.recycleBinDeposits || []).filter(d => String(d.id) !== String(recordId))
+    }), {
+      action: 'PERMANENT_DELETE_DEPOSIT',
+      module: 'RECYCLE_BIN',
+      recordId: recordId
+    });
+
+    showToast?.('লেনদেনটি স্থায়ীভাবে মুছে ফেলা হয়েছে।', 'warning');
+  };
+
+  const handleEmptyRecycleBin = () => {
+    playButtonClick?.();
+    triggerHaptic?.();
+
+    updateAndSave(prev => ({
+      ...prev,
+      recycleBinDeposits: []
+    }), {
+      action: 'EMPTY_RECYCLE_BIN',
+      module: 'RECYCLE_BIN'
+    });
+
+    showToast?.('রিসাইকেল বিন সম্পূর্ণ খালি করা হয়েছে।', 'warning');
+  };
+
+  const handleExecuteAIDeposit = (depositPayload) => {
+    playSuccessChime?.();
+    triggerHaptic?.();
+
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().slice(0, 5);
+    const voucherNo = generateVoucherNumber(data.deposits, 'DEP-');
+    const receiptNo = generateReceiptNumber(data.deposits, 'RCPT-');
+
+    const newDeposit = {
+      id: `DEP-${Date.now()}`,
+      voucherNo,
+      receiptNo,
+      depositDate: dateStr,
+      depositTime: timeStr,
+      samityId: activeSamityId,
+      samityName: currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি',
+      bankName: currentSamity?.bankDetails?.bankName || 'ক্যাশ কাউন্টার',
+      bankBranch: currentSamity?.bankDetails?.branchName || 'প্রধান কার্যালয়',
+      bankAccountNo: currentSamity?.bankDetails?.accNo || 'CASH-MAIN',
+      bankAccountName: currentSamity?.nameBn || '',
+      depositType: depositPayload.depositType || 'Monthly Subscription',
+      depositMethod: depositPayload.depositMethod || 'Cash Counter',
+      amount: Number(depositPayload.amount) || 500,
+      depositorName: depositPayload.depositorName || depositPayload.memberName || 'সম্মানিত সদস্য',
+      depositorRelation: depositPayload.depositorRelation || 'নিজে (Self)',
+      depositorPhone: depositPayload.depositorPhone || '',
+      depositorWhatsApp: depositPayload.depositorWhatsApp || depositPayload.depositorPhone || '',
+      memberId: depositPayload.memberId || '',
+      memberName: depositPayload.memberName || '',
+      paymentMonth: depositPayload.paymentMonth || now.toLocaleString('en-US', { month: 'short' }),
+      paymentYear: Number(depositPayload.paymentYear) || now.getFullYear(),
+      paymentPeriod: 'Monthly',
+      approvalStatus: 'approved',
+      approvedBy: activeUserRole || 'Super Admin',
+      approvedAt: now.toISOString(),
+      entryBy: activeUserRole || 'AI Assistant',
+      remarks: depositPayload.remarks || 'AI Voice Command Assistant দ্বারা স্বয়ংক্রিয়ভাবে তৈরি',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString()
+    };
+
+    updateAndSave(prev => ({
+      ...prev,
+      deposits: [newDeposit, ...(prev.deposits || [])]
+    }), {
+      action: 'CREATE_AI_VOICE_DEPOSIT',
+      module: 'DEPOSITS',
+      recordId: newDeposit.id,
+      details: { amount: newDeposit.amount, memberName: newDeposit.memberName }
+    });
+
+    return newDeposit;
   };
 
   // --------------------------------------------------------------------------
@@ -3804,6 +3984,63 @@ export const SamityManagementHub = ({ onClose }) => {
                   ? t(`রাডার (${pendingAuditCount} পেন্ডিং) ⏳`, `Radar (${pendingAuditCount} Pending) ⏳`)
                   : t('সুপারভাইজার রাডার 📡', 'Supervisor Radar 📡')}
               </span>
+            </button>
+
+            {/* AI Voice Assistant Button */}
+            <button
+              onClick={() => {
+                playButtonClick?.();
+                triggerHaptic();
+                setIsAIAssistantOpen(true);
+              }}
+              className="full-width-mobile"
+              style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.25))',
+                color: isLight ? '#6366f1' : '#c084fc',
+                border: isLight ? '1.5px solid #c7d2fe' : '1px solid rgba(168, 85, 247, 0.45)',
+                borderRadius: '10px',
+                padding: '8px 12px',
+                fontSize: '0.8rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.2)'
+              }}
+              title="এআই ভয়েস রসিদ রোল ও বায়োডাটা সহকারী"
+            >
+              <Sparkles size={15} color="#c084fc" />
+              <span>🎙️ এআই ভয়েস রোল</span>
+            </button>
+
+            {/* Financial Recycle Bin Button */}
+            <button
+              onClick={() => {
+                playButtonClick?.();
+                triggerHaptic();
+                setIsRecycleBinModalOpen(true);
+              }}
+              className="full-width-mobile"
+              style={{
+                background: (data.recycleBinDeposits || []).length > 0 ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)') : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)'),
+                color: (data.recycleBinDeposits || []).length > 0 ? '#ef4444' : (isLight ? '#475569' : '#cbd5e1'),
+                border: (data.recycleBinDeposits || []).length > 0 ? '1.5px solid rgba(239, 68, 68, 0.4)' : (isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)'),
+                borderRadius: '10px',
+                padding: '8px 11px',
+                fontSize: '0.8rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                cursor: 'pointer'
+              }}
+              title="রিসাইকেল বিন ও অপসারিত লেনদেন পুনরুদ্ধার"
+            >
+              <Trash2 size={14} />
+              <span>রিসাইকেল বিন ({(data.recycleBinDeposits || []).length})</span>
             </button>
 
             {onClose && (
@@ -16141,10 +16378,9 @@ export const SamityManagementHub = ({ onClose }) => {
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', color: '#fff', fontWeight: '700', marginBottom: '4px' }}>পূর্ণ নাম (বাংলায়) *</label>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: '#fff', fontWeight: '700', marginBottom: '4px' }}>পূর্ণ নাম (বাংলায়)</label>
                       <input
                         type="text"
-                        required
                         value={memberForm.nameBn}
                         onChange={(e) => setMemberForm({ ...memberForm, nameBn: e.target.value })}
                         placeholder="যেমন: জনাব মোহাম্মাদ আব্দুর রহিম"
@@ -16227,10 +16463,9 @@ export const SamityManagementHub = ({ onClose }) => {
               {memberFormActiveTab === 'contact' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#fff', fontWeight: '700', marginBottom: '4px' }}>ব্যক্তিগত মোবাইল নম্বর *</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#cbd5e1', fontWeight: '700', marginBottom: '4px' }}>ব্যক্তিগত মোবাইল নম্বর (ঐচ্ছিক)</label>
                     <input
                       type="tel"
-                      required
                       value={memberForm.mobile}
                       onChange={(e) => setMemberForm({ ...memberForm, mobile: e.target.value })}
                       placeholder="017XXXXXXXX"
@@ -18004,12 +18239,13 @@ export const SamityManagementHub = ({ onClose }) => {
                       onChange={(e) => {
                         const mId = e.target.value;
                         const m = data.members.find(mem => mem.id === mId);
-                        if (m) {
+                         if (m) {
                           setDepositForm({
                             ...depositForm,
                             memberId: m.id,
                             memberName: m.nameBn || m.nameEn,
                             depositorName: m.nameBn || m.nameEn,
+                            depositorRelation: 'নিজে (Self)',
                             depositorPhone: m.mobile || '',
                             depositorWhatsApp: m.whatsappNumber || m.mobile || '',
                             amount: m.customSubscription || currentSamity?.monthlySubscription || depositForm.amount,
@@ -18019,7 +18255,8 @@ export const SamityManagementHub = ({ onClose }) => {
                           setDepositForm({
                             ...depositForm,
                             memberId: '',
-                            memberName: ''
+                            memberName: '',
+                            depositorRelation: 'নিজে (Self)'
                           });
                         }
                       }}
@@ -18037,22 +18274,47 @@ export const SamityManagementHub = ({ onClose }) => {
                   {/* Depositor Name */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#94a3b8', marginBottom: '4px' }}>
-                      আমানতকারীর নাম (Depositor Name) *
+                      টাকা জমা দিয়েছেন / জমাদানকারী (Depositor Name) *
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="যিনি টাকা জমা দিয়েছেন"
+                      placeholder="যিনি টাকা জমা দিয়েছেন (সদস্য নিজে বা প্রতিনিধি)"
                       value={depositForm.depositorName}
                       onChange={(e) => setDepositForm({ ...depositForm, depositorName: e.target.value })}
                       style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.84rem' }}
                     />
                   </div>
 
+                  {/* Depositor Relation / Identity */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#38bdf8', marginBottom: '4px' }}>
+                      জমাদানকারীর সম্পর্ক / পদবি (Relation / Role)
+                    </label>
+                    <select
+                      value={depositForm.depositorRelation || 'নিজে (Self)'}
+                      onChange={(e) => setDepositForm({ ...depositForm, depositorRelation: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: '#0f172a', border: '1.5px solid #38bdf8', color: '#38bdf8', fontSize: '0.84rem', fontWeight: '700' }}
+                    >
+                      <option value="নিজে (Self)">নিজে (সদস্য স্বয়ং)</option>
+                      <option value="পরিবারের সদস্য (Family Member)">পরিবারের সদস্য (Family Member)</option>
+                      <option value="ভাই (Brother)">ভাই (Brother)</option>
+                      <option value="বোন (Sister)">বোন (Sister)</option>
+                      <option value="স্ত্রী (Wife)">স্ত্রী (Wife)</option>
+                      <option value="স্বামী (Husband)">স্বামী (Husband)</option>
+                      <option value="পিতা (Father)">পিতা (Father)</option>
+                      <option value="মাতা (Mother)">মাতা (Mother)</option>
+                      <option value="ছেলে (Son)">ছেলে (Son)</option>
+                      <option value="মেয়ে (Daughter)">মেয়ে (Daughter)</option>
+                      <option value="প্রতিনিধি (Representative)">প্রতিনিধি (Representative)</option>
+                      <option value="অন্যান্য (Other)">অন্যান্য</option>
+                    </select>
+                  </div>
+
                   {/* Depositor Phone */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#94a3b8', marginBottom: '4px' }}>
-                      আমানতকারীর মোবাইল নম্বর *
+                      জমাদানকারীর মোবাইল নম্বর (ঐচ্ছিক)
                     </label>
                     <input
                       type="tel"
@@ -19460,6 +19722,30 @@ export const SamityManagementHub = ({ onClose }) => {
                     <span>{isCancelled ? 'বাতিলকৃত রসিদ' : 'রসিদ বাতিলকরণ'}</span>
                   </button>
 
+                  {/* Action 9B: Move to Recycle Bin */}
+                  <button
+                    onClick={() => {
+                      setDeleteDepositTarget(dep);
+                      setDeleteDepositReason('টেস্টিং / অপ্রয়োজনীয় রেকর্ড');
+                    }}
+                    style={{
+                      background: '#fee2e2',
+                      color: '#dc2626',
+                      border: '1px solid #fca5a5',
+                      padding: '7px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: '700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    <span>রিসাইকেল বিনে পাঠান</span>
+                  </button>
+
                   {/* Action 10: Receipt verification through QR code */}
                   <button
                     onClick={() => {
@@ -19612,9 +19898,9 @@ export const SamityManagementHub = ({ onClose }) => {
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '6px 16px' }}>
                     <div>সদস্য আইডি: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{member.id || dep.memberId || 'N/A'}</strong></div>
-                    <div>সদস্যের নাম: <strong style={{ color: '#0f172a' }}>{memberName}</strong></div>
-                    <div>মোবাইল নম্বর: <strong style={{ color: '#0f172a' }}>{memberMobile}</strong></div>
-                    <div>হোয়াটসঅ্যাপ: <strong style={{ color: '#0f172a' }}>{memberWhatsApp}</strong></div>
+                    <div>হিসাবধারী সদস্য: <strong style={{ color: '#0f172a' }}>{memberName}</strong></div>
+                    <div>টাকা জমা দিয়েছেন: <strong style={{ color: '#0284c7' }}>{dep.depositorName || memberName} {dep.depositorRelation ? `[${dep.depositorRelation}]` : ''}</strong></div>
+                    <div>জমাদানকারীর মোবাইল: <strong style={{ color: '#0f172a' }}>{dep.depositorPhone || memberMobile}</strong></div>
                     <div>জমার খাত: <strong style={{ color: '#0f172a' }}>{depType}</strong></div>
                     <div>পরিশোধের মাস ও বছর: <strong style={{ color: '#0f172a' }}>{depMonth} {depYear}</strong></div>
                   </div>
@@ -19659,6 +19945,33 @@ export const SamityManagementHub = ({ onClose }) => {
                     </tr>
                   </tbody>
                 </table>
+
+                {/* Embedded Original Bank Deposit Slip / Voucher Receipt Proof */}
+                {(dep.depositSlipImage || dep.bankReceiptImage || dep.transactionScreenshot) && (
+                  <div style={{
+                    margin: '12px 0',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1.5px dashed #0284c7',
+                    background: '#f0f9ff',
+                    position: 'relative',
+                    zIndex: 1
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: '800', color: '#0369a1' }}>
+                        📎 জমাদানকারীর ব্যাংক ডিপোজিট স্লিপ / ভাউচার প্রমাণপত্র (Deposit Slip Proof):
+                      </span>
+                      <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: '700' }}>
+                        ডিজিটাল ভেরিফাইড কপি
+                      </span>
+                    </div>
+                    <img
+                      src={dep.depositSlipImage || dep.bankReceiptImage || dep.transactionScreenshot}
+                      alt="Deposit Slip Proof"
+                      style={{ maxHeight: '160px', maxWidth: '100%', objectFit: 'contain', borderRadius: '6px', border: '1px solid #bae6fd', display: 'block', margin: '0 auto' }}
+                    />
+                  </div>
+                )}
 
                 {/* 19 & 20. Amount in Words (Bangla & English) */}
                 <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#1e293b', marginBottom: '22px', position: 'relative', zIndex: 1 }}>
@@ -22141,6 +22454,341 @@ export const SamityManagementHub = ({ onClose }) => {
               currentUser={currentUser}
               onClose={() => setIsChatModalOpen(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* 9. SMART AI VOICE & ACTION ASSISTANT MODAL */}
+      <SamityAIAssistantModal
+        isOpen={isAIAssistantOpen}
+        onClose={() => setIsAIAssistantOpen(false)}
+        members={data.members || []}
+        deposits={data.deposits || []}
+        currentSamity={currentSamity}
+        onExecuteDeposit={handleExecuteAIDeposit}
+        onOpenMemberModalWithData={handleOpenMemberModalWithData}
+        onOpenRecycleBin={() => setIsRecycleBinModalOpen(true)}
+        onOpenReceipt={(dep) => setActivePrintReceipt(dep)}
+        showToast={showToast}
+        t={t}
+        isLight={isLight}
+      />
+
+      {/* 10. CONFIRM DELETE DEPOSIT MODAL (MOVE TO RECYCLE BIN) */}
+      {deleteDepositTarget && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 10002,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteDepositTarget(null);
+          }}
+        >
+          <div
+            style={{
+              background: isLight ? '#ffffff' : '#0f172a',
+              border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '18px',
+              width: '100%',
+              maxWidth: '500px',
+              padding: '24px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={22} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                  লেনদেন রিসাইকেল বিনে পাঠান
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                  ভাউচার ও জমা রেকর্ড সাময়িকভাবে সরিয়ে নেওয়া হবে
+                </p>
+              </div>
+            </div>
+
+            <div style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', padding: '12px 14px', borderRadius: '10px', border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)', marginBottom: '16px', fontSize: '0.82rem', lineHeight: '1.6' }}>
+              <div>ভাউচার নং: <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{deleteDepositTarget.voucherNo || deleteDepositTarget.id}</strong></div>
+              <div>সদস্য / আমানতকারী: <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>{deleteDepositTarget.memberName || deleteDepositTarget.depositorName}</strong></div>
+              <div>পরিমাণ: <strong style={{ color: '#10b981', fontSize: '1rem' }}>৳{Number(deleteDepositTarget.amount || 0).toLocaleString()}</strong></div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '6px' }}>
+                মুছে ফেলার কারণ:
+              </label>
+              <select
+                value={deleteDepositReason}
+                onChange={(e) => setDeleteDepositReason(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.2)',
+                  background: isLight ? '#ffffff' : '#0f172a',
+                  color: isLight ? '#0f172a' : '#fff',
+                  fontSize: '0.82rem',
+                  fontWeight: '700'
+                }}
+              >
+                <option value="টেস্টিং / অপ্রয়োজনীয় রেকর্ড">টেস্টিং / অপ্রয়োজনীয় রেকর্ড (Sample/Trial Entry)</option>
+                <option value="ভুল এন্ট্রি">ভুল এন্ট্রি (Mistaken Entry)</option>
+                <option value="দ্বৈত এন্ট্রি">দ্বৈত এন্ট্রি (Duplicate Entry)</option>
+                <option value="চেক বা পেমেন্ট বাউন্স">চেক বা পেমেন্ট বাউন্স (Dishonored/Bounced)</option>
+                <option value="অন্যান্য">অন্যান্য কারণ (Other)</option>
+              </select>
+            </div>
+
+            <div style={{ background: 'rgba(56, 189, 248, 0.1)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)', fontSize: '0.74rem', color: '#38bdf8', marginBottom: '20px' }}>
+              💡 চিন্তা করবেন না! রেকর্ডটি মুছে গেলেও <strong>রিসাইকেল বিনে</strong> সংরক্ষিত থাকবে এবং যেকোনো সময় আপনি এটি <strong>পুনরুদ্ধার (Restore)</strong> করতে পারবেন।
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteDepositTarget(null)}
+                style={{
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                  border: 'none',
+                  color: isLight ? '#475569' : '#cbd5e1',
+                  padding: '9px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteDeposit}
+                style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '9px 20px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Trash2 size={15} />
+                <span>রিসাইকেল বিনে পাঠান</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 11. RECYCLE BIN CONSOLE MODAL (RESTORE & PURGE) */}
+      {isRecycleBinModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.88)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 10002,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsRecycleBinModalOpen(false);
+          }}
+        >
+          <div
+            style={{
+              background: isLight ? '#ffffff' : '#0f172a',
+              border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '20px',
+              width: '100%',
+              maxWidth: '920px',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              padding: '24px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)'
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Trash2 size={24} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                    ♻️ আর্থিক লেনদেন রিসাইকেল বিন (Financial Recycle Bin)
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                    ভুলবশত মুছে ফেলা লেনদেন যেকোনো সময় পুনরুদ্ধার (Restore) করুন অথবা স্থায়ীভাবে মুছে ফেলুন
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {(data.recycleBinDeposits || []).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('আপনি কি নিশ্চিত যে রিসাইকেল বিন সম্পূর্ণ খালি করতে চান? এটি আর ফিরিয়ে আনা যাবে না!')) {
+                        handleEmptyRecycleBin();
+                      }
+                    }}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      color: '#ef4444',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      padding: '7px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.76rem',
+                      fontWeight: '800',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🧹 বিন খালি করুন
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsRecycleBinModalOpen(false)}
+                  style={{
+                    background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                    border: 'none',
+                    color: isLight ? '#475569' : '#fff',
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            {(!data.recycleBinDeposits || data.recycleBinDeposits.length === 0) ? (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: isLight ? '#94a3b8' : '#64748b' }}>
+                <CheckCircle2 size={48} color="#10b981" style={{ margin: '0 auto 12px auto', opacity: 0.8 }} />
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', color: isLight ? '#334155' : '#cbd5e1' }}>
+                  রিসাইকেল বিন সম্পূর্ণ পরিষ্কার!
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.78rem' }}>
+                  বর্তমানে কোনো মুছে ফেলা বা বাতিলকৃত লেনদেন নেই।
+                </p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)', borderBottom: isLight ? '2px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', color: isLight ? '#475569' : '#94a3b8', textAlign: 'left' }}>
+                      <th style={{ padding: '10px 12px' }}>ভাউচার / রসিদ</th>
+                      <th style={{ padding: '10px 12px' }}>সদস্য ও জমাদানকারী</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'right' }}>পরিমাণ (টাকা)</th>
+                      <th style={{ padding: '10px 12px' }}>মুছে ফেলার বিবরণ</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>অ্যাকশন</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.recycleBinDeposits.map((item) => (
+                      <tr key={item.id} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)' }}>
+                        <td style={{ padding: '12px' }}>
+                          <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{item.voucherNo || item.receiptNo || item.id}</strong>
+                          <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                            জমার তারিখ: {item.depositDate || item.date}
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontWeight: '800', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                            {item.memberName || 'সদস্য'}
+                          </div>
+                          <div style={{ fontSize: '0.71rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                            জমা দিয়েছেন: {item.depositorName} {item.depositorRelation ? `(${item.depositorRelation})` : ''}
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: '900', color: '#10b981', fontSize: '0.92rem' }}>
+                          ৳ {Number(item.amount || 0).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
+                            {item.deleteReason || 'টেস্টিং রেকর্ড'}
+                          </span>
+                          <div style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', marginTop: '3px' }}>
+                            {new Date(item.deletedAt || Date.now()).toLocaleDateString('bn-BD')} • {item.deletedBy || 'Admin'}
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleRestoreDeposit(item.id)}
+                              style={{
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                color: '#10b981',
+                                border: '1px solid rgba(16, 185, 129, 0.35)',
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="হিসাবে পুনরুদ্ধার করুন"
+                            >
+                              <RefreshCw size={12} />
+                              <span>পুনরুদ্ধার</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm('আপনি কি নিশ্চিত যে এই রেকর্ডটি স্থায়ীভাবে মুছে ফেলতে চান?')) {
+                                  handlePermanentDeleteDeposit(item.id);
+                                }
+                              }}
+                              style={{
+                                background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
+                                color: '#ef4444',
+                                border: '1px solid rgba(239, 68, 68, 0.35)',
+                                padding: '5px 8px',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: '800',
+                                cursor: 'pointer'
+                              }}
+                              title="স্থায়ীভাবে মুছে ফেলুন"
+                            >
+                              স্থায়ী ডিলিট
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

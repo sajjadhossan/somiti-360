@@ -520,6 +520,7 @@ export const SamityManagementHub = ({ onClose }) => {
   // 4-Platform Live Device Mesh & Presence Tracking
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
   const [isSupervisorRadarOpen, setIsSupervisorRadarOpen] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [onlineDevicesListState, setOnlineDevicesListState] = useState(() => getOnlineDevicesList());
   const onlineDevicesCount = Math.max(1, onlineDevicesListState.length);
   const [lastScanTimestamp, setLastScanTimestamp] = useState(() => {
@@ -542,9 +543,13 @@ export const SamityManagementHub = ({ onClose }) => {
     const unsubSync = subscribeSamityCloudSync((s) => {
       if (s.lastSyncTime) setLastScanTimestamp(s.lastSyncTime);
     });
+    const handleOpenChat = () => setIsChatModalOpen(true);
+    window.addEventListener('hk360_open_internal_chat', handleOpenChat);
+
     return () => {
       unsubPresence();
       unsubSync();
+      window.removeEventListener('hk360_open_internal_chat', handleOpenChat);
     };
   }, []);
 
@@ -4129,8 +4134,7 @@ export const SamityManagementHub = ({ onClose }) => {
           { id: 'members_welfare', label: t('👥 সদস্য ও সমাজকল্যাণ', '👥 Members & Welfare'), defaultTab: 'members', count: effectiveMetrics.totalMembers },
           { id: 'communication', label: t('💬 অভ্যন্তরীণ চ্যাট ও নোটিস', '💬 Internal Chat & Notices'), defaultTab: 'internal_chat', count: (data.chatMessages || []).length },
           { id: 'secretariat', label: t('🏛️ অফিশিয়াল প্যাড ও নোটিশ', '🏛️ Official Pad & Notices'), defaultTab: 'letterhead' },
-          { id: 'audit_governance', label: t('⚖️ অডিট, ব্যাকআপ ও সেটিংস', '⚖️ Audit, Backup & Settings'), defaultTab: 'dashboard' },
-          { id: 'all_modules', label: t('📋 সকল ফিচার সূচি', '📋 All Features Index'), defaultTab: 'all_modules', isDirectory: true }
+          { id: 'audit_governance', label: t('⚖️ অডিট, ব্যাকআপ ও সেটিংস', '⚖️ Audit, Backup & Settings'), defaultTab: 'dashboard' }
         ].map(cluster => {
           const isClusterActive = activeCluster === cluster.id;
           return (
@@ -22091,6 +22095,54 @@ export const SamityManagementHub = ({ onClose }) => {
           playSuccessSound={playSuccessSound}
           triggerHaptic={triggerHaptic}
         />
+      )}
+
+      {/* Universal Floating Executive Internal Chat & Notice Board Modal */}
+      {isChatModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '16px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsChatModalOpen(false);
+            }
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '1100px',
+              maxHeight: '92vh',
+              background: isLight ? '#f8fafc' : '#0f172a',
+              borderRadius: '20px',
+              border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.12)',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9)',
+              overflowY: 'auto',
+              padding: '16px',
+              position: 'relative'
+            }}
+          >
+            <SamityInternalChatHub
+              samityData={data}
+              updateAndSave={updateAndSave}
+              activeSamityId={activeSamityId}
+              isLight={isLight}
+              showToast={showToast}
+              t={t}
+              currentUser={currentUser}
+              onClose={() => setIsChatModalOpen(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

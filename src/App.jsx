@@ -6,7 +6,7 @@ import { SomitiAuthView } from './components/auth/SomitiAuthView';
 import { DeviceMeshStatusModal } from './components/samity/DeviceMeshStatusModal';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { getPendingQueueCount } from './services/somitiOfflineStore';
-import { Users, ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database } from 'lucide-react';
+import { Users, ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare } from 'lucide-react';
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -69,6 +69,16 @@ function MainView() {
   const [onlineDevices, setOnlineDevices] = useState(() => getOnlineDevicesList());
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
   const [pendingQueueCount, setPendingQueueCount] = useState(0);
+  const [chatCount, setChatCount] = useState(() => {
+    try {
+      const raw = localStorage.getItem('hk360_samity_hub_data');
+      if (raw) {
+        const d = JSON.parse(raw);
+        return (d.chatMessages || []).length;
+      }
+    } catch {}
+    return 0;
+  });
 
   useEffect(() => {
     const unsub = subscribeDevicePresence((list) => {
@@ -89,11 +99,20 @@ function MainView() {
     };
     window.addEventListener('somiti_offline_queue_changed', handleQueueChange);
 
+    const handleDataUpdate = (e) => {
+      const d = e?.detail;
+      if (d && Array.isArray(d.chatMessages)) {
+        setChatCount(d.chatMessages.length);
+      }
+    };
+    window.addEventListener('hk360_samity_updated', handleDataUpdate);
+
     return () => {
       unsub();
       window.removeEventListener('online', updateNetwork);
       window.removeEventListener('offline', updateNetwork);
       window.removeEventListener('somiti_offline_queue_changed', handleQueueChange);
+      window.removeEventListener('hk360_samity_updated', handleDataUpdate);
     };
   }, []);
 
@@ -280,7 +299,7 @@ function MainView() {
                     letterSpacing: '0.4px'
                   }}
                 >
-                  PRO v1.0.9
+                  PRO v1.0.10
                 </span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>
@@ -552,6 +571,47 @@ function MainView() {
           >
             <ShieldCheck size={14} color={isLight ? '#059669' : '#34d399'} />
             <span>{lang === 'en' ? 'Verification' : 'ভেরিফিকেশন'}</span>
+          </button>
+
+          {/* 5. Internal Staff Chat & Notice Board Button */}
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('hk360_open_internal_chat'));
+            }}
+            title={lang === 'en' ? 'Internal Staff Chat & Notices' : 'অভ্যন্তরীণ স্টাফ চ্যাট ও জরুরি নোটিশ বোর্ড'}
+            style={{
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(139, 92, 246, 0.22))',
+              color: isLight ? '#4f46e5' : '#a78bfa',
+              border: isLight ? '1.5px solid #c7d2fe' : '1px solid rgba(167, 139, 250, 0.45)',
+              borderRadius: '9px',
+              padding: '6px 12px',
+              fontSize: '0.76rem',
+              fontWeight: '800',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.15)'
+            }}
+          >
+            <MessageSquare size={14} color={isLight ? '#4f46e5' : '#c084fc'} />
+            <span>{lang === 'en' ? 'Internal Chat' : 'অভ্যন্তরীণ চ্যাট'}</span>
+            {chatCount > 0 && (
+              <span
+                style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  fontSize: '0.62rem',
+                  fontWeight: '900',
+                  padding: '1px 5px',
+                  borderRadius: '10px',
+                  lineHeight: 1
+                }}
+              >
+                {chatCount}
+              </span>
+            )}
           </button>
         </div>
       </header>

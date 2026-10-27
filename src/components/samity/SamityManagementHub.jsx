@@ -3451,85 +3451,99 @@ export const SamityManagementHub = ({ onClose }) => {
       {/* Mobile-First Samity Management Hub Subbar Stylesheet */}
       <style>{`
         .samity-hub-subbar {
-          background: ${isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.95)'};
+          background: ${isLight ? '#ffffff' : 'rgba(11, 17, 32, 0.96)'};
           backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
           border-bottom: ${isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)'};
-          padding: 10px 14px;
           display: flex;
           flex-direction: column;
-          gap: 10px;
           position: sticky;
           top: 0;
           z-index: 40;
-          box-shadow: ${isLight ? '0 2px 6px rgba(0,0,0,0.03)' : 'none'};
+          box-shadow: ${isLight ? '0 4px 14px rgba(0,0,0,0.03)' : '0 8px 24px rgba(0,0,0,0.35)'};
         }
-        @media (min-width: 1024px) {
-          .samity-hub-subbar {
+        
+        /* Tier 1: Executive Brand Identity & Primary Operations CTA Deck */
+        .samity-hub-tier1 {
+          padding: 10px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          border-bottom: ${isLight ? '1px solid #f1f5f9' : '1px solid rgba(255, 255, 255, 0.06)'};
+        }
+        @media (min-width: 900px) {
+          .samity-hub-tier1 {
             flex-direction: row;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 20px;
-            gap: 14px;
+            padding: 12px 22px;
           }
         }
+        
         .samity-hub-identity-block {
           display: flex;
           align-items: center;
           gap: 12px;
-          width: 100%;
+          min-width: 0;
         }
-        @media (min-width: 1024px) {
-          .samity-hub-identity-block {
-            width: auto;
+
+        .samity-hub-primary-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        @media (max-width: 640px) {
+          .samity-hub-primary-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          .samity-hub-primary-actions .full-width-mobile {
+            grid-column: span 2;
           }
         }
-        .samity-hub-controls-block {
+
+        /* Tier 2: Universal Operations, Branch Switcher & Telemetry Strip */
+        .samity-hub-tier2 {
+          background: ${isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.65)'};
+          padding: 8px 16px;
           display: flex;
           flex-direction: column;
           gap: 8px;
-          width: 100%;
         }
         @media (min-width: 1024px) {
-          .samity-hub-controls-block {
-            width: auto;
+          .samity-hub-tier2 {
             flex-direction: row;
             align-items: center;
-            justify-content: flex-end;
-            gap: 10px;
+            justify-content: space-between;
+            padding: 8px 22px;
+            gap: 12px;
           }
         }
-        .samity-branch-picker-row {
+
+        .samity-tier2-left {
           display: flex;
           align-items: center;
-          gap: 6px;
-          width: 100%;
+          gap: 8px;
+          flex-wrap: wrap;
         }
-        @media (min-width: 1024px) {
-          .samity-branch-picker-row {
-            width: auto;
-          }
-        }
-        .samity-branch-select-box {
+
+        .samity-tier2-center {
+          display: flex;
+          align-items: center;
           flex: 1;
-          min-width: 0;
-          text-overflow: ellipsis;
-          background: ${isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.9)'};
-          color: ${isLight ? '#0f172a' : '#fff'};
-          border: ${isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)'};
-          border-radius: 8px;
-          padding: 6px 10px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          outline: none;
+          max-width: 380px;
         }
-        @media (min-width: 1024px) {
-          .samity-branch-select-box {
-            flex: none;
-            width: auto;
-            max-width: 250px;
+        @media (max-width: 1023px) {
+          .samity-tier2-center {
+            max-width: 100%;
+            width: 100%;
           }
         }
-        .samity-hub-actions-track {
+
+        .samity-tier2-right {
           display: flex;
           align-items: center;
           gap: 8px;
@@ -3537,138 +3551,283 @@ export const SamityManagementHub = ({ onClose }) => {
           white-space: nowrap;
           scrollbar-width: none;
           -webkit-overflow-scrolling: touch;
-          padding: 2px 2px 4px 2px;
-          width: 100%;
+          padding-bottom: 2px;
         }
-        .samity-hub-actions-track::-webkit-scrollbar {
+        .samity-tier2-right::-webkit-scrollbar {
           display: none;
         }
-        @media (min-width: 1024px) {
-          .samity-hub-actions-track {
-            width: auto;
-            overflow-x: visible;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-          }
+
+        .samity-branch-select-box {
+          height: 34px;
+          background: ${isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.95)'};
+          color: ${isLight ? '#0f172a' : '#f8fafc'};
+          border: ${isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.18)'};
+          border-radius: 9px;
+          padding: 0 10px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          outline: none;
+          cursor: pointer;
+          max-width: 220px;
+          text-overflow: ellipsis;
+        }
+
+        .samity-search-box {
+          height: 34px;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: ${isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.9)'};
+          border: ${isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.16)'};
+          border-radius: 9px;
+          padding: 0 10px;
+          transition: all 0.2s ease;
+        }
+        .samity-search-box:focus-within {
+          border-color: #10b981;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
         }
       `}</style>
 
-      {/* 1. TOP HEADER & MULTI-TENANT SAMITY SWITCHER */}
+      {/* 1. EXECUTIVE 2-TIER SUBBAR */}
       {/* ==================================================================== */}
       <div className="samity-hub-subbar">
-        <div className="samity-hub-identity-block">
-          {/* Active Samity Logo with Instant 1-Click Upload */}
-          <div style={{ position: 'relative' }}>
-            <input
-              type="file"
-              id="header-active-samity-logo-input"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                try {
-                  showToast?.(activeLang === 'en' ? 'Optimizing Samity logo...' : 'সমিতির লোগো প্রসেস করা হচ্ছে...', 'info');
-                  const base64Logo = await compressImageFile(file, { maxWidth: 512, maxHeight: 512, quality: 0.9 });
-                  updateAndSave(prev => ({
-                    ...prev,
-                    samities: prev.samities.map(s => s.id === activeSamityId ? { ...s, logo: base64Logo } : s)
-                  }), {
-                    action: 'UPDATE_SAMITY_LOGO',
-                    module: 'Samity Setup',
-                    details: { samityId: activeSamityId, name: currentSamity.nameBn }
-                  });
-                  showToast?.(activeLang === 'en' ? 'Samity logo updated successfully!' : 'সমিতির লোগো সফলভাবে আপডেট হয়েছে!', 'success');
-                } catch (err) {
-                  showToast?.(activeLang === 'en' ? 'Failed to update logo' : 'লোগো আপডেট ব্যর্থ হয়েছে', 'error');
-                }
-              }}
-            />
-            <div
-              onClick={() => document.getElementById('header-active-samity-logo-input')?.click()}
-              title={activeLang === 'en' ? 'Click to change Samity Logo' : 'সমিতির নিজস্ব লোগো পরিবর্তন করতে ক্লিক করুন'}
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                background: isLight ? 'rgba(245, 158, 11, 0.12)' : 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(15, 23, 42, 0.95))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.2)',
-                overflow: 'hidden',
-                padding: '3px',
-                border: '2px solid rgba(245, 158, 11, 0.65)',
-                flexShrink: 0,
-                cursor: 'pointer',
-                position: 'relative'
-              }}
-            >
-              <img
-                src={currentSamity.logo || '/shopnochoa-logo.svg'}
-                alt={currentSamity.nameBn}
-                onError={(e) => { e.currentTarget.src = '/shopnochoa-logo.svg'; }}
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        {/* TIER 1: BRAND IDENTITY & PRIMARY OPERATIONAL ACTIONS */}
+        <div className="samity-hub-tier1">
+          {/* Left: Organization Identity */}
+          <div className="samity-hub-identity-block">
+            {/* Active Samity Logo with Instant 1-Click Upload */}
+            <div style={{ position: 'relative' }}>
+              <input
+                type="file"
+                id="header-active-samity-logo-input"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    showToast?.(activeLang === 'en' ? 'Optimizing Samity logo...' : 'সমিতির লোগো প্রসেস করা হচ্ছে...', 'info');
+                    const base64Logo = await compressImageFile(file, { maxWidth: 512, maxHeight: 512, quality: 0.9 });
+                    updateAndSave(prev => ({
+                      ...prev,
+                      samities: prev.samities.map(s => s.id === activeSamityId ? { ...s, logo: base64Logo } : s)
+                    }), {
+                      action: 'UPDATE_SAMITY_LOGO',
+                      module: 'Samity Setup',
+                      details: { samityId: activeSamityId, name: currentSamity.nameBn }
+                    });
+                    showToast?.(activeLang === 'en' ? 'Samity logo updated successfully!' : 'সমিতির লোগো সফলভাবে আপডেট হয়েছে!', 'success');
+                  } catch (err) {
+                    showToast?.(activeLang === 'en' ? 'Failed to update logo' : 'লোগো আপডেট ব্যর্থ হয়েছে', 'error');
+                  }
+                }}
               />
               <div
+                onClick={() => document.getElementById('header-active-samity-logo-input')?.click()}
+                title={activeLang === 'en' ? 'Click to change Samity Logo' : 'সমিতির নিজস্ব লোগো পরিবর্তন করতে ক্লিক করুন'}
                 style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  background: 'rgba(245, 158, 11, 0.9)',
-                  color: '#0f172a',
-                  width: '14px',
-                  height: '14px',
-                  borderRadius: '6px 0 10px 0',
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '13px',
+                  background: isLight ? 'rgba(245, 158, 11, 0.12)' : 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(15, 23, 42, 0.95))',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '8px',
-                  fontWeight: '900'
+                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.25)',
+                  overflow: 'hidden',
+                  padding: '3px',
+                  border: '2px solid rgba(245, 158, 11, 0.65)',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                  position: 'relative'
                 }}
               >
-                ✎
+                <img
+                  src={currentSamity.logo || '/shopnochoa-logo.svg'}
+                  alt={currentSamity.nameBn}
+                  onError={(e) => { e.currentTarget.src = '/shopnochoa-logo.svg'; }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    background: 'rgba(245, 158, 11, 0.95)',
+                    color: '#0f172a',
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '6px 0 10px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '8px',
+                    fontWeight: '900'
+                  }}
+                >
+                  ✎
+                </div>
               </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h1 style={{ margin: 0, fontSize: '1.18rem', fontWeight: '900', letterSpacing: '-0.02em', color: isLight ? '#0f172a' : '#f8fafc', lineHeight: 1.2 }}>
+                  {activeLang === 'en'
+                    ? (currentSamity.nameEn || currentSamity.nameBn || 'Samity & Cooperative Hub')
+                    : (currentSamity.nameBn || 'সমিতি ও সমবায় হাব')}
+                </h1>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: '800',
+                    background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)',
+                    color: isLight ? '#b45309' : '#fbbf24',
+                    border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.35)',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  🏛️ {activeLang === 'en' ? 'Registered Society' : 'নিবন্ধিত সমবায় সমিতি'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.66rem',
+                    fontWeight: '800',
+                    background: isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.15)',
+                    color: isLight ? '#15803d' : '#34d399',
+                    border: isLight ? '1px solid #86efac' : '1px solid rgba(16, 185, 129, 0.35)',
+                    padding: '2px 7px',
+                    borderRadius: '12px'
+                  }}
+                >
+                  🟢 {t('সক্রিয় শাখা', 'Active Branch')}
+                </span>
+              </div>
+              <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: isLight ? '#475569' : 'var(--text-muted, #94a3b8)', fontWeight: '600' }}>
+                {activeLang === 'en'
+                  ? (currentSamity.sloganEn || 'Building Dreams, Securing the Future')
+                  : (currentSamity.sloganBn || 'স্বপ্ন সাজাই, ভবিষ্যৎ গড়ি')}
+              </p>
             </div>
           </div>
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '1.12rem', fontWeight: '900', letterSpacing: '-0.02em', color: isLight ? '#0f172a' : '#f8fafc' }}>
-                {activeLang === 'en'
-                  ? (currentSamity.nameEn || currentSamity.nameBn || 'Samity & Cooperative Hub')
-                  : (currentSamity.nameBn || 'সমিতি ও সমবায় হাব')}
-              </h1>
-              <span
+          {/* Right: Primary Operations CTA Deck (+ জমা এন্ট্রি, + নতুন সদস্য, 📡 সুপারভাইজার রাডার) */}
+          <div className="samity-hub-primary-actions">
+            <button
+              onClick={() => handleOpenDepositModal()}
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#fff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontSize: '0.82rem',
+                fontWeight: '900',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                transition: 'transform 0.12s ease'
+              }}
+            >
+              <Plus size={16} />
+              <span>{t('জমা এন্ট্রি', 'Deposit Entry')}</span>
+            </button>
+
+            <button
+              onClick={() => handleOpenMemberModal()}
+              style={{
+                background: isLight ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.2)',
+                color: isLight ? '#1d4ed8' : '#60a5fa',
+                border: isLight ? '1.5px solid #93c5fd' : '1.5px solid rgba(59, 130, 246, 0.45)',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                fontSize: '0.82rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.15)'
+              }}
+            >
+              <Users size={16} />
+              <span>{t('নতুন সদস্য', 'New Member')}</span>
+            </button>
+
+            {/* Live Supervisor Radar Widget Button */}
+            <button
+              onClick={() => {
+                playButtonClick?.();
+                triggerHaptic();
+                setIsSupervisorRadarOpen(true);
+              }}
+              className="full-width-mobile"
+              style={{
+                background: pendingAuditCount > 0
+                  ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.25)')
+                  : (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)'),
+                color: pendingAuditCount > 0
+                  ? (isLight ? '#b45309' : '#fbbf24')
+                  : (isLight ? '#1d4ed8' : '#60a5fa'),
+                border: pendingAuditCount > 0
+                  ? '1.5px solid #f59e0b'
+                  : (isLight ? '1.5px solid #93c5fd' : '1px solid rgba(59, 130, 246, 0.4)'),
+                borderRadius: '10px',
+                padding: '8px 13px',
+                fontSize: '0.8rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                boxShadow: pendingAuditCount > 0 ? '0 0 12px rgba(245, 158, 11, 0.35)' : 'none'
+              }}
+              title={t('সুপারভাইজার লাইভ কালেকশন রাডার ও অডিট উইন্ডো', 'Supervisor Live Collection Radar & Audit Window')}
+            >
+              <span>📡</span>
+              <span>
+                {pendingAuditCount > 0
+                  ? t(`রাডার (${pendingAuditCount} পেন্ডিং) ⏳`, `Radar (${pendingAuditCount} Pending) ⏳`)
+                  : t('সুপারভাইজার রাডার 📡', 'Supervisor Radar 📡')}
+              </span>
+            </button>
+
+            {onClose && (
+              <button
+                onClick={onClose}
                 style={{
-                  fontSize: '0.68rem',
-                  fontWeight: '800',
-                  background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)',
-                  color: isLight ? '#b45309' : '#fbbf24',
-                  border: isLight ? '1px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.35)',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  display: 'inline-flex',
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                  border: isLight ? '1px solid #cbd5e1' : 'none',
+                  color: isLight ? '#0f172a' : '#fff',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '4px'
+                  justifyContent: 'center',
+                  cursor: 'pointer'
                 }}
               >
-                🏛️ {activeLang === 'en' ? 'Registered Society' : 'নিবন্ধিত সমবায় সমিতি'}
-              </span>
-            </div>
-            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: isLight ? '#475569' : 'var(--text-muted, #94a3b8)', fontWeight: '600' }}>
-              {activeLang === 'en'
-                ? (currentSamity.sloganEn || 'Building Dreams, Securing the Future')
-                : (currentSamity.sloganBn || 'স্বপ্ন সাজাই, ভবিষ্যৎ গড়ি')}
-            </p>
+                <X size={18} />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Right: Multi-Samity Selector & Actions Track (Mobile-First Touch-Optimized) */}
-        <div className="samity-hub-controls-block">
-          {/* Row A: Branch / Society Selector Bar */}
-          <div className="samity-branch-picker-row">
-            <span style={{ fontSize: '0.78rem', color: isLight ? '#475569' : 'var(--text-muted, #94a3b8)', fontWeight: '800', flexShrink: 0 }}>
+        {/* TIER 2: UNIFIED COMMAND & OPERATIONS TOOLBAR (শাখা নির্বাচন, সার্চ, আর্কিটেকচার, ৪-প্ল্যাটফর্ম স্ক্যান) */}
+        <div className="samity-hub-tier2">
+          {/* Left Group: Branch Selector & Samity Management */}
+          <div className="samity-tier2-left">
+            <span style={{ fontSize: '0.76rem', color: isLight ? '#475569' : 'var(--text-muted, #94a3b8)', fontWeight: '800', flexShrink: 0 }}>
               {t('🏛️ শাখা/সমিতি:', '🏛️ Branch / Society:')}
             </span>
             <select
@@ -3686,18 +3845,41 @@ export const SamityManagementHub = ({ onClose }) => {
             </select>
 
             <button
+              onClick={handleOpenNewSamityModal}
+              style={{
+                height: '34px',
+                background: 'rgba(20, 184, 166, 0.15)',
+                color: '#2dd4bf',
+                border: '1.5px solid rgba(20, 184, 166, 0.45)',
+                borderRadius: '9px',
+                padding: '0 11px',
+                fontSize: '0.76rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              title={t('নতুন সমিতি তৈরি করুন', 'Create New Samity')}
+            >
+              <Plus size={14} />
+              <span>{t('নতুন সমিতি', 'New Samity')}</span>
+            </button>
+
+            <button
               onClick={() => {
                 playButtonClick?.();
                 triggerHaptic();
                 setActiveTab('samity_setup');
               }}
               style={{
+                height: '34px',
                 background: activeTab === 'samity_setup' ? (isLight ? '#059669' : '#2dd4bf') : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)'),
                 color: activeTab === 'samity_setup' ? '#ffffff' : (isLight ? '#0f172a' : '#fff'),
                 border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '8px',
-                padding: '6px 10px',
-                fontSize: '0.78rem',
+                borderRadius: '9px',
+                padding: '0 11px',
+                fontSize: '0.76rem',
                 fontWeight: '800',
                 cursor: 'pointer',
                 display: 'inline-flex',
@@ -3709,340 +3891,219 @@ export const SamityManagementHub = ({ onClose }) => {
               <Building2 size={14} />
               <span>{t('শাখা ও সমিতি', 'Branches & Samity')}</span>
             </button>
+          </div>
 
+          {/* Center Group: Universal Smart Search */}
+          <div className="samity-tier2-center">
+            <div style={{ position: 'relative', width: '100%' }}>
+              <div className="samity-search-box">
+                <Search size={14} color="#94a3b8" />
+                <input
+                  type="text"
+                  placeholder={activeLang === 'en' ? 'Search options (e.g. Pad, Seal, Deposit)...' : 'সার্চ অপশন (যেমন: প্যাড, সিল, চাঁদা)...'}
+                  value={globalModuleSearchQuery}
+                  onChange={(e) => {
+                    setGlobalModuleSearchQuery(e.target.value);
+                    setIsGlobalSearchOpen(Boolean(e.target.value.trim()));
+                  }}
+                  onFocus={() => { if (globalModuleSearchQuery.trim()) setIsGlobalSearchOpen(true); }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: isLight ? '#0f172a' : '#fff',
+                    fontSize: '0.76rem',
+                    padding: '4px 6px',
+                    width: '100%'
+                  }}
+                />
+                {globalModuleSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setGlobalModuleSearchQuery(''); setIsGlobalSearchOpen(false); }}
+                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Global Search Results Dropdown */}
+              {isGlobalSearchOpen && globalModuleSearchQuery.trim() && (() => {
+                const q = globalModuleSearchQuery.toLowerCase();
+                const searchableItems = [
+                  { titleBn: 'অফিসিয়াল লেটারহেড প্যাড ও রাইটার', titleEn: 'Official Letterhead Pad', tab: 'letterhead', icon: FileText },
+                  { titleBn: 'কর্মকর্তা, ডিজিটাল সিল ও স্বাক্ষর', titleEn: 'Signatures & Digital Seals', tab: 'signatures', icon: PenTool },
+                  { titleBn: 'সদস্য তালিকা ও নতুন মেম্বার নিবন্ধন', titleEn: 'Member Directory & Registration', tab: 'members', icon: Users },
+                  { titleBn: 'দৈনন্দিন চাঁদা ও সঞ্চয় কিস্তি জমা', titleEn: 'Daily Deposit & Savings Entry', tab: 'deposits', icon: Plus },
+                  { titleBn: 'এক ব্যাংক স্লিপে বহু সদস্যের চাঁদা (Bulk Deposit)', titleEn: 'Bulk Bank Slip Deposit', tab: 'bulk_deposit', icon: Landmark },
+                  { titleBn: 'সদস্যভিত্তিক চাঁদার হার ও পলিসি', titleEn: 'Member Fee Rates & Policies', tab: 'subscription_policy', icon: Wallet },
+                  { titleBn: 'বকেয়া হিসাব ও নোটিশ রিমাইন্ডার', titleEn: 'Due Management & Reminders', tab: 'payment_status', icon: Clock },
+                  { titleBn: 'সমিতির দৈনিক ও নিয়মিত খরচ ভাউচার', titleEn: 'Samity Expenses & Vouchers', tab: 'expenses', icon: Receipt },
+                  { titleBn: 'সমিতি ও শাখা তালিকা/সেটআপ', titleEn: 'Samity Setup & Branches', tab: 'samity_setup', icon: Building2 },
+                  { titleBn: 'কেন্দ্রীয় অডিট ও লাইভ ট্রেইল', titleEn: 'Central Audit Trail', tab: 'audit_trail', icon: ShieldCheck },
+                  { titleBn: '২৮টি বহুমুখী অডিট ও সমবায় রিপোর্ট', titleEn: '28 Master Cooperative Reports', tab: 'reports', icon: FileSpreadsheet },
+                  { titleBn: 'টেলিগ্রাম ক্লাউড অটো-ব্যাকআপ', titleEn: 'Telegram Cloud Backup', tab: 'dashboard', icon: Send }
+                ].filter(item => item.titleBn.toLowerCase().includes(q) || item.titleEn.toLowerCase().includes(q));
+
+                return (
+                  <div style={{
+                    position: 'absolute',
+                    top: '110%',
+                    left: 0,
+                    right: 0,
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(45, 212, 191, 0.4)',
+                    borderRadius: '10px',
+                    boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
+                    zIndex: 999,
+                    padding: '6px'
+                  }}>
+                    {searchableItems.length === 0 ? (
+                      <div style={{ padding: '10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.74rem' }}>
+                        কোনো অপশন খুঁজে পাওয়া যায়নি
+                      </div>
+                    ) : (
+                      searchableItems.map(item => {
+                        const Icon = item.icon;
+                        return (
+                          <div
+                            key={item.tab}
+                            onClick={() => {
+                              setActiveTab(item.tab);
+                              setIsGlobalSearchOpen(false);
+                              setGlobalModuleSearchQuery('');
+                              playButtonClick?.();
+                              triggerHaptic();
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '8px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.76rem',
+                              fontWeight: '700',
+                              color: isLight ? '#0f172a' : '#f8fafc',
+                              transition: 'background 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = isLight ? '#f1f5f9' : 'rgba(45, 212, 191, 0.15)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <Icon size={14} color="#2dd4bf" />
+                            <span>{item.titleBn}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Right Group: Telemetry & Commercial Architecture Pills */}
+          <div className="samity-tier2-right">
+            {/* Active Role Badge */}
+            {(() => {
+              const currentRoleObj = SAMITY_RBAC_ROLES.find(r => r.role === activeUserRole) || SAMITY_RBAC_ROLES[0];
+              const roleColor = currentRoleObj.color || '#8b5cf6';
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playButtonClick?.();
+                    triggerHaptic();
+                    setIsRoleModalOpen(true);
+                  }}
+                  title={activeLang === 'en' ? 'Click to open Role-Based Access Control Hub' : 'ব্যবহারকারী পদবি ও কন্ট্রোল হাব দেখতে ক্লিক করুন'}
+                  style={{
+                    height: '34px',
+                    background: isLight ? `${roleColor}18` : `${roleColor}25`,
+                    color: roleColor,
+                    border: `1.5px solid ${roleColor}60`,
+                    padding: '0 10px',
+                    borderRadius: '9px',
+                    fontSize: '0.74rem',
+                    fontWeight: '800',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    boxShadow: `0 2px 8px ${roleColor}20`
+                  }}
+                >
+                  <ShieldCheck size={14} />
+                  <span>{currentRoleObj.titleBn.split(' ')[0]}</span>
+                  <span style={{ fontSize: '0.64rem', opacity: 0.8, textTransform: 'uppercase' }}>({activeUserRole})</span>
+                </button>
+              );
+            })()}
+
+            {/* SaaS Commercial Architecture Button */}
             <button
-              onClick={handleOpenNewSamityModal}
+              type="button"
+              onClick={() => {
+                playButtonClick?.();
+                triggerHaptic();
+                setIsSaaSGuideModalOpen(true);
+              }}
+              title={activeLang === 'en' ? 'Commercial Software Architecture & White-Label Guide' : 'সফটওয়্যার বিক্রির বাণিজ্যিক আর্কিটেকচার ও লাইসেন্সিং গাইড'}
               style={{
-                background: 'rgba(20, 184, 166, 0.18)',
-                color: '#2dd4bf',
-                border: '1px solid rgba(20, 184, 166, 0.4)',
-                borderRadius: '8px',
-                padding: '6px 10px',
-                fontSize: '0.78rem',
+                height: '34px',
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.2))',
+                color: '#f59e0b',
+                border: '1.5px solid rgba(245, 158, 11, 0.45)',
+                padding: '0 10px',
+                borderRadius: '9px',
+                fontSize: '0.74rem',
                 fontWeight: '800',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '5px'
               }}
-              title={t('নতুন সমিতি তৈরি করুন', 'Create New Samity')}
             >
-              <Plus size={14} />
-              <span>{t('নতুন সমিতি', 'New Samity')}</span>
+              <Sparkles size={13} />
+              <span>{activeLang === 'en' ? 'Architecture' : 'আর্কিটেকচার'}</span>
             </button>
-          </div>
 
-          {/* Row B: Horizontal Touch-Swipeable Control Ribbon (জমা এন্ট্রি, নতুন সদস্য, অপশন খুঁজুন, রোল, SaaS, Close) */}
-          <div className="samity-hub-actions-track">
-          {/* Global Smart Feature & Module Search Bar */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.8)', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '8px', padding: '2px 8px' }}>
-              <Search size={14} color="#94a3b8" />
-              <input
-                type="text"
-                placeholder={activeLang === 'en' ? 'Search options (e.g. Pad, Seal, Deposit)...' : 'অপশন খুঁজুন (যেমন: প্যাড, সিল, চাঁদা)...'}
-                value={globalModuleSearchQuery}
-                onChange={(e) => {
-                  setGlobalModuleSearchQuery(e.target.value);
-                  setIsGlobalSearchOpen(Boolean(e.target.value.trim()));
-                }}
-                onFocus={() => { if (globalModuleSearchQuery.trim()) setIsGlobalSearchOpen(true); }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: isLight ? '#0f172a' : '#fff',
-                  fontSize: '0.76rem',
-                  padding: '4px 6px',
-                  width: '160px'
-                }}
-              />
-              {globalModuleSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => { setGlobalModuleSearchQuery(''); setIsGlobalSearchOpen(false); }}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-
-            {/* Global Search Results Dropdown */}
-            {isGlobalSearchOpen && globalModuleSearchQuery.trim() && (() => {
-              const q = globalModuleSearchQuery.toLowerCase();
-              const searchableItems = [
-                { titleBn: 'অফিসিয়াল লেটারহেড প্যাড ও রাইটার', titleEn: 'Official Letterhead Pad', tab: 'letterhead', icon: FileText },
-                { titleBn: 'কর্মকর্তা, ডিজিটাল সিল ও স্বাক্ষর', titleEn: 'Signatures & Digital Seals', tab: 'signatures', icon: PenTool },
-                { titleBn: 'সদস্য তালিকা ও নতুন মেম্বার নিবন্ধন', titleEn: 'Member Directory & Registration', tab: 'members', icon: Users },
-                { titleBn: 'দৈনন্দিন চাঁদা ও সঞ্চয় কিস্তি জমা', titleEn: 'Daily Deposit & Savings Entry', tab: 'deposits', icon: Plus },
-                { titleBn: 'এক ব্যাংক স্লিপে বহু সদস্যের চাঁদা (Bulk Deposit)', titleEn: 'Bulk Bank Slip Deposit', tab: 'bulk_deposit', icon: Landmark },
-                { titleBn: 'সদস্যভিত্তিক চাঁদার হার ও পলিসি', titleEn: 'Member Fee Rates & Policies', tab: 'subscription_policy', icon: Wallet },
-                { titleBn: 'বকেয়া হিসাব ও নোটিশ রিমাইন্ডার', titleEn: 'Due Management & Reminders', tab: 'payment_status', icon: Clock },
-                { titleBn: 'সমিতির দৈনিক ও নিয়মিত খরচ ভাউচার', titleEn: 'Samity Expenses & Vouchers', tab: 'expenses', icon: Receipt },
-                { titleBn: 'সমিতি ও শাখা তালিকা/সেটআপ', titleEn: 'Samity Setup & Branches', tab: 'samity_setup', icon: Building2 },
-                { titleBn: 'কেন্দ্রীয় অডিট ও লাইভ ট্রেইল', titleEn: 'Central Audit Trail', tab: 'audit_trail', icon: ShieldCheck },
-                { titleBn: '২৮টি বহুমুখী অডিট ও সমবায় রিপোর্ট', titleEn: '28 Master Cooperative Reports', tab: 'reports', icon: FileSpreadsheet },
-                { titleBn: 'টেলিগ্রাম ক্লাউড অটো-ব্যাকআপ', titleEn: 'Telegram Cloud Backup', tab: 'dashboard', icon: Send }
-              ].filter(item => item.titleBn.toLowerCase().includes(q) || item.titleEn.toLowerCase().includes(q));
-
-              return (
-                <div style={{
-                  position: 'absolute',
-                  top: '110%',
-                  left: 0,
-                  width: '280px',
-                  maxHeight: '260px',
-                  overflowY: 'auto',
-                  background: isLight ? '#ffffff' : '#0f172a',
-                  border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(45, 212, 191, 0.4)',
-                  borderRadius: '10px',
-                  boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-                  zIndex: 999,
-                  padding: '6px'
-                }}>
-                  {searchableItems.length === 0 ? (
-                    <div style={{ padding: '10px', textAlign: 'center', color: '#94a3b8', fontSize: '0.74rem' }}>
-                      কোনো অপশন খুঁজে পাওয়া যায়নি
-                    </div>
-                  ) : (
-                    searchableItems.map(item => {
-                      const Icon = item.icon;
-                      return (
-                        <div
-                          key={item.tab}
-                          onClick={() => {
-                            setActiveTab(item.tab);
-                            setIsGlobalSearchOpen(false);
-                            setGlobalModuleSearchQuery('');
-                            playButtonClick?.();
-                            triggerHaptic();
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 10px',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '0.76rem',
-                            fontWeight: '700',
-                            color: isLight ? '#0f172a' : '#f8fafc',
-                            transition: 'background 0.15s ease'
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = isLight ? '#f1f5f9' : 'rgba(45, 212, 191, 0.15)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <Icon size={14} color="#2dd4bf" />
-                          <span>{item.titleBn}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Active Role Badge & Control Hub Switcher Button */}
-          {(() => {
-            const currentRoleObj = SAMITY_RBAC_ROLES.find(r => r.role === activeUserRole) || SAMITY_RBAC_ROLES[0];
-            const roleColor = currentRoleObj.color || '#8b5cf6';
-            return (
-              <button
-                type="button"
-                onClick={() => {
-                  playButtonClick?.();
-                  triggerHaptic();
-                  setIsRoleModalOpen(true);
-                }}
-                title={activeLang === 'en' ? 'Click to open Role-Based Access Control Hub' : 'ব্যবহারকারী পদবি ও কন্ট্রোল হাব দেখতে ক্লিক করুন'}
-                style={{
-                  background: isLight ? `${roleColor}18` : `${roleColor}25`,
-                  color: roleColor,
-                  border: `1.5px solid ${roleColor}60`,
-                  padding: '5px 10px',
-                  borderRadius: '20px',
-                  fontSize: '0.74rem',
-                  fontWeight: '800',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  boxShadow: `0 2px 8px ${roleColor}20`
-                }}
-              >
-                <ShieldCheck size={14} />
-                <span>{currentRoleObj.titleBn.split(' ')[0]}</span>
-                <span style={{ fontSize: '0.64rem', opacity: 0.8, textTransform: 'uppercase' }}>({activeUserRole})</span>
-              </button>
-            );
-          })()}
-
-          {/* SaaS Commercial Architecture Button */}
-          <button
-            type="button"
-            onClick={() => {
-              playButtonClick?.();
-              triggerHaptic();
-              setIsSaaSGuideModalOpen(true);
-            }}
-            title={activeLang === 'en' ? 'Commercial Software Architecture & White-Label Guide' : 'সফটওয়্যার বিক্রির বাণিজ্যিক আর্কিটেকচার ও লাইসেন্সিং গাইড'}
-            style={{
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.2))',
-              color: '#f59e0b',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              padding: '6px 10px',
-              borderRadius: '8px',
-              fontSize: '0.74rem',
-              fontWeight: '800',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}
-          >
-            <Sparkles size={13} />
-            <span>{activeLang === 'en' ? 'SaaS Architecture' : 'বিক্রির আর্কিটেকচার'}</span>
-          </button>
-
-          {/* 4-Platform Live Device Mesh & Instant Sync Button with 12-Hour Scan Time */}
-          <button
-            onClick={() => {
-              playButtonClick?.();
-              triggerHaptic();
-              setIsDeviceMeshModalOpen(true);
-            }}
-            style={{
-              flexShrink: 0,
-              background: onlineDevicesCount > 1 ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)') : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)'),
-              color: isLight ? '#15803d' : '#34d399',
-              border: onlineDevicesCount > 1 ? '1.5px solid #10b981' : (isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)'),
-              borderRadius: '8px',
-              padding: '6px 11px',
-              fontSize: '0.78rem',
-              fontWeight: '800',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              boxShadow: onlineDevicesCount > 1 ? '0 0 10px rgba(16, 185, 129, 0.4)' : 'none'
-            }}
-            title={t(
-              `৪টি প্ল্যাটফর্ম লাইভ ডিভাইস মেশ (সর্বশেষ স্ক্যান: ${format12HourTime(lastScanTimestamp, 'bn')} - ১২-ঘণ্টা AM/PM)`,
-              `4-Platform Live Device Mesh (Last Scan: ${format12HourTime(lastScanTimestamp, 'en')} - 12-Hour AM/PM)`
-            )}
-          >
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
-            <span>
-              {onlineDevicesCount > 1
-                ? t(`৪টি প্ল্যাটফর্ম (${onlineDevicesCount}টি) ⚡ | স্ক্যান: ${format12HourTime(lastScanTimestamp, 'bn')}`, `4 Platforms (${onlineDevicesCount}) ⚡ | Scan: ${format12HourTime(lastScanTimestamp, 'en')}`)
-                : t(`৪টি প্ল্যাটফর্ম ⚡ | স্ক্যান: ${format12HourTime(lastScanTimestamp, 'bn')}`, `4 Platforms ⚡ | Scan: ${format12HourTime(lastScanTimestamp, 'en')}`)}
-            </span>
-          </button>
-
-          {/* Live Supervisor Radar Widget Button */}
-          <button
-            onClick={() => {
-              playButtonClick?.();
-              triggerHaptic();
-              setIsSupervisorRadarOpen(true);
-            }}
-            style={{
-              flexShrink: 0,
-              background: pendingAuditCount > 0
-                ? (isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.25)')
-                : (isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.15)'),
-              color: pendingAuditCount > 0
-                ? (isLight ? '#b45309' : '#fbbf24')
-                : (isLight ? '#1d4ed8' : '#60a5fa'),
-              border: pendingAuditCount > 0
-                ? '1.5px solid #f59e0b'
-                : (isLight ? '1.5px solid #93c5fd' : '1px solid rgba(59, 130, 246, 0.4)'),
-              borderRadius: '8px',
-              padding: '6px 11px',
-              fontSize: '0.78rem',
-              fontWeight: '800',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              boxShadow: pendingAuditCount > 0 ? '0 0 10px rgba(245, 158, 11, 0.35)' : 'none'
-            }}
-            title={t('সুপারভাইজার লাইভ কালেকশন রাডার ও অডিট উইন্ডো', 'Supervisor Live Collection Radar & Audit Window')}
-          >
-            <span>📡</span>
-            <span>
-              {pendingAuditCount > 0
-                ? t(`রাডার (${pendingAuditCount} পেন্ডিং) ⏳`, `Radar (${pendingAuditCount} Pending) ⏳`)
-                : t('সুপারভাইজার রাডার 📡', 'Supervisor Radar 📡')}
-            </span>
-          </button>
-
-          <button
-            onClick={() => handleOpenDepositModal()}
-            className="btn"
-            style={{
-              flexShrink: 0,
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#fff',
-              border: 'none',
-              padding: '6px 14px',
-              borderRadius: '8px',
-              fontSize: '0.8rem',
-              fontWeight: '800',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-            }}
-          >
-            <Plus size={16} />
-            <span>{t('জমা এন্ট্রি', 'Deposit Entry')}</span>
-          </button>
-
-          <button
-            onClick={() => handleOpenMemberModal()}
-            className="btn"
-            style={{
-              flexShrink: 0,
-              background: isLight ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.15)',
-              color: isLight ? '#1d4ed8' : '#3b82f6',
-              border: isLight ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid rgba(59, 130, 246, 0.35)',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              fontSize: '0.8rem',
-              fontWeight: '700',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            <Users size={15} />
-            <span>{t('নতুন সদস্য', 'New Member')}</span>
-          </button>
-
-          {onClose && (
+            {/* 4-Platform Live Device Mesh & Instant Sync Button with 12-Hour Scan Time */}
             <button
-              onClick={onClose}
-              style={{
-                background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
-                border: isLight ? '1px solid #cbd5e1' : 'none',
-                color: isLight ? '#0f172a' : '#fff',
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
+              onClick={() => {
+                playButtonClick?.();
+                triggerHaptic();
+                setIsDeviceMeshModalOpen(true);
               }}
+              style={{
+                height: '34px',
+                flexShrink: 0,
+                background: onlineDevicesCount > 1 ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.25)') : (isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)'),
+                color: isLight ? '#15803d' : '#34d399',
+                border: onlineDevicesCount > 1 ? '1.5px solid #10b981' : (isLight ? '1.5px solid #86efac' : '1px solid rgba(16, 185, 129, 0.4)'),
+                borderRadius: '9px',
+                padding: '0 11px',
+                fontSize: '0.76rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                boxShadow: onlineDevicesCount > 1 ? '0 0 10px rgba(16, 185, 129, 0.4)' : 'none'
+              }}
+              title={t(
+                `৪টি প্ল্যাটফর্ম লাইভ ডিভাইস মেশ (সর্বশেষ স্ক্যান: ${format12HourTime(lastScanTimestamp, 'bn')} - ১২-ঘণ্টা AM/PM)`,
+                `4-Platform Live Device Mesh (Last Scan: ${format12HourTime(lastScanTimestamp, 'en')} - 12-Hour AM/PM)`
+              )}
             >
-              <X size={18} />
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+              <span>
+                {t(`মেশ স্ক্যান: ${format12HourTime(lastScanTimestamp, 'bn')}`, `Mesh Scan: ${format12HourTime(lastScanTimestamp, 'en')}`)}
+              </span>
             </button>
-          )}
           </div>
         </div>
       </div>

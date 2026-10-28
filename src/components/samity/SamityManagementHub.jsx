@@ -112,10 +112,14 @@ import {
 import * as XLSX from 'xlsx';
 import {
   generateQrDataUrl,
+  generateQuickChartQrUrl,
+  generateGoQrUrl,
   createSamityReceiptVerificationUrl,
   createSamityDueNoticeVerificationUrl,
   createSamityMembershipCertVerificationUrl,
   createSamityBulkDepositVerificationUrl,
+  createSamityMemberListVerificationUrl,
+  createSamityOfficialDocVerificationUrl,
   getGlobalVerificationBaseUrl
 } from '../../services/qrService';
 import { playButtonClick, playSuccessChime } from '../../services/soundFeedback';
@@ -1470,6 +1474,21 @@ export const SamityManagementHub = ({ onClose }) => {
     });
     return () => { isMounted = false; };
   }, [activePrintNotice, currentSamity]);
+
+  // Real QR Verification Data URL for Member Registry List Print (স্ক্যানযোগ্য সদস্য তালিকা কিউআর কোড)
+  const [memberListQrDataUrl, setMemberListQrDataUrl] = useState('');
+  useEffect(() => {
+    let isMounted = true;
+    if (!isPrintMemberListOpen) {
+      setMemberListQrDataUrl('');
+      return;
+    }
+    const verifyUrl = createSamityMemberListVerificationUrl(filteredMembers, currentSamity, targetMonth, targetYear);
+    generateQrDataUrl(verifyUrl, { width: 200, margin: 1 }).then(url => {
+      if (isMounted && url) setMemberListQrDataUrl(url);
+    });
+    return () => { isMounted = false; };
+  }, [isPrintMemberListOpen, filteredMembers, currentSamity, targetMonth, targetYear]);
 
   // Universal QR Verifier Hub State
   const [isUniversalVerifierOpen, setIsUniversalVerifierOpen] = useState(false);
@@ -18059,16 +18078,26 @@ ${verifyUrl}
                   </div>
                 </div>
               </div>
-              <div style={{ textAlign: 'center', padding: '6px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                {padQrDataUrl ? (
-                  <img src={padQrDataUrl} alt="Verification QR" style={{ width: '68px', height: '68px', display: 'block', margin: '0 auto' }} />
-                ) : (
-                  <div style={{ width: '68px', height: '68px', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <QrCode size={28} color="#64748b" />
+              {(() => {
+                const memListVerifyUrl = createSamityMemberListVerificationUrl(filteredMembers, currentSamity, targetMonth, targetYear);
+                const qcMemListUrl = generateQuickChartQrUrl(memListVerifyUrl, { size: 280, ecLevel: 'H' });
+                const goMemListUrl = generateGoQrUrl(memListVerifyUrl, { size: 280, ecLevel: 'H' });
+
+                return (
+                  <div style={{ textAlign: 'center', padding: '6px', background: '#f8fafc', borderRadius: '8px', border: '1.5px solid #10b981', minWidth: '80px' }}>
+                    <img
+                      src={memberListQrDataUrl || qcMemListUrl}
+                      alt="সদস্য তালিকা ভেরিফিকেশন QR"
+                      style={{ width: '74px', height: '74px', display: 'block', margin: '0 auto', imageRendering: 'pixelated' }}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = goMemListUrl;
+                      }}
+                    />
+                    <div style={{ fontSize: '0.62rem', fontWeight: '800', color: '#047857', marginTop: '2px' }}>সদস্য ভেরিফিকেশন QR</div>
                   </div>
-                )}
-                <div style={{ fontSize: '0.62rem', fontWeight: '800', color: '#475569', marginTop: '2px' }}>ভেরিফিকেশন QR</div>
-              </div>
+                );
+              })()}
             </div>
 
             <div style={{ textAlign: 'center', marginBottom: '14px' }}>
@@ -18364,11 +18393,23 @@ ${verifyUrl}
                       }}
                       title="ক্লিক করে সনদপত্র সরাসরি টেস্ট করুন"
                     >
-                      {certQrDataUrl ? (
-                        <img src={certQrDataUrl} alt="Certificate Verification QR" style={{ width: '64px', height: '64px', display: 'block', borderRadius: '4px' }} />
-                      ) : (
-                        <QrCode size={36} color="#d97706" />
-                      )}
+                      {(() => {
+                        const targetMem = (data.members || []).find(m => m.id === selectedDocMemberId) || (data.members || [])[0] || {};
+                        const certVerifyUrl = createSamityMembershipCertVerificationUrl(targetMem, currentSamity);
+                        const qcCertUrl = generateQuickChartQrUrl(certVerifyUrl, { size: 250, ecLevel: 'H' });
+                        const goCertUrl = generateGoQrUrl(certVerifyUrl, { size: 250, ecLevel: 'H' });
+                        return (
+                          <img
+                            src={certQrDataUrl || qcCertUrl}
+                            alt="Certificate Verification QR"
+                            style={{ width: '64px', height: '64px', display: 'block', borderRadius: '4px', imageRendering: 'pixelated' }}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = goCertUrl;
+                            }}
+                          />
+                        );
+                      })()}
                     </div>
                     <div style={{ textAlign: 'left', fontSize: '0.7rem', color: '#92400e', lineHeight: '1.4' }}>
                       <strong style={{ color: '#78350f' }}>ডিজিটাল সত্যায়িত সনদপত্র QR</strong><br />
@@ -18470,11 +18511,28 @@ ${verifyUrl}
                       }}
                       title="ক্লিক করে রেজুলেশন সরাসরি টেস্ট করুন"
                     >
-                      {templateDocQrDataUrl ? (
-                        <img src={templateDocQrDataUrl} alt="Document QR" style={{ width: '58px', height: '58px', display: 'block', borderRadius: '4px' }} />
-                      ) : (
-                        <QrCode size={36} color="#0284c7" />
-                      )}
+                      {(() => {
+                        const docData = {
+                          ref: `${currentSamity.id || 'SAM'}/${selectedDocTemplate?.id?.toUpperCase() || 'DOC'}/${new Date().getFullYear()}`,
+                          title: selectedDocTemplate?.title || 'অফিসিয়াল নোটিশ ও রেজুলেশন',
+                          date: new Date().toISOString().split('T')[0]
+                        };
+                        const verifyUrl = createSamityOfficialDocVerificationUrl(docData, currentSamity);
+                        const qcUrl = generateQuickChartQrUrl(verifyUrl, 160);
+                        const goUrl = generateGoQrUrl(verifyUrl, 160);
+                        return (
+                          <img
+                            src={templateDocQrDataUrl || qcUrl}
+                            alt="Document QR"
+                            onError={(e) => {
+                              if (e.currentTarget.src !== goUrl) {
+                                e.currentTarget.src = goUrl;
+                              }
+                            }}
+                            style={{ width: '58px', height: '58px', display: 'block', borderRadius: '4px' }}
+                          />
+                        );
+                      })()}
                     </div>
                     <div style={{ fontSize: '0.66rem', color: '#475569', lineHeight: '1.4' }}>
                       <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />
@@ -20737,22 +20795,29 @@ ${verifyUrl}
                       }}
                       title="ক্লিক করে QR কোড সত্যতা যাচাই করুন"
                     >
-                      {receiptQrDataUrl ? (
-                        <img
-                          src={receiptQrDataUrl}
-                          alt="Official Digital Verification QR"
-                          style={{
-                            width: '68px',
-                            height: '68px',
-                            display: 'block',
-                            borderRadius: '4px'
-                          }}
-                        />
-                      ) : (
-                        <div style={{ width: '68px', height: '68px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <QrCode size={40} color="#0f172a" />
-                        </div>
-                      )}
+                      {(() => {
+                        const receiptVerifyUrl = createSamityReceiptVerificationUrl(dep, currentSamity);
+                        const qcReceiptUrl = generateQuickChartQrUrl(receiptVerifyUrl, { size: 280, ecLevel: 'H' });
+                        const goReceiptUrl = generateGoQrUrl(receiptVerifyUrl, { size: 280, ecLevel: 'H' });
+
+                        return (
+                          <img
+                            src={receiptQrDataUrl || qcReceiptUrl}
+                            alt="Official Digital Verification QR"
+                            style={{
+                              width: '68px',
+                              height: '68px',
+                              display: 'block',
+                              borderRadius: '4px',
+                              imageRendering: 'pixelated'
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = goReceiptUrl;
+                            }}
+                          />
+                        );
+                      })()}
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: '1.4' }}>
                       <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />
@@ -21266,22 +21331,29 @@ ${verifyUrl}
                       }}
                       title="ক্লিক করে কিউআর কোড সত্যতা সরাসরি টেস্ট করুন"
                     >
-                      {noticeQrDataUrl ? (
-                        <img
-                          src={noticeQrDataUrl}
-                          alt="Official Due Notice QR"
-                          style={{
-                            width: '68px',
-                            height: '68px',
-                            display: 'block',
-                            borderRadius: '4px'
-                          }}
-                        />
-                      ) : (
-                        <div style={{ width: '68px', height: '68px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <QrCode size={38} color="#ef4444" />
-                        </div>
-                      )}
+                      {(() => {
+                        const noticeVerifyUrl = createSamityDueNoticeVerificationUrl(activePrintNotice, currentSamity);
+                        const qcNoticeUrl = generateQuickChartQrUrl(noticeVerifyUrl, { size: 280, ecLevel: 'H' });
+                        const goNoticeUrl = generateGoQrUrl(noticeVerifyUrl, { size: 280, ecLevel: 'H' });
+
+                        return (
+                          <img
+                            src={noticeQrDataUrl || qcNoticeUrl}
+                            alt="Official Due Notice QR"
+                            style={{
+                              width: '68px',
+                              height: '68px',
+                              display: 'block',
+                              borderRadius: '4px',
+                              imageRendering: 'pixelated'
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = goNoticeUrl;
+                            }}
+                          />
+                        );
+                      })()}
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: '1.4' }}>
                       <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />

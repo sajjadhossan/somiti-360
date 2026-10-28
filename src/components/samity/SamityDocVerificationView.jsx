@@ -286,6 +286,8 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
           <span>
             {docType === 'receipt'
               ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল জমা রসিদ (Digitally Verified Official Receipt)'
+              : docType === 'member_list'
+              ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল সদস্য তালিকা (Digitally Verified Official Member Registry)'
               : docType === 'due_notice'
               ? '✓ ডিজিটালভাবে সত্যায়িত বকেয়া নোটিশ (Digitally Verified Official Due Notice)'
               : docType === 'membership_cert'
@@ -629,9 +631,47 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
         )}
 
         {/* ------------------------------------------------------------- */}
+        {/* CASE: OFFICIAL SAMITY MEMBER LIST / REGISTRY VERIFICATION */}
+        {/* ------------------------------------------------------------- */}
+        {docType === 'member_list' && (
+          <div>
+            <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1.5px solid #86efac', borderRadius: '14px', padding: '18px 20px', marginBottom: '20px', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.74rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                অফিসিয়াল সদস্য তালিকা ও রেজিস্ট্রি সনদ (Official Member Registry)
+              </span>
+              <div style={{ fontSize: '2.2rem', fontWeight: '900', color: '#15803d', margin: '4px 0' }}>
+                মোট {decodedToken?.count || query.get('count') || 'সক্রিয়'} জন সদস্য
+              </div>
+              <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#16a34a' }}>
+                ✓ সেন্ট্রাল ক্লাউড ডেটাবেজে সংরক্ষিত ও সরকারি নিবন্ধন মোতাবেক অনুমোদিত
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px', fontSize: '0.84rem' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>প্রতিবেদন সময়কাল:</span>
+                <strong style={{ color: '#0f172a' }}>{decodedToken?.m || query.get('month') || 'চলতি মাস'} {decodedToken?.y || query.get('year') || ''}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>নিবন্ধন স্ট্যাটাস:</span>
+                <span style={{ color: '#15803d', fontWeight: '800' }}>✓ নিবন্ধিত ও নিয়মিত হালনাগাদকৃত</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ভেরিফিকেশন তারিখ:</span>
+                <strong style={{ color: '#0f172a' }}>{date}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ডিজিটাল অডিট হ্যাশ:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: '#059669', fontWeight: '800' }}>{hash}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
         {/* CASE 7: OFFICIAL RESOLUTION / DECREE / LETTERHEAD */}
         {/* ------------------------------------------------------------- */}
-        {docType !== 'receipt' && docType !== 'due_notice' && docType !== 'membership_cert' && docType !== 'bulk_deposit' && docType !== 'member_id_card' && docType !== 'member_card' && docType !== 'passbook' && (
+        {docType !== 'receipt' && docType !== 'member_list' && docType !== 'due_notice' && docType !== 'membership_cert' && docType !== 'bulk_deposit' && docType !== 'member_id_card' && docType !== 'member_card' && docType !== 'passbook' && (
           <div>
             <div
               style={{

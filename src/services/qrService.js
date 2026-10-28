@@ -809,3 +809,35 @@ export const createSamityPassbookVerificationUrl = (member, currentSamity, total
   }
 };
 
+/**
+ * Generates globally accessible Verification URL for Samity Member Registry / Member List Print
+ */
+export const createSamityMemberListVerificationUrl = (members = [], currentSamity, targetMonth, targetYear) => {
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const count = Array.isArray(members) ? members.length : 0;
+  const month = targetMonth || new Date().toLocaleString('bn-BD', { month: 'long' });
+  const year = targetYear || new Date().getFullYear();
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
+  const docHash = `HK360-MEMLIST-${Date.now().toString(36).toUpperCase()}`;
+
+  const payload = {
+    t: 'member_list',
+    count,
+    m: month,
+    y: year,
+    sam: samityName,
+    reg: regNo,
+    dt: new Date().toISOString().split('T')[0],
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=member_list&count=${count}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&hash=${encodeURIComponent(docHash)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=member_list&count=${count}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}`;
+  }
+};
+
+

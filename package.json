@@ -2,7 +2,7 @@
   "name": "somiti-360",
   "type": "module",
   "private": true,
-  "version": "1.0.13",
+  "version": "1.0.14",
   "author": "Somiti 360",
   "description": "সমিতি ৩৬০ - সমিতি, সমবায় সংস্থা ও ক্ষুদ্রঋণ সঞ্চয় ব্যবস্থাপনা প্ল্যাটফর্ম",
   "main": "electron/main.cjs",

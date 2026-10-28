@@ -437,9 +437,19 @@ export const getGlobalVerificationBaseUrl = (currentSamity) => {
         return url.replace(/\/$/, '');
       }
 
-      // 3. Current active browser origin
+      // 3. Current active browser origin (only if public web domain, not localhost / private LAN)
       const origin = window.location.origin;
-      if (origin && !origin.includes('capacitor://') && !origin.includes('electron://') && !origin.includes('file://')) {
+      const hostname = window.location.hostname || '';
+      const isLocalHost = hostname === 'localhost' ||
+                          hostname === '127.0.0.1' ||
+                          hostname.startsWith('192.168.') ||
+                          hostname.startsWith('10.') ||
+                          hostname.endsWith('.local') ||
+                          origin.includes('capacitor://') ||
+                          origin.includes('electron://') ||
+                          origin.includes('file://');
+
+      if (origin && !isLocalHost) {
         return origin + (window.location.pathname.endsWith('/') ? window.location.pathname.slice(0, -1) : window.location.pathname);
       }
     } catch (_) {}

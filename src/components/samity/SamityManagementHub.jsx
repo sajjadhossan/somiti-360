@@ -418,6 +418,22 @@ export const parseBioDataText = (raw) => {
     res.monthlySubscription = Number(feeMatch[1]);
   }
 
+  // Extract Nominee Name
+  const nomineeMatch = t.match(/(?:নমিনী|নমিনীর নাম|উত্তরাধিকারী|Nominee|Nominee Name)[:\s\-]*([^\n,;]+)/i);
+  if (nomineeMatch) res.nomineeName = nomineeMatch[1].trim();
+
+  // Extract Nominee Relation
+  const relationMatch = t.match(/(?:নমিনীর সাথে সম্পর্ক|সম্পর্ক|Relationship|Relation)[:\s\-]*([^\n,;]+)/i);
+  if (relationMatch) res.nomineeRelation = relationMatch[1].trim();
+
+  // Extract Nominee NID
+  const nomineeNidMatch = t.match(/(?:নমিনীর এনআইডি|নমিনীর NID|Nominee NID)[:\s\-]*([0-9]{10,17})/i);
+  if (nomineeNidMatch) res.nomineeNid = nomineeNidMatch[1].trim();
+
+  // Extract Nominee Mobile
+  const nomineeMobileMatch = t.match(/(?:নমিনীর মোবাইল|নমিনীর ফোন|Nominee Mobile|Nominee Phone)[:\s\-]*([0-9+]{11,14})/i);
+  if (nomineeMobileMatch) res.nomineeMobile = nomineeMobileMatch[1].replace(/^\+?88/, '').trim();
+
   return res;
 };
 
@@ -610,8 +626,11 @@ export const SamityManagementHub = ({ onClose }) => {
   const [isSupervisorRadarOpen, setIsSupervisorRadarOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isRecycleBinModalOpen, setIsRecycleBinModalOpen] = useState(false);
+  const [recycleBinActiveTab, setRecycleBinActiveTab] = useState('deposits'); // 'deposits' | 'members'
   const [deleteDepositTarget, setDeleteDepositTarget] = useState(null);
   const [deleteDepositReason, setDeleteDepositReason] = useState('টেস্টিং / অপ্রয়োজনীয় রেকর্ড');
+  const [deleteMemberTarget, setDeleteMemberTarget] = useState(null);
+  const [deleteMemberReason, setDeleteMemberReason] = useState('অব্যাহতি / সদস্যপদ ত্যাগ');
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [onlineDevicesListState, setOnlineDevicesListState] = useState(() => getOnlineDevicesList());
   const onlineDevicesCount = Math.max(1, onlineDevicesListState.length);
@@ -977,6 +996,11 @@ export const SamityManagementHub = ({ onClose }) => {
     occupation: '',
     organization: '',
     bloodGroup: '',
+    nomineeName: '',
+    nomineeRelation: '',
+    nomineeNid: '',
+    nomineeMobile: '',
+    nomineePhoto: '',
     membershipType: 'General Member',
     membershipStartDate: new Date().toISOString().split('T')[0],
     membershipEndDate: '',
@@ -1657,12 +1681,24 @@ export const SamityManagementHub = ({ onClose }) => {
         id: newMemberId,
         memberCode: memberForm.memberCode || newMemberId,
         samityId: activeSamityId,
+        tenant_id: activeSamityId,
+        business_id: activeSamityId,
+        organization_id: activeSamityId,
         customSubscription: parsedCustom !== null ? parsedCustom : '',
         monthlySubscription: parsedCustom !== null ? parsedCustom : (Number(currentSamity.monthlySubscription) || 500),
+        deleted_at: null,
+        deleted_by: null,
+        is_deleted: false,
+        sync_version: 1,
+        is_synced: false,
         createdBy: activeUserRole || 'Admin',
+        created_by: activeUserRole || 'Admin',
         createdAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
         updatedBy: activeUserRole || 'Admin',
-        updatedAt: new Date().toISOString()
+        updated_by: activeUserRole || 'Admin',
+        updatedAt: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       updateAndSave(prev => ({
@@ -1681,23 +1717,120 @@ export const SamityManagementHub = ({ onClose }) => {
   };
 
   const handleDeleteMember = (memberId) => {
-    if (!window.confirm('আপনি কি নিশ্চিতভাবে এই সদস্যকে মুছে ফেলতে চান?')) return;
+    const target = (data.members || []).find(m => String(m.id) === String(memberId));
+    if (!target) return;
     playButtonClick?.();
-    triggerHaptic();
+    triggerHaptic?.();
+    setDeleteMemberTarget(target);
+    setDeleteMemberReason('অব্যাহতি / সদস্যপদ ত্যাগ');
+  };
+
+  const handleConfirmDeleteMember = () => {
+    if (!deleteMemberTarget) return;
+    playButtonClick?.();
+    triggerHaptic?.();
+
+    const target = deleteMemberTarget;
+    const targetId = target.id;
+    const reason = deleteMemberReason || 'সদস্যপদ বাতিল / ডিলিট';
+
+    const deletedRecord = {
+      ...target,
+      deleted_at: new Date().toISOString(),
+      deleted_by: activeUserRole || 'Admin',
+      deletedAt: new Date().toISOString(),
+      deletedBy: activeUserRole || 'Admin',
+      deleteReason: reason,
+      is_deleted: true
+    };
+
     updateAndSave(prev => ({
       ...prev,
-      members: prev.members.filter(m => m.id !== memberId)
+      members: (prev.members || []).filter(m => String(m.id) !== String(targetId)),
+      recycleBinMembers: [deletedRecord, ...(prev.recycleBinMembers || []).filter(m => String(m.id) !== String(targetId))]
     }), {
-      action: 'DELETE_MEMBER',
+      action: 'DELETE_MEMBER_TO_RECYCLE_BIN',
       module: 'MEMBERS',
-      recordId: memberId,
-      details: { memberId }
+      recordId: target.memberCode || targetId,
+      details: { name: target.nameBn || target.nameEn, reason }
     });
-    if (selectedMemberProfile && selectedMemberProfile.id === memberId) {
+
+    if (selectedMemberProfile && selectedMemberProfile.id === targetId) {
       setIsProfileModalOpen(false);
       setSelectedMemberProfile(null);
     }
-    showToast?.('সদস্য মুছে ফেলা হয়েছে', 'info');
+
+    setDeleteMemberTarget(null);
+    showToast?.(`সদস্য #${target.memberCode || target.id} (${target.nameBn || target.nameEn}) রিসাইকেল বিনে পাঠানো হয়েছে।`, 'info');
+  };
+
+  const handleRestoreMember = (memberId) => {
+    playSuccessChime?.();
+    triggerHaptic?.();
+
+    const currentBin = data.recycleBinMembers || [];
+    const target = currentBin.find(m => String(m.id) === String(memberId));
+    if (!target) return;
+
+    const restored = {
+      ...target,
+      restoredAt: new Date().toISOString(),
+      restoredBy: activeUserRole || 'Admin',
+      is_deleted: false
+    };
+    delete restored.deleteReason;
+    delete restored.deletedAt;
+    delete restored.deletedBy;
+    delete restored.deleted_at;
+    delete restored.deleted_by;
+
+    updateAndSave(prev => ({
+      ...prev,
+      members: [restored, ...(prev.members || []).filter(m => String(m.id) !== String(memberId))],
+      recycleBinMembers: (prev.recycleBinMembers || []).filter(m => String(m.id) !== String(memberId))
+    }), {
+      action: 'RESTORE_MEMBER_FROM_RECYCLE_BIN',
+      module: 'MEMBERS',
+      recordId: memberId,
+      details: { name: restored.nameBn || restored.nameEn }
+    });
+
+    showToast?.(`সদস্য #${restored.memberCode || restored.id} (${restored.nameBn || restored.nameEn}) সফলভাবে পুনরুদ্ধার (Restored) করা হয়েছে।`, 'success');
+  };
+
+  const handlePermanentDeleteMember = (memberId) => {
+    playButtonClick?.();
+    triggerHaptic?.();
+
+    const currentBin = data.recycleBinMembers || [];
+    const target = currentBin.find(m => String(m.id) === String(memberId));
+
+    updateAndSave(prev => ({
+      ...prev,
+      recycleBinMembers: (prev.recycleBinMembers || []).filter(m => String(m.id) !== String(memberId))
+    }), {
+      action: 'PERMANENT_DELETE_MEMBER',
+      module: 'MEMBERS',
+      recordId: memberId,
+      details: { name: target?.nameBn || target?.nameEn }
+    });
+
+    showToast?.('সদস্য রেকর্ড স্থায়ীভাবে মুছে ফেলা হয়েছে।', 'warning');
+  };
+
+  const handleEmptyMemberRecycleBin = () => {
+    playButtonClick?.();
+    triggerHaptic?.();
+
+    updateAndSave(prev => ({
+      ...prev,
+      recycleBinMembers: []
+    }), {
+      action: 'EMPTY_MEMBER_RECYCLE_BIN',
+      module: 'MEMBERS'
+    });
+
+    showToast?.('সদস্য রিসাইকেল বিন সম্পূর্ণ খালি করা হয়েছে।', 'warning');
   };
 
   const handleViewMemberProfile = (member) => {
@@ -5932,6 +6065,35 @@ ${verifyUrl}
                 >
                   <Plus size={15} />
                   <span>{activeLang === 'en' ? '+ Register New Member' : '+ নতুন সদস্য নিবন্ধন'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playButtonClick?.();
+                    triggerHaptic();
+                    setRecycleBinActiveTab('members');
+                    setIsRecycleBinModalOpen(true);
+                  }}
+                  title={activeLang === 'en' ? 'Member Recycle Bin' : 'সদস্য রিসাইকেল বিন'}
+                  style={{
+                    background: (data.recycleBinMembers || []).length > 0 ? (isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)') : (isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)'),
+                    color: (data.recycleBinMembers || []).length > 0 ? '#ef4444' : (isLight ? '#475569' : '#cbd5e1'),
+                    border: (data.recycleBinMembers || []).length > 0 ? '1.5px solid rgba(239, 68, 68, 0.4)' : (isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)'),
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: '800',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Trash2 size={14} color={(data.recycleBinMembers || []).length > 0 ? '#ef4444' : 'currentColor'} />
+                  <span>
+                    {activeLang === 'en' ? `Recycle Bin (${(data.recycleBinMembers || []).length})` : `রিসাইকেল বিন (${(data.recycleBinMembers || []).length})`}
+                  </span>
                 </button>
 
                 <button
@@ -16617,14 +16779,15 @@ ${verifyUrl}
               )}
             </div>
 
-            {/* 5 Form Sub-Tabs */}
+            {/* 6 Form Sub-Tabs */}
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
               {[
                 { id: 'basic', label: '১. পরিচিতি ও ছবি', icon: Users },
                 { id: 'contact', label: '২. যোগাযোগ ও সোশ্যাল', icon: Phone },
                 { id: 'address', label: '৩. ঠিকানা ও পেশা', icon: MapPin },
-                { id: 'membership', label: '৪. সদস্যপদ ও চাঁদা', icon: Wallet },
-                { id: 'remarks', label: '৫. মন্তব্য ও অডিট', icon: FileText }
+                { id: 'nominee', label: '৪. নমিনী ও উত্তরাধিকারী', icon: Award },
+                { id: 'membership', label: '৫. সদস্যপদ ও চাঁদা', icon: Wallet },
+                { id: 'remarks', label: '৬. মন্তব্য ও অডিট', icon: FileText }
               ].map(tab => {
                 const Icon = tab.icon;
                 const isActive = memberFormActiveTab === tab.id;
@@ -16961,7 +17124,78 @@ ${verifyUrl}
                 </div>
               )}
 
-              {/* TAB 4: MEMBERSHIP & SUBSCRIPTION POLICY */}
+              {/* TAB 4: NOMINEE INFORMATION */}
+              {memberFormActiveTab === 'nominee' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.25)', fontSize: '0.78rem', color: '#38bdf8' }}>
+                    💡 সদস্যের অনুপস্থিতিতে বা জরুরি প্রয়োজনে সঞ্চয় ও তহবিলের বৈধ উত্তরাধিকারী নির্ধারণে নমিনীর সঠিক তথ্য ও এনআইডি দিন।
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94a3b8', marginBottom: '6px' }}>
+                        নমিনীর পূর্ণ নাম (Nominee Name)
+                      </label>
+                      <input
+                        type="text"
+                        value={memberForm.nomineeName || ''}
+                        onChange={(e) => setMemberForm({ ...memberForm, nomineeName: e.target.value })}
+                        placeholder="যেমন: মোসাঃ খাদিজা বেগম"
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff', fontSize: '0.82rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94a3b8', marginBottom: '6px' }}>
+                        সদস্যের সাথে সম্পর্ক (Relationship)
+                      </label>
+                      <select
+                        value={memberForm.nomineeRelation || 'স্ত্রী'}
+                        onChange={(e) => setMemberForm({ ...memberForm, nomineeRelation: e.target.value })}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff', fontSize: '0.82rem', fontWeight: '700' }}
+                      >
+                        <option value="স্ত্রী">স্ত্রী (Wife)</option>
+                        <option value="স্বামী">স্বামী (Husband)</option>
+                        <option value="পিতা">পিতা (Father)</option>
+                        <option value="মাতা">মাতা (Mother)</option>
+                        <option value="পুত্র">পুত্র (Son)</option>
+                        <option value="কন্যা">কন্যা (Daughter)</option>
+                        <option value="ভাই">ভাই (Brother)</option>
+                        <option value="বোন">বোন (Sister)</option>
+                        <option value="অন্যান্য">অন্যান্য (Other)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94a3b8', marginBottom: '6px' }}>
+                        নমিনীর জাতীয় পরিচয়পত্র (NID)
+                      </label>
+                      <input
+                        type="text"
+                        value={memberForm.nomineeNid || ''}
+                        onChange={(e) => setMemberForm({ ...memberForm, nomineeNid: e.target.value })}
+                        placeholder="১০, ১৩ বা ১৭ ডিজিটের এনআইডি"
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff', fontSize: '0.82rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94a3b8', marginBottom: '6px' }}>
+                        নমিনীর মোবাইল নম্বর (Phone)
+                      </label>
+                      <input
+                        type="tel"
+                        value={memberForm.nomineeMobile || ''}
+                        onChange={(e) => setMemberForm({ ...memberForm, nomineeMobile: e.target.value })}
+                        placeholder="যেমন: 017xxxxxxxx"
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#fff', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: MEMBERSHIP & SUBSCRIPTION POLICY */}
               {memberFormActiveTab === 'membership' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                   <div>
@@ -17361,6 +17595,57 @@ ${verifyUrl}
                   <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '12px', borderRadius: '10px' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>প্রশাসনিক মন্তব্য</div>
                     <div style={{ fontWeight: '700', color: '#fff', marginTop: '2px' }}>{selectedMemberProfile.remarks || 'কোনো মন্তব্য নেই'}</div>
+                  </div>
+
+                  {/* Nominee & Legal Heir Card */}
+                  <div style={{ gridColumn: '1 / -1', background: 'rgba(56, 189, 248, 0.08)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>👥</span>
+                        <span>নমিনী ও বৈধ উত্তরাধিকারীর তথ্য (Nominee & Legal Heir Details)</span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: selectedMemberProfile.nomineeName ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                        color: selectedMemberProfile.nomineeName ? '#10b981' : '#f59e0b',
+                        fontWeight: '800'
+                      }}>
+                        {selectedMemberProfile.nomineeName ? '✓ সংরক্ষিত' : '⚠️ তথ্য অপ্রতুল'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>নমিনীর পূর্ণ নাম</div>
+                        <div style={{ fontWeight: '800', color: '#fff', marginTop: '2px' }}>
+                          {selectedMemberProfile.nomineeName || 'দেওয়া হয়নি'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>সদস্যের সাথে সম্পর্ক</div>
+                        <div style={{ fontWeight: '800', color: '#38bdf8', marginTop: '2px' }}>
+                          {selectedMemberProfile.nomineeRelation || 'দেওয়া হয়নি'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>নমিনীর জাতীয় পরিচয়পত্র (NID)</div>
+                        <div style={{ fontWeight: '800', color: '#fff', marginTop: '2px' }}>
+                          {selectedMemberProfile.nomineeNid || 'দেওয়া হয়নি'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>নমিনীর মোবাইল নম্বর</div>
+                        <div style={{ fontWeight: '800', color: '#fff', marginTop: '2px' }}>
+                          {selectedMemberProfile.nomineeMobile ? (
+                            <a href={`tel:${selectedMemberProfile.nomineeMobile}`} style={{ color: '#38bdf8', textDecoration: 'none' }}>
+                              📞 {selectedMemberProfile.nomineeMobile}
+                            </a>
+                          ) : 'দেওয়া হয়নি'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -23052,7 +23337,130 @@ ${verifyUrl}
         </div>
       )}
 
-      {/* 11. RECYCLE BIN CONSOLE MODAL (RESTORE & PURGE) */}
+      {/* 11. CONFIRM DELETE MEMBER MODAL (MOVE TO RECYCLE BIN) */}
+      {deleteMemberTarget && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 10002,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteMemberTarget(null);
+          }}
+        >
+          <div
+            style={{
+              background: isLight ? '#ffffff' : '#0f172a',
+              border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '18px',
+              width: '100%',
+              maxWidth: '500px',
+              padding: '24px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={22} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                  সদস্য রিসাইকেল বিনে পাঠান
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                  সদস্য রেকর্ড ও প্রোফাইল সাময়িকভাবে সরিয়ে নেওয়া হবে
+                </p>
+              </div>
+            </div>
+
+            <div style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', padding: '12px 14px', borderRadius: '10px', border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)', marginBottom: '16px', fontSize: '0.82rem', lineHeight: '1.6' }}>
+              <div>সদস্য আইডি: <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{deleteMemberTarget.memberCode || deleteMemberTarget.id}</strong></div>
+              <div>নাম: <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>{deleteMemberTarget.nameBn || deleteMemberTarget.nameEn}</strong></div>
+              <div>মোবাইল: <strong>{deleteMemberTarget.mobile || 'প্রযোজ্য নয়'}</strong></div>
+              <div>মাসিক চাঁদা: <strong style={{ color: '#10b981' }}>৳{Number(deleteMemberTarget.monthlySubscription || 500).toLocaleString()}</strong></div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: isLight ? '#334155' : '#cbd5e1', marginBottom: '6px' }}>
+                মুছে ফেলার কারণ:
+              </label>
+              <select
+                value={deleteMemberReason}
+                onChange={(e) => setDeleteMemberReason(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.2)',
+                  background: isLight ? '#ffffff' : '#0f172a',
+                  color: isLight ? '#0f172a' : '#fff',
+                  fontSize: '0.82rem',
+                  fontWeight: '700'
+                }}
+              >
+                <option value="অব্যাহতি / সদস্যপদ ত্যাগ">অব্যাহতি / সদস্যপদ ত্যাগ (Resigned/Left)</option>
+                <option value="মৃত্যুবরণ করেছেন">মৃত্যুবরণ করেছেন (Deceased)</option>
+                <option value="সদস্যপদ বাতিল">শৃঙ্খলাজনিত কারণে সদস্যপদ বাতিল (Cancelled/Expelled)</option>
+                <option value="দ্বৈত এন্ট্রি">ভুলবশত দ্বৈত এন্ট্রি (Duplicate Entry)</option>
+                <option value="টেস্টিং রেকর্ড">টেস্টিং রেকর্ড (Trial Entry)</option>
+                <option value="অন্যান্য">অন্যান্য কারণ (Other)</option>
+              </select>
+            </div>
+
+            <div style={{ background: 'rgba(56, 189, 248, 0.1)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)', fontSize: '0.74rem', color: '#38bdf8', marginBottom: '20px' }}>
+              💡 সদস্য মুছে গেলেও <strong>রিসাইকেল বিনে</strong> সংরক্ষিত থাকবে এবং যেকোনো সময় আপনি এটি <strong>পুনরুদ্ধার (Restore)</strong> করতে পারবেন।
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteMemberTarget(null)}
+                style={{
+                  background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.08)',
+                  border: 'none',
+                  color: isLight ? '#475569' : '#cbd5e1',
+                  padding: '9px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteMember}
+                style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '9px 20px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Trash2 size={15} />
+                <span>রিসাইকেল বিনে পাঠান</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 12. RECYCLE BIN CONSOLE MODAL (RESTORE & PURGE) */}
       {isRecycleBinModalOpen && (
         <div
           style={{
@@ -23091,20 +23499,22 @@ ${verifyUrl}
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc' }}>
-                    ♻️ আর্থিক লেনদেন রিসাইকেল বিন (Financial Recycle Bin)
+                    {recycleBinActiveTab === 'deposits' ? '♻️ আর্থিক লেনদেন রিসাইকেল বিন (Deposits Recycle Bin)' : '♻️ সদস্য রিসাইকেল বিন (Member Recycle Bin)'}
                   </h3>
                   <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                    ভুলবশত মুছে ফেলা লেনদেন যেকোনো সময় পুনরুদ্ধার (Restore) করুন অথবা স্থায়ীভাবে মুছে ফেলুন
+                    {recycleBinActiveTab === 'deposits'
+                      ? 'ভুলবশত মুছে ফেলা লেনদেন যেকোনো সময় পুনরুদ্ধার (Restore) করুন অথবা স্থায়ীভাবে মুছে ফেলুন'
+                      : 'মুছে ফেলা বা অব্যাহতিপ্রাপ্ত সদস্যদের পুনরুদ্ধার (Restore) করুন অথবা স্থায়ীভাবে মুছে ফেলুন'}
                   </p>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {(data.recycleBinDeposits || []).length > 0 && (
+                {recycleBinActiveTab === 'deposits' && (data.recycleBinDeposits || []).length > 0 && (
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm('আপনি কি নিশ্চিত যে রিসাইকেল বিন সম্পূর্ণ খালি করতে চান? এটি আর ফিরিয়ে আনা যাবে না!')) {
+                      if (window.confirm('আপনি কি নিশ্চিত যে ডিপোজিট রিসাইকেল বিন সম্পূর্ণ খালি করতে চান? এটি আর ফিরিয়ে আনা যাবে না!')) {
                         handleEmptyRecycleBin();
                       }
                     }}
@@ -23119,7 +23529,29 @@ ${verifyUrl}
                       cursor: 'pointer'
                     }}
                   >
-                    🧹 বিন খালি করুন
+                    🧹 ডিপোজিট বিন খালি করুন
+                  </button>
+                )}
+                {recycleBinActiveTab === 'members' && (data.recycleBinMembers || []).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('আপনি কি নিশ্চিত যে সদস্য রিসাইকেল বিন সম্পূর্ণ খালি করতে চান? এটি আর ফিরিয়ে আনা যাবে না!')) {
+                        handleEmptyMemberRecycleBin();
+                      }
+                    }}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      color: '#ef4444',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      padding: '7px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.76rem',
+                      fontWeight: '800',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🧹 সদস্য বিন খালি করুন
                   </button>
                 )}
                 <button
@@ -23143,108 +23575,269 @@ ${verifyUrl}
               </div>
             </div>
 
-            {/* List */}
-            {(!data.recycleBinDeposits || data.recycleBinDeposits.length === 0) ? (
-              <div style={{ textAlign: 'center', padding: '48px 20px', color: isLight ? '#94a3b8' : '#64748b' }}>
-                <CheckCircle2 size={48} color="#10b981" style={{ margin: '0 auto 12px auto', opacity: 0.8 }} />
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', color: isLight ? '#334155' : '#cbd5e1' }}>
-                  রিসাইকেল বিন সম্পূর্ণ পরিষ্কার!
-                </h4>
-                <p style={{ margin: 0, fontSize: '0.78rem' }}>
-                  বর্তমানে কোনো মুছে ফেলা বা বাতিলকৃত লেনদেন নেই।
-                </p>
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-                  <thead>
-                    <tr style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)', borderBottom: isLight ? '2px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', color: isLight ? '#475569' : '#94a3b8', textAlign: 'left' }}>
-                      <th style={{ padding: '10px 12px' }}>ভাউচার / রসিদ</th>
-                      <th style={{ padding: '10px 12px' }}>সদস্য ও জমাদানকারী</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'right' }}>পরিমাণ (টাকা)</th>
-                      <th style={{ padding: '10px 12px' }}>মুছে ফেলার বিবরণ</th>
-                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>অ্যাকশন</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.recycleBinDeposits.map((item) => (
-                      <tr key={item.id} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)' }}>
-                        <td style={{ padding: '12px' }}>
-                          <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{item.voucherNo || item.receiptNo || item.id}</strong>
-                          <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                            জমার তারিখ: {item.depositDate || item.date}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: '800', color: isLight ? '#0f172a' : '#f8fafc' }}>
-                            {item.memberName || 'সদস্য'}
-                          </div>
-                          <div style={{ fontSize: '0.71rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                            জমা দিয়েছেন: {item.depositorName} {item.depositorRelation ? `(${item.depositorRelation})` : ''}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: '900', color: '#10b981', fontSize: '0.92rem' }}>
-                          ৳ {Number(item.amount || 0).toLocaleString()}
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
-                            {item.deleteReason || 'টেস্টিং রেকর্ড'}
-                          </span>
-                          <div style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', marginTop: '3px' }}>
-                            {new Date(item.deletedAt || Date.now()).toLocaleDateString('bn-BD')} • {item.deletedBy || 'Admin'}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleRestoreDeposit(item.id)}
-                              style={{
-                                background: 'rgba(16, 185, 129, 0.15)',
-                                color: '#10b981',
-                                border: '1px solid rgba(16, 185, 129, 0.35)',
-                                padding: '5px 10px',
-                                borderRadius: '6px',
-                                fontSize: '0.72rem',
-                                fontWeight: '800',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                              title="হিসাবে পুনরুদ্ধার করুন"
-                            >
-                              <RefreshCw size={12} />
-                              <span>পুনরুদ্ধার</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (window.confirm('আপনি কি নিশ্চিত যে এই রেকর্ডটি স্থায়ীভাবে মুছে ফেলতে চান?')) {
-                                  handlePermanentDeleteDeposit(item.id);
-                                }
-                              }}
-                              style={{
-                                background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
-                                color: '#ef4444',
-                                border: '1px solid rgba(239, 68, 68, 0.35)',
-                                padding: '5px 8px',
-                                borderRadius: '6px',
-                                fontSize: '0.72rem',
-                                fontWeight: '800',
-                                cursor: 'pointer'
-                              }}
-                              title="স্থায়ীভাবে মুছে ফেলুন"
-                            >
-                              স্থায়ী ডিলিট
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            {/* Tab Switcher: Deposits vs Members */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '18px' }}>
+              <button
+                type="button"
+                onClick={() => setRecycleBinActiveTab('deposits')}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  border: recycleBinActiveTab === 'deposits' ? '2px solid #38bdf8' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)'),
+                  background: recycleBinActiveTab === 'deposits' ? (isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)') : 'transparent',
+                  color: recycleBinActiveTab === 'deposits' ? '#0284c7' : (isLight ? '#64748b' : '#94a3b8'),
+                  fontWeight: '800',
+                  fontSize: '0.84rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Wallet size={16} />
+                <span>💳 আমানত ও ডিপোজিট ({(data.recycleBinDeposits || []).length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRecycleBinActiveTab('members')}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  border: recycleBinActiveTab === 'members' ? '2px solid #10b981' : (isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)'),
+                  background: recycleBinActiveTab === 'members' ? (isLight ? '#dcfce7' : 'rgba(16, 185, 129, 0.15)') : 'transparent',
+                  color: recycleBinActiveTab === 'members' ? '#059669' : (isLight ? '#64748b' : '#94a3b8'),
+                  fontWeight: '800',
+                  fontSize: '0.84rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Users size={16} />
+                <span>👥 সদস্য ও মেম্বারবৃন্দ ({(data.recycleBinMembers || []).length})</span>
+              </button>
+            </div>
+
+            {/* TAB CONTENT: DEPOSITS */}
+            {recycleBinActiveTab === 'deposits' && (
+              <>
+                {(!data.recycleBinDeposits || data.recycleBinDeposits.length === 0) ? (
+                  <div style={{ textAlign: 'center', padding: '48px 20px', color: isLight ? '#94a3b8' : '#64748b' }}>
+                    <CheckCircle2 size={48} color="#10b981" style={{ margin: '0 auto 12px auto', opacity: 0.8 }} />
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', color: isLight ? '#334155' : '#cbd5e1' }}>
+                      ডিপোজিট রিসাইকেল বিন সম্পূর্ণ পরিষ্কার!
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.78rem' }}>
+                      বর্তমানে কোনো মুছে ফেলা বা বাতিলকৃত আর্থিক লেনদেন নেই।
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                      <thead>
+                        <tr style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)', borderBottom: isLight ? '2px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', color: isLight ? '#475569' : '#94a3b8', textAlign: 'left' }}>
+                          <th style={{ padding: '10px 12px' }}>ভাউচার / রসিদ</th>
+                          <th style={{ padding: '10px 12px' }}>সদস্য ও জমাদানকারী</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'right' }}>পরিমাণ (টাকা)</th>
+                          <th style={{ padding: '10px 12px' }}>মুছে ফেলার বিবরণ</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center' }}>অ্যাকশন</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.recycleBinDeposits.map((item) => (
+                          <tr key={item.id} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)' }}>
+                            <td style={{ padding: '12px' }}>
+                              <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{item.voucherNo || item.receiptNo || item.id}</strong>
+                              <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                                জমার তারিখ: {item.depositDate || item.date}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontWeight: '800', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                                {item.memberName || 'সদস্য'}
+                              </div>
+                              <div style={{ fontSize: '0.71rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                                জমা দিয়েছেন: {item.depositorName} {item.depositorRelation ? `(${item.depositorRelation})` : ''}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'right', fontWeight: '900', color: '#10b981', fontSize: '0.92rem' }}>
+                              ৳ {Number(item.amount || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
+                                {item.deleteReason || 'টেস্টিং রেকর্ড'}
+                              </span>
+                              <div style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', marginTop: '3px' }}>
+                                {new Date(item.deletedAt || Date.now()).toLocaleDateString('bn-BD')} • {item.deletedBy || 'Admin'}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRestoreDeposit(item.id)}
+                                  style={{
+                                    background: 'rgba(16, 185, 129, 0.15)',
+                                    color: '#10b981',
+                                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                                    padding: '5px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="হিসাবে পুনরুদ্ধার করুন"
+                                >
+                                  <RefreshCw size={12} />
+                                  <span>পুনরুদ্ধার</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm('আপনি কি নিশ্চিত যে এই রেকর্ডটি স্থায়ীভাবে মুছে ফেলতে চান?')) {
+                                      handlePermanentDeleteDeposit(item.id);
+                                    }
+                                  }}
+                                  style={{
+                                    background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
+                                    color: '#ef4444',
+                                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                                    padding: '5px 8px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer'
+                                  }}
+                                  title="স্থায়ীভাবে মুছে ফেলুন"
+                                >
+                                  স্থায়ী ডিলিট
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* TAB CONTENT: MEMBERS */}
+            {recycleBinActiveTab === 'members' && (
+              <>
+                {(!data.recycleBinMembers || data.recycleBinMembers.length === 0) ? (
+                  <div style={{ textAlign: 'center', padding: '48px 20px', color: isLight ? '#94a3b8' : '#64748b' }}>
+                    <CheckCircle2 size={48} color="#10b981" style={{ margin: '0 auto 12px auto', opacity: 0.8 }} />
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', color: isLight ? '#334155' : '#cbd5e1' }}>
+                      সদস্য রিসাইকেল বিন সম্পূর্ণ পরিষ্কার!
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.78rem' }}>
+                      বর্তমানে কোনো মুছে ফেলা বা অব্যাহতিপ্রাপ্ত সদস্যের রেকর্ড নেই।
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                      <thead>
+                        <tr style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)', borderBottom: isLight ? '2px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', color: isLight ? '#475569' : '#94a3b8', textAlign: 'left' }}>
+                          <th style={{ padding: '10px 12px' }}>সদস্য আইডি</th>
+                          <th style={{ padding: '10px 12px' }}>নাম ও মোবাইল</th>
+                          <th style={{ padding: '10px 12px' }}>পদবি ও চাঁদা</th>
+                          <th style={{ padding: '10px 12px' }}>মুছে ফেলার কারণ ও তারিখ</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center' }}>অ্যাকশন</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.recycleBinMembers.map((item) => (
+                          <tr key={item.id} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)' }}>
+                            <td style={{ padding: '12px' }}>
+                              <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{item.memberCode || item.id}</strong>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontWeight: '800', color: isLight ? '#0f172a' : '#f8fafc' }}>
+                                {item.nameBn || item.nameEn}
+                              </div>
+                              <div style={{ fontSize: '0.71rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+                                ফোন: {item.mobile || 'প্রযোজ্য নয়'}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontWeight: '700' }}>{item.membershipType || 'সাধারণ সদস্য'}</div>
+                              <div style={{ fontSize: '0.71rem', color: '#10b981', fontWeight: '800' }}>
+                                চাঁদা: ৳{Number(item.monthlySubscription || 500).toLocaleString()}/মাস
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
+                                {item.deleteReason || 'সদস্যপদ বাতিল / ডিলিট'}
+                              </span>
+                              <div style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', marginTop: '3px' }}>
+                                {new Date(item.deletedAt || Date.now()).toLocaleDateString('bn-BD')} • {item.deletedBy || 'Admin'}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRestoreMember(item.id)}
+                                  style={{
+                                    background: 'rgba(16, 185, 129, 0.15)',
+                                    color: '#10b981',
+                                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                                    padding: '5px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="সদস্যকে সক্রিয় তালিকায় পুনরুদ্ধার করুন"
+                                >
+                                  <RefreshCw size={12} />
+                                  <span>পুনরুদ্ধার</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm('আপনি কি নিশ্চিত যে এই সদস্যকে স্থায়ীভাবে মুছে ফেলতে চান?')) {
+                                      handlePermanentDeleteMember(item.id);
+                                    }
+                                  }}
+                                  style={{
+                                    background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
+                                    color: '#ef4444',
+                                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                                    padding: '5px 8px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer'
+                                  }}
+                                  title="স্থায়ীভাবে মুছে ফেলুন"
+                                >
+                                  স্থায়ী ডিলিট
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

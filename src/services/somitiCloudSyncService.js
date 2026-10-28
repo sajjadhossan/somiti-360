@@ -17,7 +17,7 @@
 
 import { getSupabase, isSupabaseReady } from './supabaseClient';
 import { backupToTelegram } from './somitiTelegramBackupService';
-import { saveStateToIndexedDB } from './somitiOfflineStore';
+import { saveStateToIndexedDB, flushPendingOfflineMutations } from './somitiOfflineStore';
 
 const MESH_CHANNEL_NAME = 'hk360_somiti_mesh_sync';
 const STORAGE_KEY = 'hk360_samity_hub_data';
@@ -186,6 +186,9 @@ export const mergeSamityState = (localState, incomingState) => {
     waivers: mergeById(localState.waivers, incomingState.waivers),
     documents: mergeById(localState.documents, incomingState.documents),
     approvals: mergeById(localState.approvals, incomingState.approvals),
+    recycleBinDeposits: mergeById(localState.recycleBinDeposits, incomingState.recycleBinDeposits),
+    recycleBinMembers: mergeById(localState.recycleBinMembers, incomingState.recycleBinMembers),
+    chatMessages: mergeById(localState.chatMessages, incomingState.chatMessages),
     auditLogs: mergeById(localState.auditLogs, incomingState.auditLogs).slice(0, 500),
     letterhead: {
       ...(localState.letterhead || {}),
@@ -297,8 +300,22 @@ export const initSomitiCloudSync = () => {
 
     // Setup browser online / offline listeners
     if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => {
-        console.info('[SomitiSync] Device back online, reconnecting mesh...');
+      window.addEventListener('online', async () => {
+        console.info('[SomitiSync] Device back online, flushing offline queue and reconnecting mesh...');
+        try {
+          const flushedCount = await flushPendingOfflineMutations(async (mutation) => {
+            console.info('[SomitiSync] Flushed offline mutation:', mutation.type, mutation.idempotencyKey);
+          });
+          if (flushedCount > 0) {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+              const currentData = JSON.parse(raw);
+              broadcastSamityStateUpdate(currentData, { action: 'FLUSH_OFFLINE_QUEUE', count: flushedCount });
+            }
+          }
+        } catch (e) {
+          console.warn('[SomitiSync] Error flushing offline mutations:', e);
+        }
         requestMeshSyncFromPeers();
       });
     }

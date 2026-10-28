@@ -176,6 +176,9 @@ export const createDefaultDepositObject = (samity = {}, nextCount = 1, custom = 
 
   return {
     id: `DEP-${Date.now()}`,
+    tenant_id: samity?.id || 'SAMITY-001',
+    business_id: samity?.id || 'SAMITY-001',
+    organization_id: samity?.id || 'SAMITY-001',
     voucherNo: voucherNo,
     receiptNo: receiptNo,
     depositDate: dateStr,
@@ -198,6 +201,7 @@ export const createDefaultDepositObject = (samity = {}, nextCount = 1, custom = 
     depositorName: '',
     depositorPhone: '',
     depositorWhatsApp: '',
+    depositorRelation: 'সদস্য নিজে', // 'সদস্য নিজে' | 'নমিনী' | 'পিতা/মাতা' | 'প্রতিনিধি' | 'অন্যান্য'
     memberId: '',
     memberName: '',
     paymentMonth: monthName,
@@ -213,7 +217,21 @@ export const createDefaultDepositObject = (samity = {}, nextCount = 1, custom = 
     approvedBy: 'Admin / Treasurer',
     approvedAt: now.toISOString(),
     approvalRemarks: 'স্বয়ংক্রিয়ভাবে যাচাইকৃত ও অনুমোদিত',
+    deleted_at: null,
+    deleted_by: null,
+    deletedAt: null,
+    deletedBy: null,
+    deleteReason: null,
+    is_deleted: false,
+    sync_version: 1,
+    is_synced: false,
+    created_by: 'Admin / Treasurer',
+    createdBy: 'Admin / Treasurer',
+    created_at: now.toISOString(),
     createdAt: now.toISOString(),
+    updated_by: 'Admin / Treasurer',
+    updatedBy: 'Admin / Treasurer',
+    updated_at: now.toISOString(),
     updatedAt: now.toISOString(),
     ...custom
   };
@@ -252,13 +270,16 @@ export const createDefaultBulkDepositObject = (samity = {}, nextCount = 1, custo
   };
 };
 
-// Helper to create an empty or initialized Member object with all 38 specification fields
+// Helper to create an empty or initialized Member object with all 38+ specification fields
 export const createDefaultMemberObject = (samityId = 'SAMITY-001', nextCount = 1, custom = {}) => {
   const pad = String(nextCount).padStart(4, '0');
   const memberId = `SM-${pad}`;
   return {
     // 1-8: Core Personal
     id: memberId,
+    tenant_id: samityId || 'SAMITY-001',
+    business_id: samityId || 'SAMITY-001',
+    organization_id: samityId || 'SAMITY-001',
     memberCode: memberId,
     nameBn: '',
     nameEn: '',
@@ -284,6 +305,12 @@ export const createDefaultMemberObject = (samityId = 'SAMITY-001', nextCount = 1
     occupation: '',
     organization: '',
     bloodGroup: '',
+    // Nominee Information
+    nomineeName: '',
+    nomineeRelation: '',
+    nomineeNid: '',
+    nomineeMobile: '',
+    nomineePhoto: '',
     // 24-30: Membership & Subscription
     samityId: samityId || 'SAMITY-001',
     membershipType: 'General Member',
@@ -298,10 +325,23 @@ export const createDefaultMemberObject = (samityId = 'SAMITY-001', nextCount = 1
     totalDue: 0,
     currentMonthPaymentStatus: 'unpaid',
     remarks: '',
+    // Soft Delete & Sync Status
+    deleted_at: null,
+    deleted_by: null,
+    deletedAt: null,
+    deletedBy: null,
+    deleteReason: null,
+    is_deleted: false,
+    sync_version: 1,
+    is_synced: false,
     // 35-38: Audit Tracking
+    created_by: 'Admin',
     createdBy: 'Admin',
+    created_at: new Date().toISOString(),
     createdAt: new Date().toISOString(),
+    updated_by: 'Admin',
     updatedBy: 'Admin',
+    updated_at: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...custom
   };
@@ -373,7 +413,9 @@ export const generateSamityId = (existingSamities = []) => {
 const DEFAULT_CLEAN_DATA = {
   samities: [createDefaultSamityObject('SAMITY-001')],
   members: [],
+  recycleBinMembers: [],
   deposits: [],
+  recycleBinDeposits: [],
   bulkDeposits: [],
   expenses: [],
   bankStatements: [],
@@ -383,6 +425,7 @@ const DEFAULT_CLEAN_DATA = {
   waivers: [],
   auditLogs: [],
   approvals: [],
+  chatMessages: [],
   letterhead: {
     logoPosition: 'left', // 'left' | 'center' | 'right'
     logoSize: 64,
@@ -501,6 +544,9 @@ export const loadSamityData = () => {
           logo: s.logo || '/logo.png'
         })),
         signatures: parsed.signatures?.length ? parsed.signatures : DEFAULT_CLEAN_DATA.signatures,
+        recycleBinMembers: Array.isArray(parsed.recycleBinMembers) ? parsed.recycleBinMembers : [],
+        recycleBinDeposits: Array.isArray(parsed.recycleBinDeposits) ? parsed.recycleBinDeposits : [],
+        chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
         letterhead: { ...DEFAULT_CLEAN_DATA.letterhead, ...(parsed.letterhead || {}) },
         settings: { ...DEFAULT_CLEAN_DATA.settings, ...(parsed.settings || {}) }
       };

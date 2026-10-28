@@ -624,3 +624,73 @@ export const createSamityBulkDepositVerificationUrl = (report, currentSamity) =>
     return `${baseUrl}?verify=bulk_deposit&voucher=${encodeURIComponent(voucherNo)}&amount=${totalAmount}&samity=${encodeURIComponent(samityName)}`;
   }
 };
+
+/**
+ * Generates globally accessible Verification URL for Member Smart ID Cards
+ */
+export const createSamityMemberIdCardVerificationUrl = (member, currentSamity) => {
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const memberName = member?.nameBn || member?.nameEn || 'সম্মানিত সদস্য';
+  const memberNameEn = member?.nameEn || '';
+  const memberId = member?.memberCode || member?.id || 'SM-001';
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
+  const docHash = `HK360-MID-${(memberId || '0000').toUpperCase()}`;
+
+  const payload = {
+    t: 'member_id_card',
+    m: memberName,
+    me: memberNameEn,
+    mid: memberId,
+    nid: member?.nidNumber || member?.nid || 'প্রযোজ্য নয়',
+    blood: member?.bloodGroup || 'O+',
+    mobile: member?.mobile || '',
+    type: member?.membershipType || 'সাধারণ সদস্য',
+    joining: member?.membershipStartDate || member?.joiningDate || member?.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+    father: member?.fatherName || '',
+    mother: member?.motherName || '',
+    nominee: member?.nomineeName || '',
+    nomineeRel: member?.nomineeRelation || '',
+    photo: member?.photo || '',
+    sam: samityName,
+    reg: regNo,
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=member_id_card&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&type=${encodeURIComponent(payload.type)}&blood=${encodeURIComponent(payload.blood)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=member_id_card&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}`;
+  }
+};
+
+/**
+ * Generates globally accessible Verification URL for Member Passbook / Savings Account
+ */
+export const createSamityPassbookVerificationUrl = (member, currentSamity, totalSavings = 0) => {
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const memberName = member?.nameBn || member?.nameEn || 'সম্মানিত সদস্য';
+  const memberId = member?.memberCode || member?.id || 'SM-001';
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const docHash = `HK360-BOOK-${(memberId || '0000').toUpperCase()}`;
+
+  const payload = {
+    t: 'passbook',
+    m: memberName,
+    mid: memberId,
+    savings: Number(totalSavings || 0),
+    type: member?.membershipType || 'সাধারণ সঞ্চয়',
+    sam: samityName,
+    reg: currentSamity?.regNo || 'সছস-২০২৪/০৯',
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=passbook&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&savings=${totalSavings}&samity=${encodeURIComponent(samityName)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=passbook&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}`;
+  }
+};
+

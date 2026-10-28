@@ -24,6 +24,7 @@ import {
   createSamityDueNoticeVerificationUrl,
   createSamityOfficialDocVerificationUrl,
   createSamityMembershipCertVerificationUrl,
+  createSamityMemberIdCardVerificationUrl,
   createSamityBulkDepositVerificationUrl,
   getGlobalVerificationBaseUrl,
   generateQrDataUrl
@@ -79,7 +80,10 @@ export const UniversalQrVerifierModal = ({
           nidNumber: '19902692012345678',
           joiningDate: '2024-01-01',
           membershipType: 'সাধারণ সদস্য',
-          mobile: '01711223344'
+          mobile: '01711223344',
+          bloodGroup: 'B+',
+          nomineeName: 'মোসাঃ খাদিজা বেগম',
+          nomineeRelation: 'স্ত্রী'
         };
 
         const sampleReceiptUrl = createSamityReceiptVerificationUrl(latestDeposit, currentSamity);
@@ -94,12 +98,14 @@ export const UniversalQrVerifierModal = ({
           title: 'বার্ষিক সাধারণ সভা ও অডিট রেজুলেশন',
           date: new Date().toISOString().split('T')[0]
         }, currentSamity);
+        const sampleIdCardUrl = createSamityMemberIdCardVerificationUrl(firstMember, currentSamity);
 
-        const [receiptQr, dueQr, certQr, docQr] = await Promise.all([
+        const [receiptQr, dueQr, certQr, docQr, idCardQr] = await Promise.all([
           generateQrDataUrl(sampleReceiptUrl, { width: 140, margin: 1 }),
           generateQrDataUrl(sampleDueUrl, { width: 140, margin: 1 }),
           generateQrDataUrl(sampleCertUrl, { width: 140, margin: 1 }),
-          generateQrDataUrl(sampleDocUrl, { width: 140, margin: 1 })
+          generateQrDataUrl(sampleDocUrl, { width: 140, margin: 1 }),
+          generateQrDataUrl(sampleIdCardUrl, { width: 140, margin: 1 })
         ]);
 
         if (isMounted) {
@@ -107,7 +113,8 @@ export const UniversalQrVerifierModal = ({
             receipt: { url: sampleReceiptUrl, qr: receiptQr, label: 'জমার রসিদ', code: latestDeposit.receiptNo || 'RCPT-001' },
             due: { url: sampleDueUrl, qr: dueQr, label: 'বকেয়া তাগিদপত্র', code: `DUE-${firstMember.id}` },
             cert: { url: sampleCertUrl, qr: certQr, label: 'সদস্যপদ সনদ', code: `CERT-${firstMember.id}` },
-            doc: { url: sampleDocUrl, qr: docQr, label: 'অফিসিয়াল নোটিশ/রেজুলেশন', code: 'DOC-2026' }
+            doc: { url: sampleDocUrl, qr: docQr, label: 'অফিসিয়াল নোটিশ/রেজুলেশন', code: 'DOC-2026' },
+            idCard: { url: sampleIdCardUrl, qr: idCardQr, label: 'সদস্য স্মার্ট আইডি কার্ড', code: `ID-${firstMember.id}` }
           });
         }
       } catch (err) {
@@ -492,6 +499,61 @@ export const UniversalQrVerifierModal = ({
                     }}
                   >
                     <span>রেজুলেশন ভিউ করুন</span>
+                    <ExternalLink size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Test Card 5: Member Smart ID Card */}
+              <div
+                style={{
+                  background: 'rgba(30, 41, 59, 0.7)',
+                  border: '1.5px solid rgba(59, 130, 246, 0.35)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ background: '#fff', padding: '6px', borderRadius: '8px', flexShrink: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
+                  {previewQrMap.idCard?.qr ? (
+                    <img src={previewQrMap.idCard.qr} alt="Member ID Card QR" style={{ width: '84px', height: '84px', display: 'block' }} />
+                  ) : (
+                    <div style={{ width: '84px', height: '84px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <QrCode size={36} color="#0f172a" />
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ background: '#1e3a8a', color: '#93c5fd', fontSize: '0.65rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px' }}>স্মার্ট পরিচয়পত্র</span>
+                    <strong style={{ color: '#f8fafc', fontSize: '0.88rem' }}>সদস্য ডিজিটাল স্মার্ট আইডি কার্ড</strong>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', margin: '4px 0 10px' }}>
+                    আইডি: {previewQrMap.idCard?.code || 'ID-001'} • ছবি, এনআইডি ও নমিনী সংরক্ষিত
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (previewQrMap.idCard?.url) window.open(previewQrMap.idCard.url, '_blank');
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <span>স্মার্ট আইডি কার্ড ভেরিফাই</span>
                     <ExternalLink size={13} />
                   </button>
                 </div>

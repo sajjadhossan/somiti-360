@@ -280,3 +280,27 @@ export const getStorageQuotaHealth = async () => {
   }
   return { healthy: true, usedMB: '0.00', totalMB: 'N/A', percent: 0, persisted: false };
 };
+
+/**
+ * Process and flush pending offline mutations when connection resumes
+ */
+export const flushPendingOfflineMutations = async (syncHandler) => {
+  const pending = await getPendingOfflineMutations();
+  if (!pending || pending.length === 0) return 0;
+
+  let successCount = 0;
+  for (const mutation of pending) {
+    try {
+      if (typeof syncHandler === 'function') {
+        await syncHandler(mutation);
+      }
+      await markMutationSynced(mutation.idempotencyKey);
+      successCount++;
+    } catch (err) {
+      console.warn(`[OfflineDB] Failed syncing mutation ${mutation.idempotencyKey}:`, err);
+    }
+  }
+
+  return successCount;
+};
+

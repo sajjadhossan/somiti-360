@@ -90,6 +90,20 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   const dueMonths = decodedToken?.months || query.get('months') || 'চলতি মাস';
   const deadline = decodedToken?.dl || query.get('deadline') || '১০ তারিখের মধ্যে';
 
+  // Member ID Card & Passbook specific parameters
+  const memberNameEn = decodedToken?.me || query.get('nameEn') || '';
+  const memberBlood = decodedToken?.blood || query.get('blood') || 'O+';
+  const memberNid = decodedToken?.nid || query.get('nid') || 'সংরক্ষিত';
+  const memberMobile = decodedToken?.mobile || query.get('mobile') || '';
+  const memberType = decodedToken?.type || query.get('type') || 'সাধারণ সদস্য';
+  const memberJoining = decodedToken?.joining || query.get('joining') || date;
+  const memberFather = decodedToken?.father || query.get('father') || '';
+  const memberMother = decodedToken?.mother || query.get('mother') || '';
+  const memberNominee = decodedToken?.nominee || query.get('nominee') || '';
+  const memberNomineeRel = decodedToken?.nomineeRel || query.get('nomineeRel') || '';
+  const memberPhoto = decodedToken?.photo || query.get('photo') || '';
+  const passbookSavings = Number(decodedToken?.savings !== undefined ? decodedToken.savings : (query.get('savings') || 0));
+
   const handleCopyLink = () => {
     if (typeof window !== 'undefined') {
       navigator.clipboard?.writeText(window.location.href);
@@ -276,6 +290,10 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
               ? '✓ ডিজিটালভাবে সত্যায়িত বকেয়া নোটিশ (Digitally Verified Official Due Notice)'
               : docType === 'membership_cert'
               ? '✓ ডিজিটালভাবে সত্যায়িত সদস্যপদ সনদপত্র (Digitally Verified Membership Certificate)'
+              : docType === 'member_id_card' || docType === 'member_card'
+              ? '✓ ডিজিটালভাবে সত্যায়িত সদস্য স্মার্ট আইডি কার্ড (Digitally Verified Member Smart ID Card)'
+              : docType === 'passbook'
+              ? '✓ ডিজিটালভাবে সত্যায়িত সদস্য সঞ্চয় পাসবুক ও লেজার (Digitally Verified Member Passbook)'
               : docType === 'bulk_deposit'
               ? '✓ ডিজিটালভাবে সত্যায়িত ব্যাংক ডিপোজিট রিপোর্ট (Digitally Verified Bank Deposit Report)'
               : '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল নথি (Digitally Verified Official Document)'}
@@ -496,9 +514,124 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
         )}
 
         {/* ------------------------------------------------------------- */}
-        {/* CASE 5: OFFICIAL RESOLUTION / DECREE / LETTERHEAD */}
+        {/* CASE 5: MEMBER SMART ID CARD VERIFICATION */}
         {/* ------------------------------------------------------------- */}
-        {docType !== 'receipt' && docType !== 'due_notice' && docType !== 'membership_cert' && docType !== 'bulk_deposit' && (
+        {(docType === 'member_id_card' || docType === 'member_card') && (
+          <div>
+            <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1.5px solid #93c5fd', borderRadius: '14px', padding: '18px 20px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              {memberPhoto ? (
+                <img
+                  src={memberPhoto}
+                  alt={memberName}
+                  style={{ width: '72px', height: '72px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #2563eb', flexShrink: 0 }}
+                />
+              ) : (
+                <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: '#fff', fontSize: '1.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {(memberName || 'M').charAt(0)}
+                </div>
+              )}
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: '0.72rem', color: '#1e40af', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  সদস্য স্মার্ট পরিচয়পত্র (Member Smart ID)
+                </span>
+                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e3a8a', margin: '2px 0' }}>
+                  {memberName} {memberNameEn && <span style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>({memberNameEn})</span>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-block', fontSize: '0.74rem', fontWeight: '800', color: '#15803d', background: '#dcfce7', padding: '2px 10px', borderRadius: '10px' }}>
+                    ✓ সক্রিয় ও সত্যায়িত সদস্য
+                  </span>
+                  <span style={{ display: 'inline-block', fontSize: '0.74rem', fontWeight: '800', color: '#b91c1c', background: '#fee2e2', padding: '2px 8px', borderRadius: '8px' }}>
+                    রক্তের গ্রুপ: {memberBlood}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px', fontSize: '0.84rem', lineHeight: '1.6' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>সদস্য কোড / আইডি নং:</span>
+                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{memberId}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>সদস্যের পদবি / ক্যাটাগরি:</span>
+                <strong style={{ color: '#0f172a' }}>{memberType}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>জাতীয় পরিচয়পত্র (NID):</span>
+                <strong style={{ color: '#0f172a' }}>{memberNid}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>যোগদানের তারিখ:</span>
+                <strong style={{ color: '#0f172a' }}>{memberJoining}</strong>
+              </div>
+              {memberFather && (
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>পিতার নাম:</span>
+                  <strong style={{ color: '#0f172a' }}>{memberFather}</strong>
+                </div>
+              )}
+              {memberMobile && (
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>মোবাইল নম্বর:</span>
+                  <strong style={{ color: '#0f172a' }}>{memberMobile}</strong>
+                </div>
+              )}
+              {memberNominee && (
+                <div style={{ gridColumn: '1 / -1', background: 'rgba(56, 189, 248, 0.08)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#0369a1', fontWeight: '800', display: 'block' }}>নমিনী ও বৈধ উত্তরাধিকারী:</span>
+                  <strong style={{ color: '#0f172a' }}>{memberNominee}</strong> {memberNomineeRel && <span style={{ color: '#0284c7' }}>({memberNomineeRel})</span>}
+                </div>
+              )}
+              <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ডিজিটাল স্মার্ট অডিট হ্যাশ:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: '#059669', fontWeight: '800' }}>{hash}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* CASE 6: MEMBER PASSBOOK / SAVINGS ACCOUNT VERIFICATION */}
+        {/* ------------------------------------------------------------- */}
+        {docType === 'passbook' && (
+          <div>
+            <div style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', border: '1.5px solid #a7f3d0', borderRadius: '14px', padding: '18px 20px', textAlign: 'center', marginBottom: '20px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                ডিজিটাল সঞ্চয় পাসবুক ও সদস্য হিসাব বিবরণী
+              </span>
+              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#064e3b', margin: '4px 0' }}>
+                {memberName}
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#047857', marginTop: '6px' }}>
+                ৳ {passbookSavings.toLocaleString('en-IN')}/-
+              </div>
+              <span style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: '800', color: '#047857', marginTop: '4px' }}>
+                মোট জমাকৃত বৈধ সঞ্চয় তহবিল
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px', fontSize: '0.84rem' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>সদস্য হিসাব নং:</span>
+                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{memberId}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>হিসাবের ধরন:</span>
+                <strong style={{ color: '#0f172a' }}>{memberType}</strong>
+              </div>
+              <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>পাসবুক অডিট হ্যাশ:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: '#059669', fontWeight: '800' }}>{hash}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* CASE 7: OFFICIAL RESOLUTION / DECREE / LETTERHEAD */}
+        {/* ------------------------------------------------------------- */}
+        {docType !== 'receipt' && docType !== 'due_notice' && docType !== 'membership_cert' && docType !== 'bulk_deposit' && docType !== 'member_id_card' && docType !== 'member_card' && docType !== 'passbook' && (
           <div>
             <div
               style={{

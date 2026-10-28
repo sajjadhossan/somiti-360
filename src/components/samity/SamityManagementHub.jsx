@@ -1475,21 +1475,6 @@ export const SamityManagementHub = ({ onClose }) => {
     return () => { isMounted = false; };
   }, [activePrintNotice, currentSamity]);
 
-  // Real QR Verification Data URL for Member Registry List Print (স্ক্যানযোগ্য সদস্য তালিকা কিউআর কোড)
-  const [memberListQrDataUrl, setMemberListQrDataUrl] = useState('');
-  useEffect(() => {
-    let isMounted = true;
-    if (!isPrintMemberListOpen) {
-      setMemberListQrDataUrl('');
-      return;
-    }
-    const verifyUrl = createSamityMemberListVerificationUrl(filteredMembers, currentSamity, targetMonth, targetYear);
-    generateQrDataUrl(verifyUrl, { width: 200, margin: 1 }).then(url => {
-      if (isMounted && url) setMemberListQrDataUrl(url);
-    });
-    return () => { isMounted = false; };
-  }, [isPrintMemberListOpen, filteredMembers, currentSamity, targetMonth, targetYear]);
-
   // Universal QR Verifier Hub State
   const [isUniversalVerifierOpen, setIsUniversalVerifierOpen] = useState(false);
 
@@ -3438,6 +3423,21 @@ ${verifyUrl}
       return true;
     });
   }, [data.members, data.deposits, activeSamityId, searchQuery, memberFilterType, memberFilterStatus, memberFilterPaymentStatus, targetMonth, targetYear, currentSamity]);
+
+  // Real QR Verification Data URL for Member Registry List Print (স্ক্যানযোগ্য সদস্য তালিকা কিউআর কোড)
+  const [memberListQrDataUrl, setMemberListQrDataUrl] = useState('');
+  useEffect(() => {
+    let isMounted = true;
+    if (!isPrintMemberListOpen) {
+      setMemberListQrDataUrl('');
+      return;
+    }
+    const verifyUrl = createSamityMemberListVerificationUrl(filteredMembers, currentSamity, targetMonth, targetYear);
+    generateQrDataUrl(verifyUrl, { width: 200, margin: 1 }).then(url => {
+      if (isMounted && url) setMemberListQrDataUrl(url);
+    });
+    return () => { isMounted = false; };
+  }, [isPrintMemberListOpen, filteredMembers, currentSamity, targetMonth, targetYear]);
 
   // Filtered Deposit List (#4 Bank Deposit Module)
   const filteredDeposits = useMemo(() => {

@@ -450,7 +450,7 @@ export const getGlobalVerificationBaseUrl = (currentSamity) => {
     return currentSamity.liveDomain.startsWith('http') ? currentSamity.liveDomain : `https://${currentSamity.liveDomain}`;
   }
 
-  return 'https://hisabkitab360.vercel.app';
+  return 'https://somiti-360.vercel.app';
 };
 
 /**

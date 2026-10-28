@@ -33,6 +33,9 @@ import {
   createSamityBulkDepositVerificationUrl,
   getGlobalVerificationBaseUrl,
   generateQrDataUrl,
+  generateQuickChartQrUrl,
+  generateGoQrUrl,
+  decodeQrCodeWithGoQrApi,
   safeBase64ToUtf8
 } from '../../services/qrService';
 
@@ -44,7 +47,7 @@ export const UniversalQrVerifierModal = ({
   onUpdateSamitySettings,
   showToast
 }) => {
-  const [activeTab, setActiveTab] = useState('test'); // 'test' | 'paste' | 'scanner' | 'config'
+  const [activeTab, setActiveTab] = useState('scanner'); // 'scanner' | 'paste' | 'records' | 'config'
   const [inputUrl, setInputUrl] = useState('');
   const [customDomain, setCustomDomain] = useState(() => {
     return (
@@ -68,72 +71,62 @@ export const UniversalQrVerifierModal = ({
     if (!isOpen) return;
     let isMounted = true;
 
-    const generateSampleQrs = async () => {
+    const loadRealVerificationQrs = async () => {
       try {
-        const latestDeposit = (data?.deposits || []).find(d => d.samityId === currentSamity.id) || (data?.deposits || [])[0] || {
-          id: 'DEP-2026-001',
-          receiptNo: 'SM-2026-01-001',
-          memberName: 'আব্দুল করিম',
-          depositorName: 'আব্দুল করিম',
-          memberId: 'SM-001',
-          amount: 500,
-          depositType: 'মাসিক সঞ্চয়/চাঁদা',
-          paymentMonth: 'জানুয়ারি',
-          paymentYear: '২০২৬',
-          depositMethod: 'নগদ',
-          depositDate: new Date().toISOString().split('T')[0]
-        };
+        const latestDeposit = (data?.deposits || []).find(d => d.samityId === currentSamity.id) || (data?.deposits || [])[0];
+        const firstMember = (data?.members || []).find(m => m.samityId === currentSamity.id) || (data?.members || [])[0];
+        const previews = {};
 
-        const firstMember = (data?.members || []).find(m => m.samityId === currentSamity.id) || (data?.members || [])[0] || {
-          id: 'SM-001',
-          nameBn: 'আব্দুল করিম',
-          nameEn: 'Abdul Karim',
-          nidNumber: '19902692012345678',
-          joiningDate: '2024-01-01',
-          membershipType: 'সাধারণ সদস্য',
-          mobile: '01711223344',
-          bloodGroup: 'B+',
-          nomineeName: 'মোসাঃ খাদিজা বেগম',
-          nomineeRelation: 'স্ত্রী'
-        };
+        if (latestDeposit) {
+          const receiptUrl = createSamityReceiptVerificationUrl(latestDeposit, currentSamity);
+          const receiptQr = await generateQrDataUrl(receiptUrl, { width: 140, margin: 1 });
+          previews.receipt = {
+            url: receiptUrl,
+            qr: receiptQr,
+            label: 'সর্বশেষ জমার রসিদ',
+            code: latestDeposit.receiptNo || latestDeposit.voucherNo || `RCPT-${latestDeposit.id}`
+          };
+        }
 
-        const sampleReceiptUrl = createSamityReceiptVerificationUrl(latestDeposit, currentSamity);
-        const sampleDueUrl = createSamityDueNoticeVerificationUrl({
-          member: firstMember,
-          status: { totalDue: 1500, month: 'মার্চ', year: '২০২৬' },
-          dueMonthsList: ['জানুয়ারি ২০২৬', 'ফেব্রুয়ারি ২০২৬', 'মার্চ ২০২৬']
-        }, currentSamity);
-        const sampleCertUrl = createSamityMembershipCertVerificationUrl(firstMember, currentSamity);
-        const sampleDocUrl = createSamityOfficialDocVerificationUrl({
-          ref: 'সছস/২০২৬/০১',
-          title: 'বার্ষিক সাধারণ সভা ও অডিট রেজুলেশন',
+        if (firstMember) {
+          const dueAmount = Number(firstMember.totalDue || 0);
+          const dueUrl = createSamityDueNoticeVerificationUrl({
+            member: firstMember,
+            status: { totalDue: dueAmount, month: 'চলতি বকেয়া' },
+            dueMonthsList: ['চলতি বকেয়া']
+          }, currentSamity);
+
+          const certUrl = createSamityMembershipCertVerificationUrl(firstMember, currentSamity);
+          const idCardUrl = createSamityMemberIdCardVerificationUrl(firstMember, currentSamity);
+
+          const [dueQr, certQr, idCardQr] = await Promise.all([
+            generateQrDataUrl(dueUrl, { width: 140, margin: 1 }),
+            generateQrDataUrl(certUrl, { width: 140, margin: 1 }),
+            generateQrDataUrl(idCardUrl, { width: 140, margin: 1 })
+          ]);
+
+          previews.due = { url: dueUrl, qr: dueQr, label: 'বকেয়া তাগিদপত্র', code: `DUE-${firstMember.id}` };
+          previews.cert = { url: certUrl, qr: certQr, label: 'সদস্যপদ সনদ', code: `CERT-${firstMember.id}` };
+          previews.idCard = { url: idCardUrl, qr: idCardQr, label: 'সদস্য স্মার্ট আইডি কার্ড', code: `ID-${firstMember.id}` };
+        }
+
+        const docUrl = createSamityOfficialDocVerificationUrl({
+          ref: `${currentSamity?.code || 'সছস'}/২০২৬/০১`,
+          title: 'অফিসিয়াল নোটিশ ও কার্যবিবরণী',
           date: new Date().toISOString().split('T')[0]
         }, currentSamity);
-        const sampleIdCardUrl = createSamityMemberIdCardVerificationUrl(firstMember, currentSamity);
-
-        const [receiptQr, dueQr, certQr, docQr, idCardQr] = await Promise.all([
-          generateQrDataUrl(sampleReceiptUrl, { width: 140, margin: 1 }),
-          generateQrDataUrl(sampleDueUrl, { width: 140, margin: 1 }),
-          generateQrDataUrl(sampleCertUrl, { width: 140, margin: 1 }),
-          generateQrDataUrl(sampleDocUrl, { width: 140, margin: 1 }),
-          generateQrDataUrl(sampleIdCardUrl, { width: 140, margin: 1 })
-        ]);
+        const docQr = await generateQrDataUrl(docUrl, { width: 140, margin: 1 });
+        previews.doc = { url: docUrl, qr: docQr, label: 'অফিসিয়াল নোটিশ/রেজুলেশন', code: 'DOC-2026' };
 
         if (isMounted) {
-          setPreviewQrMap({
-            receipt: { url: sampleReceiptUrl, qr: receiptQr, label: 'জমার রসিদ', code: latestDeposit.receiptNo || 'RCPT-001' },
-            due: { url: sampleDueUrl, qr: dueQr, label: 'বকেয়া তাগিদপত্র', code: `DUE-${firstMember.id}` },
-            cert: { url: sampleCertUrl, qr: certQr, label: 'সদস্যপদ সনদ', code: `CERT-${firstMember.id}` },
-            doc: { url: sampleDocUrl, qr: docQr, label: 'অফিসিয়াল নোটিশ/রেজুলেশন', code: 'DOC-2026' },
-            idCard: { url: sampleIdCardUrl, qr: idCardQr, label: 'সদস্য স্মার্ট আইডি কার্ড', code: `ID-${firstMember.id}` }
-          });
+          setPreviewQrMap(previews);
         }
       } catch (err) {
-        console.warn('Could not generate sample QR previews:', err);
+        console.warn('Could not generate real QR previews:', err);
       }
     };
 
-    generateSampleQrs();
+    loadRealVerificationQrs();
     return () => { isMounted = false; };
   }, [isOpen, currentSamity, data]);
 
@@ -199,29 +192,49 @@ export const UniversalQrVerifierModal = ({
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      if ('BarcodeDetector' in window) {
+
+    showToast?.('GoQR ও ডিজিটাল ইঞ্জিন দিয়ে ছবি বিশ্লেষণ করা হচ্ছে...', 'info');
+
+    // 1. Try local BarcodeDetector if supported by the browser
+    if ('BarcodeDetector' in window) {
+      try {
         const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
         const img = new Image();
-        img.onload = async () => {
-          try {
-            const barcodes = await detector.detect(img);
-            if (barcodes.length > 0) {
-              handleVerifyRawInput(barcodes[0].rawValue);
-              showToast?.('✓ QR কোড ছবি থেকে সফলভাবে পড়া হয়েছে!', 'success');
-            } else {
-              showToast?.('ছবিতে কোনো স্পষ্ট QR কোড শনাক্ত করা যায়নি। অনুগ্রহ করে রসিদ নং লিখুন।', 'info');
+        const localResult = await new Promise((resolve) => {
+          img.onload = async () => {
+            try {
+              const barcodes = await detector.detect(img);
+              if (barcodes.length > 0) resolve(barcodes[0].rawValue);
+              else resolve(null);
+            } catch {
+              resolve(null);
             }
-          } catch (err) {
-            showToast?.('QR কোড ডিকোড করতে সমস্যা হয়েছে', 'error');
-          }
-        };
-        img.src = URL.createObjectURL(file);
-      } else {
-        showToast?.('আপনার ব্রাউজারে ডিরেক্ট ছবি স্ক্যান ফিচার নেই। নিচের বক্সে রসিদ নম্বর লিখুন।', 'info');
+          };
+          img.onerror = () => resolve(null);
+          img.src = URL.createObjectURL(file);
+        });
+
+        if (localResult) {
+          handleVerifyRawInput(localResult);
+          showToast?.('✓ QR কোড সফলভাবে পড়া ও যাচাই হয়েছে!', 'success');
+          return;
+        }
+      } catch (err) {
+        console.warn('Local BarcodeDetector failed, falling back to GoQR API:', err);
+      }
+    }
+
+    // 2. GoQR.me Cloud Read API (100% universal across PC, Mac & Mobile)
+    try {
+      const decodedData = await decodeQrCodeWithGoQrApi(file);
+      if (decodedData) {
+        handleVerifyRawInput(decodedData);
+        showToast?.('✓ GoQR.me ক্লাউড ইঞ্জিন দিয়ে QR কোড সফলভাবে পড়া হয়েছে!', 'success');
+        return;
       }
     } catch (err) {
-      console.warn('Image QR scan failed:', err);
+      console.warn('GoQR API decode error:', err);
+      showToast?.(err.message || 'ছবিতে কোনো স্পষ্ট QR কোড শনাক্ত করা যায়নি। অনুগ্রহ করে রসিদ নং লিখুন।', 'error');
     }
   };
 
@@ -532,11 +545,11 @@ export const UniversalQrVerifierModal = ({
             {/* Navigation Tabs */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '8px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => setActiveTab('test')}
+                onClick={() => setActiveTab('scanner')}
                 style={{
-                  background: activeTab === 'test' ? 'rgba(20, 184, 166, 0.2)' : 'transparent',
-                  color: activeTab === 'test' ? '#2dd4bf' : '#94a3b8',
-                  border: activeTab === 'test' ? '1px solid #14b8a6' : '1px solid transparent',
+                  background: activeTab === 'scanner' ? 'rgba(234, 179, 8, 0.2)' : 'transparent',
+                  color: activeTab === 'scanner' ? '#fde047' : '#94a3b8',
+                  border: activeTab === 'scanner' ? '1px solid #eab308' : '1px solid transparent',
                   padding: '8px 16px',
                   borderRadius: '8px',
                   fontSize: '0.84rem',
@@ -547,8 +560,8 @@ export const UniversalQrVerifierModal = ({
                   gap: '6px'
                 }}
               >
-                <Sparkles size={16} />
-                <span>১-ক্লিক লাইভ টেস্ট ইঞ্জিন</span>
+                <Camera size={16} />
+                <span>ক্যামেরা ও ছবি স্ক্যানার (GoQR / QuickChart)</span>
               </button>
 
               <button
@@ -572,11 +585,11 @@ export const UniversalQrVerifierModal = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('scanner')}
+                onClick={() => setActiveTab('records')}
                 style={{
-                  background: activeTab === 'scanner' ? 'rgba(234, 179, 8, 0.2)' : 'transparent',
-                  color: activeTab === 'scanner' ? '#fde047' : '#94a3b8',
-                  border: activeTab === 'scanner' ? '1px solid #eab308' : '1px solid transparent',
+                  background: activeTab === 'records' ? 'rgba(20, 184, 166, 0.2)' : 'transparent',
+                  color: activeTab === 'records' ? '#2dd4bf' : '#94a3b8',
+                  border: activeTab === 'records' ? '1px solid #14b8a6' : '1px solid transparent',
                   padding: '8px 16px',
                   borderRadius: '8px',
                   fontSize: '0.84rem',
@@ -587,8 +600,8 @@ export const UniversalQrVerifierModal = ({
                   gap: '6px'
                 }}
               >
-                <Camera size={16} />
-                <span>ক্যামেরা ও ছবি স্ক্যানার</span>
+                <Sparkles size={16} />
+                <span>সক্রিয় রসিদ ও নথিপত্র</span>
               </button>
 
               <button
@@ -612,18 +625,25 @@ export const UniversalQrVerifierModal = ({
               </button>
             </div>
 
-            {/* TAB 1: 1-CLICK LIVE TEST ENGINE */}
-            {activeTab === 'test' && (
+            {/* TAB: ACTIVE REAL RECORDS VERIFICATION */}
+            {activeTab === 'records' && (
               <div>
                 <div style={{ background: 'rgba(20, 184, 166, 0.08)', border: '1px solid rgba(20, 184, 166, 0.25)', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <ShieldCheck size={28} color="#2dd4bf" style={{ flexShrink: 0 }} />
                   <div style={{ fontSize: '0.82rem', lineHeight: '1.5', color: '#cbd5e1' }}>
-                    <strong style={{ color: '#fff' }}>সিস্টেম কনফার্মেশন:</strong> আপনার সফটওয়্যারের সকল অফিসিয়াল ডকুমেন্ট (রসিদ, বকেয়া নোটিশ, রেজুলেশন, সনদপত্র) ক্রিপ্টোগ্রাফিক কিউআর কোড দিয়ে সজ্জিত। নিচের যেকোনো বাটনে ক্লিক করলেই ইনস্ট্যান্ট ভেরিফিকেশন দেখতে পাবেন অথবা স্মার্টফোন দিয়ে মনিটরের কিউআর কোড স্ক্যান করুন।
+                    <strong style={{ color: '#fff' }}>সিস্টেম রসিদ ও নথি যাচাই:</strong> সফটওয়্যারের সকল অফিসিয়াল ডকুমেন্ট (রসিদ, বকেয়া নোটিশ, রেজুলেশন, সনদপত্র) স্বয়ংক্রিয়ভাবে QuickChart ও GoQR ইঞ্জিন দিয়ে সজ্জিত। নিচের যেকোনো কার্ডে ক্লিক করে সরাসরি ডিজিটাল সনদ ভিউ করতে পারেন।
                   </div>
                 </div>
 
+                {Object.keys(previewQrMap).length === 0 ? (
+                  <div style={{ background: '#1e293b', border: '1px dashed rgba(255, 255, 255, 0.15)', borderRadius: '12px', padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: '800', color: '#f8fafc', marginBottom: '6px' }}>এখনও কোনো জমার রসিদ বা সদস্য এন্ট্রি করা হয়নি</div>
+                    <p style={{ fontSize: '0.8rem', margin: 0 }}>সদস্য নিবন্ধন বা টাকা জমা করার সাথে সাথে এখানে সক্রিয় কিউআর কোড দৃশ্যমান হবে।</p>
+                  </div>
+                ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
-                  {/* Test Card 1: Receipt */}
+                  {/* Card 1: Real Receipt */}
+                  {previewQrMap.receipt && (
                   <div style={{ background: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px', display: 'flex', gap: '14px', alignItems: 'center' }}>
                     <div style={{ background: '#ffffff', padding: '6px', borderRadius: '8px', border: '1px solid #cbd5e1', flexShrink: 0, textAlign: 'center' }}>
                       {previewQrMap.receipt?.qr ? (
@@ -666,8 +686,10 @@ export const UniversalQrVerifierModal = ({
                       </button>
                     </div>
                   </div>
+                  )}
 
-                  {/* Test Card 2: Due Notice */}
+                  {/* Card 2: Real Due Notice */}
+                  {previewQrMap.due && (
                   <div style={{ background: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px', display: 'flex', gap: '14px', alignItems: 'center' }}>
                     <div style={{ background: '#ffffff', padding: '6px', borderRadius: '8px', border: '1px solid #cbd5e1', flexShrink: 0, textAlign: 'center' }}>
                       {previewQrMap.due?.qr ? (
@@ -706,12 +728,14 @@ export const UniversalQrVerifierModal = ({
                         }}
                       >
                         <ShieldCheck size={13} />
-                        <span>নোটিশ টেস্ট করুন</span>
+                        <span>নোটিশ ওপেন করুন</span>
                       </button>
                     </div>
                   </div>
+                  )}
 
-                  {/* Test Card 3: Membership Certificate */}
+                  {/* Card 3: Real Membership Certificate */}
+                  {previewQrMap.cert && (
                   <div style={{ background: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px', display: 'flex', gap: '14px', alignItems: 'center' }}>
                     <div style={{ background: '#ffffff', padding: '6px', borderRadius: '8px', border: '1px solid #cbd5e1', flexShrink: 0, textAlign: 'center' }}>
                       {previewQrMap.cert?.qr ? (
@@ -750,12 +774,14 @@ export const UniversalQrVerifierModal = ({
                         }}
                       >
                         <ShieldCheck size={13} />
-                        <span>সনদপত্র টেস্ট করুন</span>
+                        <span>সনদপত্র ওপেন করুন</span>
                       </button>
                     </div>
                   </div>
+                  )}
 
-                  {/* Test Card 4: Official Letterhead Resolution */}
+                  {/* Card 4: Official Letterhead Resolution */}
+                  {previewQrMap.doc && (
                   <div style={{ background: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px', display: 'flex', gap: '14px', alignItems: 'center' }}>
                     <div style={{ background: '#ffffff', padding: '6px', borderRadius: '8px', border: '1px solid #cbd5e1', flexShrink: 0, textAlign: 'center' }}>
                       {previewQrMap.doc?.qr ? (
@@ -798,7 +824,55 @@ export const UniversalQrVerifierModal = ({
                       </button>
                     </div>
                   </div>
+                  )}
+
+                  {/* Card 5: Real Member Smart ID Card */}
+                  {previewQrMap.idCard && (
+                  <div style={{ background: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px', display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    <div style={{ background: '#ffffff', padding: '6px', borderRadius: '8px', border: '1px solid #cbd5e1', flexShrink: 0, textAlign: 'center' }}>
+                      {previewQrMap.idCard?.qr ? (
+                        <img src={previewQrMap.idCard.qr} alt="ID Card QR" style={{ width: '84px', height: '84px', display: 'block' }} />
+                      ) : (
+                        <div style={{ width: '84px', height: '84px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <QrCode size={36} color="#8b5cf6" />
+                        </div>
+                      )}
+                      <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#8b5cf6', display: 'block', marginTop: '2px' }}>ক্যামেরায় স্ক্যান করুন</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ background: '#4c1d95', color: '#c4b5fd', fontSize: '0.65rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px' }}>স্মার্ট কার্ড</span>
+                        <strong style={{ color: '#f8fafc', fontSize: '0.88rem' }}>সদস্য ডিজিটাল আইডি</strong>
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', margin: '4px 0 10px' }}>
+                        কোড: {previewQrMap.idCard?.code || 'ID-001'} • মেম্বার প্রোফাইল সত্যায়িত
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (previewQrMap.idCard?.url) handleVerifyRawInput(previewQrMap.idCard.url);
+                        }}
+                        style={{
+                          background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <ShieldCheck size={13} />
+                        <span>আইডি কার্ড ভিউ করুন</span>
+                      </button>
+                    </div>
+                  </div>
+                  )}
                 </div>
+                )}
               </div>
             )}
 

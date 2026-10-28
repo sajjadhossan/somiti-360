@@ -1,22 +1,127 @@
 import QRCode from 'qrcode';
 
 /**
+ * QuickChart QR API Generator (Tier 1 Cloud CDN)
+ * Generates ultra-crisp QR code with Center Logo support and High Error Correction.
+ */
+export const generateQuickChartQrUrl = (text, options = {}) => {
+  if (!text) return '';
+  const size = options.size || options.width || 350;
+  const ecLevel = options.ecLevel || options.ecc || 'H';
+  const margin = options.margin !== undefined ? options.margin : 1;
+  const centerImg = options.centerImageUrl ? `&centerImageUrl=${encodeURIComponent(options.centerImageUrl)}` : '';
+  const dark = options.darkColor ? `&dark=${options.darkColor.replace('#', '')}` : '';
+  return `https://quickchart.io/qr?text=${encodeURIComponent(text)}&size=${size}&ecLevel=${ecLevel}&margin=${margin}${dark}${centerImg}`;
+};
+
+/**
+ * GoQR.me API Generator (Tier 2 Cloud Engine)
+ * High reliability, battle-tested open QR generation service.
+ */
+export const generateGoQrUrl = (text, options = {}) => {
+  if (!text) return '';
+  const width = options.width || options.size || 350;
+  const height = options.height || width;
+  const margin = options.margin !== undefined ? options.margin : 1;
+  const ecc = options.ecc || options.ecLevel || 'H';
+  return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(text)}&size=${width}x${height}&margin=${margin}&ecc=${ecc}&format=png`;
+};
+
+/**
+ * Decodes a QR code from an image file/blob using the GoQR.me Read API.
+ * Works across all browsers and devices without needing local BarcodeDetector.
+ */
+export const decodeQrCodeWithGoQrApi = async (fileOrBlob) => {
+  if (!fileOrBlob) throw new Error('কোনো ছবি পাওয়া যায়নি');
+  const formData = new FormData();
+  formData.append('file', fileOrBlob);
+
+  const response = await fetch('https://api.qrserver.com/v1/read-qr-code/', {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error(`GoQR API Error: HTTP ${response.status}`);
+  }
+
+  const json = await response.json();
+  if (Array.isArray(json) && json[0]?.symbol?.[0]) {
+    const symbol = json[0].symbol[0];
+    if (symbol.error) {
+      throw new Error(symbol.error);
+    }
+    if (symbol.data) {
+      return symbol.data;
+    }
+  }
+  throw new Error('ছবিতে কোনো QR কোড শনাক্ত করা যায়নি');
+};
+
+/**
  * Generates an ultra high-resolution QR code Data URL (PNG base64)
- * that is crisp both on screen and thermal paper print.
+ * using a 3-tier redundant architecture:
+ * Tier 1: QuickChart Cloud QR CDN
+ * Tier 2: GoQR.me Cloud API
+ * Tier 3: Local Offline Client Engine (guarantees offline/print availability)
  */
 export const generateQrDataUrl = async (text, options = {}) => {
+  if (!text) return null;
+
+  // Tier 1 & 2: If online, attempt high-fidelity cloud generation
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    // Attempt Tier 1: QuickChart QR API
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2800);
+      const qcUrl = generateQuickChartQrUrl(text, options);
+      const response = await fetch(qcUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const blob = await response.blob();
+        return await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (_) {
+      // QuickChart timeout or network glitch, try Tier 2: GoQR.me API
+      try {
+        const controller2 = new AbortController();
+        const timeoutId2 = setTimeout(() => controller2.abort(), 2800);
+        const goQrUrl = generateGoQrUrl(text, options);
+        const response2 = await fetch(goQrUrl, { signal: controller2.signal });
+        clearTimeout(timeoutId2);
+
+        if (response2.ok) {
+          const blob2 = await response2.blob();
+          return await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob2);
+          });
+        }
+      } catch (_) {
+        // Fall through to Tier 3
+      }
+    }
+  }
+
+  // Tier 3: Local Offline Client Fallback (instant, 0 network dependency, Error Correction H)
   try {
     return await QRCode.toDataURL(text, {
-      width: options.width || 300,
+      width: options.width || options.size || 350,
       margin: options.margin !== undefined ? options.margin : 1,
       color: {
         dark: options.darkColor || '#000000',
         light: options.lightColor || '#ffffff'
       },
-      errorCorrectionLevel: 'M'
+      errorCorrectionLevel: 'H'
     });
   } catch (err) {
-    console.warn('QR code generation warning:', err);
+    console.warn('Local QR code generation warning:', err);
     return null;
   }
 };

@@ -166,7 +166,7 @@ function ExecutiveHeaderBrand({ isLight, lang, user, onLogout }) {
                 letterSpacing: '0.4px'
               }}
             >
-              PRO v1.0.11
+              PRO v1.0.13
             </span>
           </div>
           <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>
@@ -494,8 +494,27 @@ function ExecutiveControlsTrack({
 
 function MainView() {
   const { lang = 'bn', setLang, theme = 'dark', setTheme, toggleTheme, user, logout, authLoading, isAuthenticated } = useApp();
-  const [viewMode, setViewMode] = useState('hub'); // 'hub' | 'verify'
-  const [verifyData, setVerifyData] = useState(null);
+
+  // Synchronous URL verification parameter extraction (Public Instant Verification)
+  const [verifyData, setVerifyData] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('verify') || params.get('ref') || params.get('title') || params.get('receipt_no') || params.get('doc_verify')) {
+          const allParams = Object.fromEntries(params.entries());
+          return {
+            ...allParams,
+            type: params.get('verify') || allParams.t || 'samity_doc'
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('URL search params parsing ignored:', e);
+    }
+    return null;
+  });
+
+  const [viewMode, setViewMode] = useState(() => (verifyData ? 'verify' : 'hub'));
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
   const [onlineDevices, setOnlineDevices] = useState(() => getOnlineDevicesList());
@@ -550,31 +569,40 @@ function MainView() {
 
   const isLight = theme === 'light' || theme === 'nordic_clean';
 
+  // Listen to popstate or navigation changes
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('verify') || params.get('ref') || params.get('title') || params.get('receipt_no') || params.get('doc_verify')) {
-          const allParams = Object.fromEntries(params.entries());
-          setVerifyData({
-            ...allParams,
-            type: params.get('verify') || allParams.t || 'samity_doc'
-          });
-          setViewMode('verify');
+    const handlePopState = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('verify') || params.get('ref') || params.get('title') || params.get('receipt_no') || params.get('doc_verify')) {
+            const allParams = Object.fromEntries(params.entries());
+            setVerifyData({
+              ...allParams,
+              type: params.get('verify') || allParams.t || 'samity_doc'
+            });
+            setViewMode('verify');
+          } else {
+            setViewMode('hub');
+            setVerifyData(null);
+          }
         }
+      } catch (e) {
+        console.warn('Popstate params parsing error:', e);
       }
-    } catch (e) {
-      console.warn('URL search params parsing ignored:', e);
-    }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Public QR Document Verification View
-  if (viewMode === 'verify') {
+  // 1. PUBLIC QR DOCUMENT VERIFICATION VIEW (Instant, Universal, Zero-Login Gate)
+  if (viewMode === 'verify' && verifyData) {
     return (
       <SamityDocVerificationView 
         verifyData={verifyData} 
         onBackToApp={() => {
           setViewMode('hub');
+          setVerifyData(null);
           if (typeof window !== 'undefined' && window.history.pushState) {
             window.history.pushState({}, '', window.location.pathname);
           }

@@ -1421,7 +1421,7 @@ export const SamityManagementHub = ({ onClose }) => {
 
   useEffect(() => {
     let isMounted = true;
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hisabkitab360.vercel.app';
+    const origin = getGlobalVerificationBaseUrl(currentSamity);
     const docHash = `HK360-${Math.abs(((padDocRefNo || 'DOC') + (padDocDate || '2026')).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0)).toString(16).toUpperCase()}`;
     const params = new URLSearchParams({
       doc_verify: 'true',

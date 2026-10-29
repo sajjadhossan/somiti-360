@@ -84,7 +84,11 @@
       ],
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
+      "forceCodeSigning": false,
       "identity": null
+    },
+    "dmg": {
+      "sign": false
     },
     "files": [
       "dist/**/*",

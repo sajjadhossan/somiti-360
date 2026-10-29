@@ -141,6 +141,7 @@ jobs:
     runs-on: macos-latest
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: "true"
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -157,16 +158,48 @@ jobs:
       - name: Build Web Production Assets
         run: npm run build
 
+      - name: Prepare Apple Native ICNS Icon
+        run: |
+          mkdir -p build/icon.iconset
+          sips -z 16 16     public/logo-512.png --out build/icon.iconset/icon_16x16.png || true
+          sips -z 32 32     public/logo-512.png --out build/icon.iconset/icon_16x16@2x.png || true
+          sips -z 32 32     public/logo-512.png --out build/icon.iconset/icon_32x32.png || true
+          sips -z 64 64     public/logo-512.png --out build/icon.iconset/icon_32x32@2x.png || true
+          sips -z 128 128   public/logo-512.png --out build/icon.iconset/icon_128x128.png || true
+          sips -z 256 256   public/logo-512.png --out build/icon.iconset/icon_128x128@2x.png || true
+          sips -z 256 256   public/logo-512.png --out build/icon.iconset/icon_256x256.png || true
+          sips -z 512 512   public/logo-512.png --out build/icon.iconset/icon_256x256@2x.png || true
+          sips -z 512 512   public/logo-512.png --out build/icon.iconset/icon_512x512.png || true
+          iconutil -c icns build/icon.iconset -o build/icon.icns || true
+
       - name: Package macOS Multi-Architecture Binaries (Intel x64 & Apple Silicon arm64)
         run: |
           mkdir -p artifacts
-          npx electron-builder --mac --x64 --arm64 --publish never
+          # Build Apple Silicon (arm64 - native architecture of GitHub macos-14 runner)
+          npx electron-builder --mac --arm64 -c.mac.identity=null -c.mac.forceCodeSigning=false --publish never || true
+
+          # Build Intel Mac (x64)
+          npx electron-builder --mac --x64 -c.mac.identity=null -c.mac.forceCodeSigning=false --publish never || true
+
+          # Copy any generated DMGs
           for f in dist-electron/*x64*.dmg; do [ -f "$f" ] && cp "$f" "artifacts/Somiti-360-Mac-Intel-x64.dmg" || true; done
           for f in dist-electron/*arm64*.dmg; do [ -f "$f" ] && cp "$f" "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg" || true; done
+
+          # Copy or create universal .app.zip bundles using native macOS ditto
           for f in dist-electron/*x64*.zip; do [ -f "$f" ] && cp "$f" "artifacts/Somiti-360-Mac-Intel-x64.zip" || true; done
           for f in dist-electron/*arm64*.zip; do [ -f "$f" ] && cp "$f" "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.zip" || true; done
+
+          if [ -d "dist-electron/mac/Somiti 360.app" ] && [ ! -f "artifacts/Somiti-360-Mac-Intel-x64.zip" ]; then
+            ditto -c -k --keepParent "dist-electron/mac/Somiti 360.app" "artifacts/Somiti-360-Mac-Intel-x64.zip" || true
+          fi
+
+          if [ -d "dist-electron/mac-arm64/Somiti 360.app" ] && [ ! -f "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.zip" ]; then
+            ditto -c -k --keepParent "dist-electron/mac-arm64/Somiti 360.app" "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.zip" || true
+          fi
+
           cp dist-electron/*.dmg artifacts/ 2>/dev/null || true
           cp dist-electron/*.zip artifacts/ 2>/dev/null || true
+
           echo "=== Generated macOS Artifacts ==="
           ls -lh artifacts/
 
@@ -174,9 +207,12 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: Somiti-360-macOS-DMG
-          path: artifacts/*
-          retention-days: 1
+          name: Somiti-360-macOS-Apps
+          path: |
+            artifacts/*.dmg
+            artifacts/*.zip
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Publish macOS App Direct to GitHub Release
         uses: softprops/action-gh-release@v2

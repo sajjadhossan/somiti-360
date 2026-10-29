@@ -54,6 +54,8 @@ import {
   MapPin,
   Image as ImageIcon,
   Menu,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import {
@@ -702,7 +704,7 @@ export const SamityManagementHub = ({ onClose }) => {
 
   const hubContainerRef = useRef(null);
   const { t } = useSamityTranslator(hubContainerRef, activeLang);
-  const { showToast = () => {}, businessSettings } = appContext;
+  const { showToast = () => {}, businessSettings, toggleTheme } = appContext;
 
   // Active Role-Based Access Control (RBAC) & Permission Hub
   const [activeUserRole, setActiveUserRole] = useState(() => {
@@ -5438,7 +5440,7 @@ ${samityTitle}
         isLight={isLight}
         activeLang={activeLang}
         setLang={setLocalLang}
-        toggleTheme={() => setIsLight((prev) => !prev)}
+        toggleTheme={toggleTheme || (() => {})}
         effectiveMetrics={effectiveMetrics}
         data={data}
         isOpenMobile={isDrawerOpenMobile}
@@ -5980,7 +5982,7 @@ ${samityTitle}
               onClick={() => {
                 playButtonClick?.();
                 triggerHaptic?.();
-                setIsLight((prev) => !prev);
+                toggleTheme?.();
               }}
               style={{
                 width: "38px",

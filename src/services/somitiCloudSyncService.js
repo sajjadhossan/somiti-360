@@ -212,7 +212,7 @@ export const initSomitiCloudSync = () => {
     return null;
   }
 
-  if (meshChannel && isChannelSubscribed) {
+  if (meshChannel) {
     return meshChannel;
   }
 

@@ -499,12 +499,30 @@ function MainView() {
   const [verifyData, setVerifyData] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
+        const path = window.location.pathname || '';
         const params = new URLSearchParams(window.location.search);
-        if (params.get('verify') || params.get('ref') || params.get('title') || params.get('receipt_no') || params.get('doc_verify')) {
+
+        // 1. Direct path load: /verify/:type/:id or /verify/code/:code
+        if (path.includes('/verify/')) {
+          const parts = path.split('/verify/')[1]?.split('?')[0]?.split('/') || [];
+          const docType = parts[0] || params.get('verify') || 'receipt';
+          const docId = parts[1] ? decodeURIComponent(parts[1]) : (params.get('doc_id') || params.get('receipt_no') || params.get('code') || '');
           const allParams = Object.fromEntries(params.entries());
           return {
             ...allParams,
-            type: params.get('verify') || allParams.t || 'samity_doc'
+            type: docType,
+            doc_id: docId,
+            token: params.get('token') || allParams.data || ''
+          };
+        }
+
+        // 2. Query string format
+        if (params.get('verify') || params.get('ref') || params.get('title') || params.get('receipt_no') || params.get('doc_verify') || params.get('code')) {
+          const allParams = Object.fromEntries(params.entries());
+          return {
+            ...allParams,
+            type: params.get('verify') || allParams.t || 'samity_doc',
+            doc_id: params.get('doc_id') || params.get('receipt_no') || params.get('code') || ''
           };
         }
       }

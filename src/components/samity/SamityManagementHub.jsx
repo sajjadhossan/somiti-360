@@ -116,6 +116,7 @@ import {
   generateQuickChartQrUrl,
   generateGoQrUrl,
   createSamityReceiptVerificationUrl,
+  getReceiptShortVerificationCode,
   createSamityDueNoticeVerificationUrl,
   createSamityMembershipCertVerificationUrl,
   createSamityBulkDepositVerificationUrl,
@@ -4154,37 +4155,25 @@ export const SamityManagementHub = ({ onClose }) => {
   // Helper: Format WhatsApp Share Text for Paid Receipt
   const getReceiptShareWhatsAppText = (deposit, samity, copyType) => {
     const rcptNo = getFormattedReceiptNo(deposit);
-    const date = deposit.depositDate || new Date().toLocaleDateString("bn-BD");
-    const amount = Number(deposit.amount || 0);
-    const memberName =
-      deposit.memberName || deposit.depositorName || "সম্মানিত সদস্য";
-    const copyLabel =
-      copyType === "duplicate"
-        ? "দ্বিতীয় অনুলিপি (Duplicate)"
-        : copyType === "member"
-          ? "গ্রাহক অনুলিপি (Member Copy)"
-          : copyType === "office"
-            ? "অফিস কপি (Office Copy)"
-            : "মূল কপি (Original)";
+    const shortCode = getReceiptShortVerificationCode(deposit);
     const verifyUrl = createSamityReceiptVerificationUrl(deposit, samity);
+    const samityTitle = samity.nameBn || "সমিতি ৩৬০";
 
-    return `🧾 *${samity.nameBn}*
-*পরিশোধ রিসিট / PAYMENT RECEIPT* (${copyLabel})
------------------------------------------
-রিসিট নং: *${rcptNo}*
-তারিখ: ${date}
-সদস্য: *${memberName}* (আইডি: ${deposit.memberId || "N/A"})
-টাকা জমা দিয়েছেন: *${deposit.depositorName || memberName}* [${deposit.depositorRelation || "নিজে"}]
-জমার খাত: ${deposit.depositType || "মাসিক চাঁদা"} (${deposit.paymentMonth || ""} ${deposit.paymentYear || ""})
-পরিশোধের মাধ্যম: ${deposit.depositMethod || "নগদ/ব্যাংক"} ${deposit.bankReceiptNo ? `(স্লিপ: ${deposit.bankReceiptNo})` : ""}
-*জমা টাকার পরিমাণ: ৳ ${amount.toLocaleString("en-IN")}/-*
-কথায়: ${numberToBanglaWords(amount)}
-স্ট্যাটাস: ${deposit.approvalStatus === "cancelled" ? "❌ বাতিলকৃত (Cancelled)" : "✅ পরিশোধিত ও অনুমোদিত (PAID)"}
------------------------------------------
-🔍 *স্মার্টফোনে রসিদের ডিজিটাল সত্যতা যাচাই করতে লিংকে চাপ দিন:*
+    return `আসসালামু আলাইকুম,
+
+আপনার মানি রিসিট তৈরি হয়েছে।
+
+রিসিট নম্বর: ${rcptNo}
+ভেরিফিকেশন কোড: ${shortCode}
+
+QR কোড স্ক্যান করে অথবা ভেরিফিকেশন কোড দিয়ে রিসিটটি যাচাই করতে পারবেন।
+
+ভেরিফিকেশন লিংক:
 ${verifyUrl}
------------------------------------------
-হেল্পলাইন: ${samity.mobile || ""}`;
+
+ধন্যবাদ,
+${samityTitle}
+সমিতি ৩৬০`;
   };
 
   // Handler: Cancel Receipt with Authorized Permission
@@ -42719,39 +42708,56 @@ ${verifyUrl}
                       </div>
                       <div
                         style={{
-                          fontSize: "0.68rem",
-                          color: "#64748b",
-                          lineHeight: "1.4",
+                          fontSize: "0.70rem",
+                          color: "#475569",
+                          lineHeight: "1.45",
                         }}
                       >
-                        <strong style={{ color: "#0f172a" }}>
-                          স্ক্যান করে যাচাই করুন / Scan to Verify
-                        </strong>
-                        <br />
-                        <a
-                          href={createSamityReceiptVerificationUrl(
-                            dep,
-                            currentSamity,
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <strong
                           style={{
-                            fontSize: "0.60rem",
-                            color: "#0284c7",
-                            wordBreak: "break-all",
+                            color: "#0f172a",
+                            fontSize: "0.78rem",
                             display: "block",
-                            marginBottom: "2px",
-                            textDecoration: "none",
                           }}
                         >
-                          {createSamityReceiptVerificationUrl(
-                            dep,
-                            currentSamity,
-                          )}
-                        </a>
-                        রসিদ নং: {formattedReceiptNo}
-                        <br />
-                        মোবাইল ক্যামেরা দিয়ে স্ক্যান করলেই ভেরিফাই হবে
+                          স্ক্যান করে যাচাই করুন
+                        </strong>
+                        <span
+                          style={{
+                            fontSize: "0.66rem",
+                            color: "#64748b",
+                            display: "block",
+                            marginBottom: "5px",
+                          }}
+                        >
+                          Verify by Scanning
+                        </span>
+                        <div
+                          style={{
+                            background: "#f1f5f9",
+                            border: "1px solid #cbd5e1",
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            display: "inline-block",
+                            marginBottom: "4px",
+                            fontFamily: "monospace",
+                            fontWeight: "800",
+                            fontSize: "0.80rem",
+                            color: "#0f172a",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          ভেরিফিকেশন কোড:{" "}
+                          <span style={{ color: "#0284c7" }}>
+                            {getReceiptShortVerificationCode(dep)}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
+                          রসিদ নং:{" "}
+                          <strong style={{ color: "#0f172a" }}>
+                            {formattedReceiptNo}
+                          </strong>
+                        </div>
                       </div>
                     </div>
 

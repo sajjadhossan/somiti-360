@@ -569,6 +569,30 @@ export const getGlobalVerificationBaseUrl = (currentSamity) => {
 };
 
 /**
+ * Generates an unambiguous, easy-to-read Short Verification Code (format: S360-XXXXXX)
+ * Uses 32 characters omitting confusing 0, O, 1, I
+ */
+export const getReceiptShortVerificationCode = (deposit) => {
+  if (deposit?.shortVerificationCode) return deposit.shortVerificationCode;
+  if (deposit?.shortCode) return deposit.shortCode;
+  
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const raw = String(deposit?.id || '') + '-' + String(deposit?.receiptNo || deposit?.voucherNo || '') + '-' + String(deposit?.memberId || 'MEM');
+  let hash = 5381;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) + hash) + raw.charCodeAt(i);
+    hash = hash & hash;
+  }
+  let code = '';
+  let h = Math.abs(hash);
+  for (let i = 0; i < 6; i++) {
+    code += chars[h % chars.length];
+    h = Math.floor(h / 32) + (raw.charCodeAt(i % raw.length) || 17) * 31;
+  }
+  return `S360-${code}`;
+};
+
+/**
  * Generates globally accessible Verification URL for Samity Deposit Receipts
  */
 export const createSamityReceiptVerificationUrl = (deposit, currentSamity) => {
@@ -578,6 +602,7 @@ export const createSamityReceiptVerificationUrl = (deposit, currentSamity) => {
   const memberName = deposit.memberName || deposit.depositorName || 'সদস্য';
   const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
   const samityReg = currentSamity?.regNo || 'সছস-২০২৪/০৯';
+  const shortCode = getReceiptShortVerificationCode(deposit);
   const docHash = `HK360-RCPT-${(deposit.id || '0000').slice(0, 8).toUpperCase()}`;
 
   const payload = {
@@ -595,16 +620,17 @@ export const createSamityReceiptVerificationUrl = (deposit, currentSamity) => {
     dt: deposit.depositDate || deposit.date || new Date().toISOString().split('T')[0],
     sam: samityName,
     reg: samityReg,
+    code: shortCode,
     h: docHash
   };
 
   try {
     const docId = deposit.id || formattedReceiptNo;
     const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}/verify/receipt/${encodeURIComponent(docId)}?token=${token}&verify=receipt&doc_id=${encodeURIComponent(docId)}&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&depositor=${encodeURIComponent(payload.d)}&relation=${encodeURIComponent(payload.rel)}&method=${encodeURIComponent(payload.method)}&month=${encodeURIComponent(payload.month)}&year=${encodeURIComponent(payload.year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(samityReg)}&data=${token}`;
+    return `${baseUrl}/verify/receipt/${encodeURIComponent(docId)}?token=${token}&verify=receipt&doc_id=${encodeURIComponent(docId)}&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&depositor=${encodeURIComponent(payload.d)}&relation=${encodeURIComponent(payload.rel)}&method=${encodeURIComponent(payload.method)}&month=${encodeURIComponent(payload.month)}&year=${encodeURIComponent(payload.year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(samityReg)}&code=${encodeURIComponent(shortCode)}&data=${token}`;
   } catch {
     const docId = deposit.id || formattedReceiptNo;
-    return `${baseUrl}/verify/receipt/${encodeURIComponent(docId)}?verify=receipt&doc_id=${encodeURIComponent(docId)}&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&samity=${encodeURIComponent(samityName)}`;
+    return `${baseUrl}/verify/receipt/${encodeURIComponent(docId)}?verify=receipt&doc_id=${encodeURIComponent(docId)}&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&samity=${encodeURIComponent(samityName)}&code=${encodeURIComponent(shortCode)}`;
   }
 };
 

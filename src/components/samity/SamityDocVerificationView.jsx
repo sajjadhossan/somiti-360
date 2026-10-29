@@ -55,6 +55,63 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
     error: null
   });
 
+  const queryCode = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('code') || '') : '';
+  const [searchCode, setSearchCode] = useState(queryCode);
+  const [searchedDoc, setSearchedDoc] = useState(null);
+
+  const handleManualVerify = async (codeToVerify) => {
+    const clean = (codeToVerify || searchCode || '').trim();
+    if (!clean) return;
+    setCloudVerification({
+      loading: true,
+      isVerified: false,
+      status: 'loading',
+      cancellationReason: '',
+      cancelledAt: null,
+      verifiedAt: null,
+      error: null
+    });
+
+    try {
+      const res = await fetch(`/api/public/verify/code/${encodeURIComponent(clean)}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setSearchedDoc(json.data);
+          setCloudVerification({
+            loading: false,
+            isVerified: json.isValid,
+            status: json.status,
+            cancellationReason: json.data.cancellationReason || '',
+            cancelledAt: json.data.cancelledAt || null,
+            verifiedAt: json.data.verifiedAt || new Date().toISOString(),
+            error: null
+          });
+          return;
+        }
+      }
+      setCloudVerification({
+        loading: false,
+        isVerified: false,
+        status: 'invalid',
+        cancellationReason: '',
+        cancelledAt: null,
+        verifiedAt: null,
+        error: lang === 'en' ? 'This verification code is invalid' : 'এই ভেরিফিকেশন কোডটি বৈধ নয়'
+      });
+    } catch {
+      setCloudVerification({
+        loading: false,
+        isVerified: false,
+        status: 'invalid',
+        cancellationReason: '',
+        cancelledAt: null,
+        verifiedAt: null,
+        error: lang === 'en' ? 'This verification code is invalid' : 'এই ভেরিফিকেশন কোডটি বৈধ নয়'
+      });
+    }
+  };
+
   // Parse parameters from props or window URL
   const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
 
@@ -120,6 +177,12 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   useEffect(() => {
     const docId = query.get('doc_id') || verifyData?.doc_id || query.get('receipt_no') || query.get('ref') || verifyData?.receiptNo;
     const token = query.get('token') || verifyData?.token;
+    const codeParam = query.get('code') || verifyData?.code;
+
+    if (codeParam && !docId && !token) {
+      handleManualVerify(codeParam);
+      return;
+    }
 
     if (docId || token) {
       setCloudVerification(prev => ({ ...prev, loading: true }));
@@ -375,6 +438,80 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
         </div>
       </div>
 
+      {/* Short Verification Code Search Bar */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '760px',
+          background: 'rgba(30, 41, 59, 0.75)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          backdropFilter: 'blur(12px)',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>🔍</span>
+            <span>{lang === 'en' ? 'Manual Verification by Short Code' : 'ভেরিফিকেশন কোড দিয়ে সরাসরি যাচাই'}</span>
+          </span>
+          <span style={{ fontSize: '0.74rem', color: '#38bdf8', fontWeight: '800', fontFamily: 'monospace' }}>
+            {lang === 'en' ? 'Format: S360-XXXXXX' : 'ফরম্যাট: S360-XXXXXX'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={searchCode}
+            onChange={(e) => setSearchCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleManualVerify(searchCode); }}
+            placeholder={lang === 'en' ? 'e.g. S360-8F2K9Q or Receipt No' : 'যেমন: S360-8F2K9Q বা রসিদ নং'}
+            style={{
+              flex: '1 1 240px',
+              background: '#0f172a',
+              border: '1.5px solid #334155',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              color: '#fff',
+              fontSize: '0.90rem',
+              fontWeight: '700',
+              fontFamily: 'monospace',
+              letterSpacing: '0.5px'
+            }}
+          />
+          <button
+            onClick={() => handleManualVerify(searchCode)}
+            disabled={cloudVerification.loading || !searchCode.trim()}
+            style={{
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '10px 22px',
+              fontWeight: '800',
+              fontSize: '0.86rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+              opacity: (cloudVerification.loading || !searchCode.trim()) ? 0.6 : 1
+            }}
+          >
+            {cloudVerification.loading ? (
+              <span>{lang === 'en' ? 'Verifying...' : 'যাচাই হচ্ছে...'}</span>
+            ) : (
+              <span>{lang === 'en' ? 'Verify' : 'যাচাই করুন'}</span>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Main Verification Certificate Card */}
       <div
         style={{
@@ -605,6 +742,12 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
               <div>
                 <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>জমার তারিখ:</span>
                 <strong style={{ color: '#0f172a' }}>{date}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ভেরিফিকেশন কোড:</span>
+                <strong style={{ color: '#0284c7', fontFamily: 'monospace', fontSize: '0.90rem' }}>
+                  {searchedDoc?.shortVerificationCode || query.get('code') || decodedToken?.code || `S360-${(receiptNo || '000000').slice(0, 6).toUpperCase()}`}
+                </strong>
               </div>
               <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
                 <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ডিজিটাল সিকিউরিটি টোকেন ও অডিট হ্যাশ:</span>

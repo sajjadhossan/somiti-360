@@ -17,28 +17,105 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: 'Method Not Allowed' });
   }
 
-  const { documentType, documentId, token } = req.query;
+  const { documentType, documentId, token, code } = req.query;
+  const isCodeLookup = documentType === 'code' || !!code;
+  const lookupIdentifier = (code || documentId || '').trim();
 
-  if (!documentId) {
+  if (!lookupIdentifier) {
     return res.status(400).json({
       success: false,
-      errorCode: 'MISSING_DOCUMENT_ID',
-      message: 'Document ID is required.'
+      errorCode: 'MISSING_IDENTIFIER',
+      message: 'ভেরিফিকেশন কোড বা ডকুমেন্ট আইডি প্রদান করা বাধ্যতামূলক।'
     });
   }
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Fetch document by id or document_number
-    const { data: doc, error } = await supabase
-      .from('documents')
-      .select('*')
-      .or(`id.eq.${documentId},document_number.eq.${documentId}`)
-      .maybeSingle();
+    let doc = null;
 
-    if (error) {
-      console.error('Supabase query error:', error);
+    // 1. If lookup is by short code (e.g. S360-XXXXXX)
+    if (isCodeLookup) {
+      // Check documents table
+      const { data: d1 } = await supabase
+        .from('documents')
+        .select('*')
+        .or(`short_verification_code.eq.${lookupIdentifier},document_number.eq.${lookupIdentifier}`)
+        .maybeSingle();
+
+      if (d1) {
+        doc = d1;
+      } else {
+        // Check samity_deposits table
+        const { data: dep } = await supabase
+          .from('samity_deposits')
+          .select('*')
+          .or(`short_verification_code.eq.${lookupIdentifier},receipt_no.eq.${lookupIdentifier},voucher_no.eq.${lookupIdentifier}`)
+          .maybeSingle();
+
+        if (dep) {
+          doc = {
+            id: dep.id,
+            document_number: dep.receipt_no || dep.voucher_no || `RCPT-${dep.id}`,
+            document_type: 'receipt',
+            title: 'জমার রসিদ (Money Receipt)',
+            samity_id: dep.samity_id,
+            recipient_name: dep.member_name || dep.depositor_name || 'সদস্য',
+            amount: dep.amount,
+            status: dep.approval_status === 'cancelled' ? 'cancelled' : 'valid',
+            issue_date: dep.deposit_date,
+            cancellation_reason: dep.cancellation_reason || null,
+            cancelled_at: dep.cancelled_at || null,
+            metadata: {
+              shortVerificationCode: dep.short_verification_code || lookupIdentifier,
+              paymentMonth: dep.payment_month || '',
+              paymentYear: dep.payment_year || '',
+              depositType: dep.deposit_type || 'মাসিক সঞ্চয়/চাঁদা',
+              depositMethod: dep.deposit_method || 'নগদ'
+            }
+          };
+        }
+      }
+    } else {
+      // 2. Lookup by documentId (or document_number)
+      const { data: d1 } = await supabase
+        .from('documents')
+        .select('*')
+        .or(`id.eq.${lookupIdentifier},document_number.eq.${lookupIdentifier}`)
+        .maybeSingle();
+
+      if (d1) {
+        doc = d1;
+      } else {
+        const { data: dep } = await supabase
+          .from('samity_deposits')
+          .select('*')
+          .or(`id.eq.${lookupIdentifier},receipt_no.eq.${lookupIdentifier}`)
+          .maybeSingle();
+
+        if (dep) {
+          doc = {
+            id: dep.id,
+            document_number: dep.receipt_no || dep.voucher_no || `RCPT-${dep.id}`,
+            document_type: 'receipt',
+            title: 'জমার রসিদ (Money Receipt)',
+            samity_id: dep.samity_id,
+            recipient_name: dep.member_name || dep.depositor_name || 'সদস্য',
+            amount: dep.amount,
+            status: dep.approval_status === 'cancelled' ? 'cancelled' : 'valid',
+            issue_date: dep.deposit_date,
+            cancellation_reason: dep.cancellation_reason || null,
+            cancelled_at: dep.cancelled_at || null,
+            metadata: {
+              shortVerificationCode: dep.short_verification_code || `S360-${(dep.id || '000000').slice(0, 6).toUpperCase()}`,
+              paymentMonth: dep.payment_month || '',
+              paymentYear: dep.payment_year || '',
+              depositType: dep.deposit_type || 'মাসিক সঞ্চয়/চাঁদা',
+              depositMethod: dep.deposit_method || 'নগদ'
+            }
+          };
+        }
+      }
     }
 
     if (!doc) {
@@ -46,14 +123,14 @@ export default async function handler(req, res) {
         success: false,
         isValid: false,
         status: 'not_found',
-        message: 'ডকুমেন্টটি কেন্দ্রীয় ক্লাউড ডাটাবেজে পাওয়া যায়নি।'
+        message: 'প্রদত্ত কোড বা আইডি দিয়ে কোনো রেকর্ড কেন্দ্রীয় ক্লাউড ডাটাবেজে পাওয়া যায়নি।'
       });
     }
 
     const isCancelled = doc.status === 'cancelled';
     const isExpired = doc.status === 'expired';
 
-    // Log verification audit asynchronously
+    // Log verification attempt
     try {
       await supabase.from('document_verifications').insert({
         document_id: doc.id,
@@ -73,7 +150,8 @@ export default async function handler(req, res) {
         documentId: doc.id,
         documentNumber: doc.document_number,
         documentType: doc.document_type || documentType || 'receipt',
-        title: doc.title,
+        shortVerificationCode: doc.short_verification_code || doc.metadata?.shortVerificationCode || lookupIdentifier,
+        title: doc.title || 'জমার রসিদ (Money Receipt)',
         samityId: doc.samity_id,
         samityName: doc.metadata?.samityName || 'স্বপ্নছোঁয়া সমবায় সমিতি',
         issueDate: doc.issue_date,
@@ -96,4 +174,3 @@ export default async function handler(req, res) {
     });
   }
 }
-

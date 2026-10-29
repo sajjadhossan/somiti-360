@@ -6,8 +6,24 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/api/public/verify/code/:code",
+      "destination": "/api/public/verify?documentType=code&documentId=:code"
+    },
+    {
       "source": "/api/public/verify/:documentType/:documentId",
       "destination": "/api/public/verify?documentType=:documentType&documentId=:documentId"
+    },
+    {
+      "source": "/api/receipts/:receiptId/qr",
+      "destination": "/api/receipts/qr?receiptId=:receiptId"
+    },
+    {
+      "source": "/api/receipts/:receiptId/pdf",
+      "destination": "/api/receipts/pdf?receiptId=:receiptId"
+    },
+    {
+      "source": "/api/receipts/:receiptId/cancel",
+      "destination": "/api/receipts/cancel?receiptId=:receiptId"
     },
     {
       "source": "/api/documents/:documentType/:documentId/qr",
@@ -20,6 +36,10 @@
     {
       "source": "/api/documents/:documentType/:documentId/cancel",
       "destination": "/api/documents/cancel?documentType=:documentType&documentId=:documentId"
+    },
+    {
+      "source": "/verify/code/:code",
+      "destination": "/index.html"
     },
     {
       "source": "/verify/:documentType/:documentId",

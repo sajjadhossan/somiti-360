@@ -59,61 +59,45 @@ export const decodeQrCodeWithGoQrApi = async (fileOrBlob) => {
 };
 
 /**
- * Generates an ultra high-resolution QR code Data URL (PNG base64)
- * using a 3-tier redundant architecture:
- * Tier 1: QuickChart Cloud QR CDN
- * Tier 2: GoQR.me Cloud API
- * Tier 3: Local Offline Client Engine (guarantees offline/print availability)
+ * Generates an ultra high-resolution, print-perfect QR code Data URL (PNG base64).
+ * Always executes instantly in-memory with ZERO network latency, ZERO CORS errors,
+ * and Level-H Error Correction for guaranteed scannability after printing.
  */
 export const generateQrDataUrl = async (text, options = {}) => {
   if (!text) return null;
 
-  // Tier 1 & 2: If online, attempt high-fidelity cloud generation
-  if (typeof navigator !== 'undefined' && navigator.onLine) {
-    // Attempt Tier 1: QuickChart QR API
+  try {
+    // Primary engine: Instant local in-memory generation (800x800 default for 300+ DPI print clarity)
+    const qrWidth = options.width || options.size || 800;
+    return await QRCode.toDataURL(text, {
+      width: qrWidth,
+      margin: options.margin !== undefined ? options.margin : 2,
+      color: {
+        dark: options.darkColor || '#000000',
+        light: options.lightColor || '#ffffff'
+      },
+      errorCorrectionLevel: options.errorCorrectionLevel || 'H'
+    });
+  } catch (err) {
+    console.warn('Local QR code generation warning:', err);
+    // Fallback only if local canvas engine fails
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2800);
-      const qcUrl = generateQuickChartQrUrl(text, options);
-      const response = await fetch(qcUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const blob = await response.blob();
-        return await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        });
-      }
-    } catch (_) {
-      // QuickChart timeout or network glitch, try Tier 2: GoQR.me API
-      try {
-        const controller2 = new AbortController();
-        const timeoutId2 = setTimeout(() => controller2.abort(), 2800);
-        const goQrUrl = generateGoQrUrl(text, options);
-        const response2 = await fetch(goQrUrl, { signal: controller2.signal });
-        clearTimeout(timeoutId2);
-
-        if (response2.ok) {
-          const blob2 = await response2.blob();
-          return await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob2);
-          });
-        }
-      } catch (_) {
-        // Fall through to Tier 3
-      }
+      return generateQuickChartQrUrl(text, options);
+    } catch {
+      return null;
     }
   }
+};
 
-  // Tier 3: Local Offline Client Fallback (instant, 0 network dependency, Error Correction H)
+/**
+ * Generates a lossless Scalable Vector Graphics (SVG) string of the QR Code
+ */
+export const generateQrSvgString = async (text, options = {}) => {
+  if (!text) return null;
   try {
-    return await QRCode.toDataURL(text, {
-      width: options.width || options.size || 350,
-      margin: options.margin !== undefined ? options.margin : 1,
+    return await QRCode.toString(text, {
+      type: 'svg',
+      margin: options.margin !== undefined ? options.margin : 2,
       color: {
         dark: options.darkColor || '#000000',
         light: options.lightColor || '#ffffff'
@@ -121,7 +105,7 @@ export const generateQrDataUrl = async (text, options = {}) => {
       errorCorrectionLevel: 'H'
     });
   } catch (err) {
-    console.warn('Local QR code generation warning:', err);
+    console.warn('QRCode toString SVG error:', err);
     return null;
   }
 };

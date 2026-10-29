@@ -74,7 +74,9 @@ export default async function handler(req, res) {
         receiptNumber: receiptNo,
         shortVerificationCode: shortCode,
         verificationUrl,
-        qrImageUrl: qrDataUrl,
+        qrImageUrl: `${domain}/api/receipts/${encodeURIComponent(receiptId)}/qr.png`,
+        qrSvgUrl: `${domain}/api/receipts/${encodeURIComponent(receiptId)}/qr.svg`,
+        qrDataUrl,
         status: 'valid'
       }
     });

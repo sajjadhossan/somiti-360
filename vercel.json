@@ -14,6 +14,14 @@
       "destination": "/api/public/verify?documentType=:documentType&documentId=:documentId"
     },
     {
+      "source": "/api/receipts/:receiptId/qr.png",
+      "destination": "/api/receipts/qr-png?receiptId=:receiptId"
+    },
+    {
+      "source": "/api/receipts/:receiptId/qr.svg",
+      "destination": "/api/receipts/qr-svg?receiptId=:receiptId"
+    },
+    {
       "source": "/api/receipts/:receiptId/qr",
       "destination": "/api/receipts/qr?receiptId=:receiptId"
     },

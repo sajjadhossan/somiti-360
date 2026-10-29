@@ -10,14 +10,14 @@ import { logDocumentShare } from './somitiDocumentService';
  */
 
 /**
- * Generates an ultra-crisp standalone QR Code Data URL for PDF embedding
+ * Generates an ultra-crisp standalone QR Code Data URL for PDF embedding (800x800, Level-H)
  */
 export const generatePdfQrDataUrl = async (verificationUrl) => {
   if (!verificationUrl) return null;
   try {
     return await QRCode.toDataURL(verificationUrl, {
-      width: 320,
-      margin: 1,
+      width: 800,
+      margin: 2,
       color: {
         dark: '#000000',
         light: '#ffffff'
@@ -49,14 +49,27 @@ export const downloadDocumentPdf = async ({
       throw new Error(`প্রিন্টযোগ্য এলিমেন্ট (${elementId}) পাওয়া যায়নি।`);
     }
 
+    // 1. Ensure all images (especially QR codes and logos) are 100% loaded before capture
+    const imgElements = Array.from(element.querySelectorAll('img'));
+    await Promise.all(
+      imgElements.map((img) => {
+        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          setTimeout(resolve, 2000); // Safety timeout
+        });
+      })
+    );
+
     // Scroll to top of element for accurate canvas bounds
     const originalScrollPos = window.scrollY;
     window.scrollTo(0, 0);
 
     const canvas = await html2canvas(element, {
-      scale: 2.5, // 2.5x scale ensures 300+ DPI razor sharp print quality
+      scale: 2.8, // 2.8x scale ensures 300+ DPI razor sharp print quality
       useCORS: true,
-      allowTaint: true,
+      allowTaint: false, // Prevents browser SecurityError on toDataURL
       backgroundColor: '#ffffff',
       logging: false,
       windowWidth: element.scrollWidth,
@@ -128,9 +141,23 @@ export const shareDocumentPdfWhatsApp = async ({
 
     const element = elementId ? document.getElementById(elementId) : null;
     if (element) {
+      // Ensure all images are 100% loaded before capture
+      const imgElements = Array.from(element.querySelectorAll('img'));
+      await Promise.all(
+        imgElements.map((img) => {
+          if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            setTimeout(resolve, 2000);
+          });
+        })
+      );
+
       const canvas = await html2canvas(element, {
-        scale: 2.2,
+        scale: 2.5,
         useCORS: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false
       });

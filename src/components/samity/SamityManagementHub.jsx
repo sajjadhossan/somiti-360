@@ -2015,7 +2015,7 @@ export const SamityManagementHub = ({ onClose }) => {
       activePrintReceipt,
       currentSamity,
     );
-    generateQrDataUrl(verifyUrl, { width: 180, margin: 1 }).then((url) => {
+    generateQrDataUrl(verifyUrl, { width: 800, margin: 2, errorCorrectionLevel: 'H' }).then((url) => {
       if (isMounted && url) setReceiptQrDataUrl(url);
     });
     return () => {
@@ -41804,9 +41804,14 @@ ${samityTitle}
                   >
                     {/* Action 1: Print Receipt */}
                     <button
-                      onClick={() =>
-                        handlePrintElement("samity-printable-paid-receipt")
-                      }
+                      onClick={async () => {
+                        if (!receiptQrDataUrl) {
+                          const vUrl = createSamityReceiptVerificationUrl(dep, currentSamity);
+                          const generated = await generateQrDataUrl(vUrl, { width: 800, margin: 2, errorCorrectionLevel: 'H' });
+                          if (generated) setReceiptQrDataUrl(generated);
+                        }
+                        handlePrintElement("samity-printable-paid-receipt");
+                      }}
                       style={{
                         background: "#10b981",
                         color: "#fff",
@@ -41827,7 +41832,13 @@ ${samityTitle}
 
                     {/* Action 2: Download PDF */}
                     <button
-                      onClick={() => {
+                      onClick={async () => {
+                        let activeQr = receiptQrDataUrl;
+                        if (!activeQr) {
+                          const vUrl = createSamityReceiptVerificationUrl(dep, currentSamity);
+                          activeQr = await generateQrDataUrl(vUrl, { width: 800, margin: 2, errorCorrectionLevel: 'H' });
+                          if (activeQr) setReceiptQrDataUrl(activeQr);
+                        }
                         downloadDocumentPdf({
                           elementId: "samity-printable-paid-receipt",
                           fileName: `money-receipt-${formattedReceiptNo || dep.id || "receipt"}.pdf`,
@@ -41856,7 +41867,13 @@ ${samityTitle}
 
                     {/* Action 3: Send PDF by WhatsApp */}
                     <button
-                      onClick={() => {
+                      onClick={async () => {
+                        let activeQr = receiptQrDataUrl;
+                        if (!activeQr) {
+                          const vUrl = createSamityReceiptVerificationUrl(dep, currentSamity);
+                          activeQr = await generateQrDataUrl(vUrl, { width: 800, margin: 2, errorCorrectionLevel: 'H' });
+                          if (activeQr) setReceiptQrDataUrl(activeQr);
+                        }
                         const receiptText = getReceiptShareWhatsAppText(
                           dep,
                           currentSamity,
@@ -42673,34 +42690,22 @@ ${samityTitle}
                         title="ক্লিক করে QR কোড সত্যতা যাচাই করুন"
                       >
                         {(() => {
-                          const receiptVerifyUrl =
-                            createSamityReceiptVerificationUrl(
-                              dep,
-                              currentSamity,
-                            );
-                          const qcReceiptUrl = generateQuickChartQrUrl(
-                            receiptVerifyUrl,
-                            { size: 280, ecLevel: "H" },
-                          );
-                          const goReceiptUrl = generateGoQrUrl(
-                            receiptVerifyUrl,
-                            { size: 280, ecLevel: "H" },
-                          );
-
                           return (
                             <img
-                              src={receiptQrDataUrl || qcReceiptUrl}
+                              src={
+                                receiptQrDataUrl ||
+                                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='88' height='88'><rect width='100%' height='100%' fill='%23ffffff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='10' font-weight='bold' fill='%23047857'>QR CODE</text></svg>"
+                              }
                               alt="Official Digital Verification QR"
+                              data-qr-code="true"
+                              crossOrigin="anonymous"
                               style={{
                                 width: "88px",
                                 height: "88px",
                                 display: "block",
                                 borderRadius: "4px",
-                                imageRendering: "pixelated",
-                              }}
-                              onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = goReceiptUrl;
+                                imageRendering: "crisp-edges",
+                                background: "#ffffff",
                               }}
                             />
                           );

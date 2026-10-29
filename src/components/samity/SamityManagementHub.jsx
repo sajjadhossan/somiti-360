@@ -121,6 +121,7 @@ import {
   createSamityBulkDepositVerificationUrl,
   createSamityMemberListVerificationUrl,
   createSamityOfficialDocVerificationUrl,
+  createSamityExpenseVoucherVerificationUrl,
   getGlobalVerificationBaseUrl
 } from '../../services/qrService';
 import { playButtonClick, playSuccessChime } from '../../services/soundFeedback';
@@ -1531,6 +1532,22 @@ export const SamityManagementHub = ({ onClose }) => {
     });
     return () => { isMounted = false; };
   }, [activeConsolidatedReport, currentSamity]);
+
+  // Real QR Verification Data URL for Expense Voucher (ব্যয়ের ভাউচার)
+  const [activePrintExpenseVoucher, setActivePrintExpenseVoucher] = useState(null);
+  const [expenseVoucherQrDataUrl, setExpenseVoucherQrDataUrl] = useState('');
+  useEffect(() => {
+    let isMounted = true;
+    if (!activePrintExpenseVoucher) {
+      setExpenseVoucherQrDataUrl('');
+      return;
+    }
+    const verifyUrl = createSamityExpenseVoucherVerificationUrl(activePrintExpenseVoucher, currentSamity);
+    generateQrDataUrl(verifyUrl, { width: 160, margin: 1 }).then(url => {
+      if (isMounted && url) setExpenseVoucherQrDataUrl(url);
+    });
+    return () => { isMounted = false; };
+  }, [activePrintExpenseVoucher, currentSamity]);
 
   // New Officer Signature & Seal Modal State
   const [isOfficerModalOpen, setIsOfficerModalOpen] = useState(false);
@@ -11638,6 +11655,25 @@ ${verifyUrl}
                                     </button>
                                   )}
                                   <button
+                                    onClick={() => { playButtonClick?.(); setActivePrintExpenseVoucher(exp); }}
+                                    title="ব্যয়ের ভাউচার প্রিন্ট ও QR ভেরিফিকেশন"
+                                    style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer' }}
+                                  >
+                                    <Printer size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      playButtonClick?.();
+                                      const verifyUrl = createSamityExpenseVoucherVerificationUrl(exp, currentSamity);
+                                      const msg = `আসসালামু আলাইকুম,\n\n"${currentSamity.nameBn}" এর অফিসিয়াল ব্যয়ের ভাউচার:\n📄 ভাউচার নং: ${exp.voucherNo || exp.id}\n💰 মোট টাকা: ৳${Number(exp.amount || 0).toLocaleString()} /-\n🏷️ খাত: ${exp.category || 'ব্যয়'}\n👤 প্রাপক: ${exp.paidTo || 'অফিস'}\n📅 তারিখ: ${exp.expenseDate || exp.date}\n\n🔍 সরাসরি যাচাই করার লিংক:\n${verifyUrl}\n\nধন্যবাদ,\n${currentSamity.nameBn}`;
+                                      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                                    }}
+                                    title="WhatsApp-এ ভাউচার শেয়ার করুন"
+                                    style={{ background: 'rgba(37, 211, 102, 0.15)', color: '#25d366', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer' }}
+                                  >
+                                    <MessageSquare size={13} />
+                                  </button>
+                                  <button
                                     onClick={() => handleEditExpense(exp)}
                                     title="সম্পাদনা করুন"
                                     style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#fff', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer' }}
@@ -21014,6 +21050,286 @@ ${verifyUrl}
       )}
 
       {/* ==================================================================== */}
+      {/* ==================================================================== */}
+      {/* 7.1.B MODAL: OFFICIAL EXPENSE VOUCHER PRINT & QR VERIFICATION */}
+      {/* ==================================================================== */}
+      {activePrintExpenseVoucher && (() => {
+        const exp = activePrintExpenseVoucher;
+        const voucherNo = exp.voucherNo || `EXP-${exp.id || '001'}`;
+        const expAmount = Number(exp.amount || 0);
+        const expDate = exp.expenseDate || exp.date || new Date().toISOString().split('T')[0];
+        const isCancelled = exp.approvalStatus === 'rejected' || exp.approvalStatus === 'cancelled';
+        const verifyUrl = createSamityExpenseVoucherVerificationUrl(exp, currentSamity);
+        const qcUrl = generateQuickChartQrUrl(verifyUrl, { size: 280, ecLevel: 'H' });
+        const goUrl = generateGoQrUrl(verifyUrl, { size: 280, ecLevel: 'H' });
+
+        const treasurer = (data.signatures || []).find(s =>
+          s.designationBn?.includes('কোষাধ্যক্ষ') ||
+          s.designationEn?.toLowerCase().includes('treasurer')
+        ) || { name: 'মোঃ আব্দুর রহিম', designationBn: 'কোষাধ্যক্ষ / অর্থ সম্পাদক' };
+
+        const president = (data.signatures || []).find(s =>
+          s.designationBn?.includes('সভাপতি') ||
+          s.designationEn?.toLowerCase().includes('president')
+        ) || { name: 'প্রফেসর কাজী নজরুল ইসলাম', designationBn: 'সভাপতি' };
+
+        const secretary = (data.signatures || []).find(s =>
+          s.designationBn?.includes('সাধারণ সম্পাদক') ||
+          s.designationEn?.toLowerCase().includes('secretary')
+        ) || { name: 'মোহাম্মদ আলী', designationBn: 'সাধারণ সম্পাদক' };
+
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.88)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 115,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px'
+            }}
+          >
+            <div
+              style={{
+                background: '#ffffff',
+                color: '#0f172a',
+                borderRadius: '16px',
+                width: '100%',
+                maxWidth: '780px',
+                maxHeight: '94vh',
+                overflowY: 'auto',
+                padding: '24px',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
+                position: 'relative'
+              }}
+            >
+              {/* Top Controls */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => handlePrintElement('samity-printable-expense-voucher')}
+                    style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
+                  >
+                    <Printer size={15} />
+                    <span>ভাউচার প্রিন্ট</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      showToast?.('ভাউচারটি PDF হিসেবে সংরক্ষণ করতে প্রিন্ট অপশনে "Save as PDF" নির্বাচন করুন', 'info');
+                      handlePrintElement('samity-printable-expense-voucher');
+                    }}
+                    style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '7px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
+                  >
+                    <Download size={15} />
+                    <span>PDF ডাউনলোড</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const msg = `আসসালামু আলাইকুম,\n\n"${currentSamity.nameBn}" এর অফিসিয়াল ব্যয়ের ভাউচার:\n📄 ভাউচার নং: ${voucherNo}\n💰 মোট টাকা: ৳${expAmount.toLocaleString()} /-\n🏷️ খাত: ${exp.category || 'ব্যয়'}\n👤 প্রাপক: ${exp.paidTo || 'অফিস'}\n📅 তারিখ: ${expDate}\n\n🔍 সরাসরি অনলাইনে যাচাই ও ডিজিটাল কপি দেখতে লিংকে চাপ দিন:\n${verifyUrl}\n\nধন্যবাদ,\n${currentSamity.nameBn}`;
+                      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    style={{ background: '#25D366', color: '#fff', border: 'none', padding: '7px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
+                  >
+                    <Share2 size={15} />
+                    <span>WhatsApp-এ পাঠান</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(verifyUrl);
+                      showToast?.('ভেরিফিকেশন লিংক কপি হয়েছে', 'success');
+                    }}
+                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '7px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
+                  >
+                    <Copy size={14} />
+                    <span>লিংক কপি</span>
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setActivePrintExpenseVoucher(null)}
+                  style={{ background: '#f1f5f9', border: 'none', color: '#475569', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Printable Voucher Sheet */}
+              <div
+                id="samity-printable-expense-voucher"
+                style={{
+                  position: 'relative',
+                  border: isCancelled ? '2px dashed #ef4444' : '2px solid #b91c1c',
+                  padding: '24px 28px',
+                  borderRadius: '12px',
+                  background: '#ffffff',
+                  fontFamily: "'Inter', 'SolaimanLipi', sans-serif"
+                }}
+              >
+                {/* Watermark */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '42%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%) rotate(-25deg)',
+                    fontSize: '48px',
+                    fontWeight: '900',
+                    color: isCancelled ? 'rgba(239, 68, 68, 0.12)' : 'rgba(220, 38, 38, 0.08)',
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                    zIndex: 0,
+                    whiteSpace: 'nowrap',
+                    textTransform: 'uppercase',
+                    letterSpacing: '2px'
+                  }}
+                >
+                  {isCancelled ? 'CANCELLED / বাতিল' : 'EXPENSE VOUCHER / ব্যয়ের ভাউচার'}
+                </div>
+
+                {/* Letterhead */}
+                <div style={{ textAlign: 'center', borderBottom: '2px solid #b91c1c', paddingBottom: '12px', marginBottom: '14px', position: 'relative', zIndex: 1 }}>
+                  <h1 style={{ margin: '0 0 4px', fontSize: '1.45rem', fontWeight: '900', color: '#991b1b' }}>
+                    {currentSamity.nameBn}
+                  </h1>
+                  <p style={{ margin: '0 0 4px', fontSize: '0.84rem', color: '#475569', fontWeight: '600' }}>
+                    {currentSamity.address || 'বাংলাদেশ সরকার নিবন্ধিত সমবায় সমিতি'}
+                  </p>
+                  <div style={{ display: 'inline-flex', gap: '12px', fontSize: '0.78rem', color: '#b91c1c', fontWeight: '800' }}>
+                    <span>নিবন্ধন নং: {currentSamity.regNo || 'সছস-২০২৪/০৯'}</span>
+                    <span>•</span>
+                    <span style={{ background: '#fee2e2', padding: '2px 8px', borderRadius: '4px' }}>
+                      অফিসিয়াল ডেবিট / ব্যয়ের ভাউচার (Debit Expense Voucher)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Top Info Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                  <div>
+                    <span style={{ color: '#64748b', fontWeight: '700' }}>ভাউচার নম্বর:</span>{' '}
+                    <strong style={{ color: '#991b1b', fontFamily: 'monospace' }}>{voucherNo}</strong>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: '#64748b', fontWeight: '700' }}>ব্যয়ের তারিখ:</span>{' '}
+                    <strong style={{ color: '#0f172a' }}>{expDate}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontWeight: '700' }}>ব্যয়ের খাত / হেড:</span>{' '}
+                    <strong style={{ color: '#0f172a' }}>{exp.category || 'সাধারণ ব্যয়'}</strong>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: '#64748b', fontWeight: '700' }}>পরিশোধ মাধ্যম:</span>{' '}
+                    <strong style={{ color: '#0f172a' }}>{exp.paymentMethod || 'নগদ ক্যাশ'}</strong>
+                  </div>
+                </div>
+
+                {/* Body Table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}>
+                      <th style={{ padding: '8px', textAlign: 'left', width: '60%' }}>ব্যয়ের বিবরণ ও প্রাপক</th>
+                      <th style={{ padding: '8px', textAlign: 'right', width: '40%' }}>টাকার পরিমাণ (BDT)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '12px 8px' }}>
+                        <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.88rem' }}>{exp.title}</div>
+                        <div style={{ fontSize: '0.76rem', color: '#475569', marginTop: '4px' }}>
+                          প্রাপক / বিল প্রাপক: <strong>{exp.paidTo || 'অফিস'}</strong>
+                        </div>
+                        {exp.description && (
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                            নোট: {exp.description}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: '900', fontSize: '1.1rem', color: '#991b1b' }}>
+                        ৳ {expAmount.toLocaleString()}/-
+                      </td>
+                    </tr>
+                    <tr style={{ background: '#fef2f2', fontWeight: '900' }}>
+                      <td style={{ padding: '8px', textAlign: 'right', color: '#991b1b' }}>সর্বমোট অনুমোদিত ব্যয়:</td>
+                      <td style={{ padding: '8px', textAlign: 'right', color: '#991b1b', fontSize: '1.15rem' }}>
+                        ৳ {expAmount.toLocaleString()}/-
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                {/* Words */}
+                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.78rem', marginBottom: '20px', position: 'relative', zIndex: 1 }}>
+                  টাকা কথায়: <strong style={{ color: '#0f172a' }}>{numberToBanglaWords(expAmount)}</strong>
+                </div>
+
+                {/* QR and Signatures */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '20px', position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: '16px' }}>
+                  {/* QR Block */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div
+                      style={{
+                        padding: '4px',
+                        background: '#ffffff',
+                        border: '1.5px solid #0f172a',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <img
+                        src={expenseVoucherQrDataUrl || qcUrl}
+                        alt="Expense QR"
+                        style={{ width: '64px', height: '64px', display: 'block', imageRendering: 'pixelated' }}
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = goUrl; }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '0.66rem', color: '#64748b', lineHeight: '1.3', maxWidth: '220px' }}>
+                      <strong style={{ color: '#0f172a' }}>স্ক্যান করে যাচাই করুন / Scan to Verify</strong><br />
+                      <a href={verifyUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.58rem', color: '#0284c7', wordBreak: 'break-all', textDecoration: 'none' }}>
+                        {verifyUrl}
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Signatures */}
+                  <div style={{ display: 'flex', gap: '20px', flex: 1, justifyContent: 'flex-end' }}>
+                    <div style={{ textAlign: 'center', minWidth: '90px' }}>
+                      <div style={{ height: '28px' }}></div>
+                      <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: '800', fontSize: '0.72rem' }}>
+                        {treasurer.name}
+                      </div>
+                      <div style={{ fontSize: '0.64rem', color: '#64748b' }}>কোষাধ্যক্ষ</div>
+                    </div>
+                    <div style={{ textAlign: 'center', minWidth: '90px' }}>
+                      <div style={{ height: '28px' }}></div>
+                      <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: '800', fontSize: '0.72rem' }}>
+                        {secretary.name}
+                      </div>
+                      <div style={{ fontSize: '0.64rem', color: '#64748b' }}>সাধারণ সম্পাদক</div>
+                    </div>
+                    <div style={{ textAlign: 'center', minWidth: '90px' }}>
+                      <div style={{ height: '28px' }}></div>
+                      <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: '800', fontSize: '0.72rem' }}>
+                        {president.name}
+                      </div>
+                      <div style={{ fontSize: '0.64rem', color: '#64748b' }}>সভাপতি</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '16px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', textAlign: 'center', fontSize: '0.64rem', color: '#94a3b8' }}>
+                  এই ব্যয়ের ভাউচারটি সমিতি ৩৬০ সেন্ট্রাল সিস্টেম দ্বারা ডিজিটালভাবে ভেরিফাইড ও অডিটেড।
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* 7.2 MODAL: DIGITAL RECEIPT QR CODE VERIFICATION MODAL */}
       {/* ==================================================================== */}
       {isVerifyQrModalOpen && verifyQrTarget && (

@@ -829,9 +829,58 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
         )}
 
         {/* ------------------------------------------------------------- */}
+        {/* CASE: EXPENSE VOUCHER VERIFICATION (ব্যয়ের ভাউচার) */}
+        {/* ------------------------------------------------------------- */}
+        {docType === 'expense_voucher' && (
+          <div>
+            <div style={{ background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', border: '1.5px solid #fca5a5', borderRadius: '14px', padding: '18px 20px', textAlign: 'center', marginBottom: '20px' }}>
+              <span style={{ fontSize: '0.74rem', color: '#991b1b', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                অনুমোদিত ব্যয়ের ভাউচার ও অর্থ পরিশোধ (Official Expense Voucher)
+              </span>
+              <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#7f1d1d', margin: '4px 0' }}>
+                {decodedToken?.title || query.get('title') || 'সমিতি পরিচালনা ব্যয়'}
+              </div>
+              <div style={{ fontSize: '2.2rem', fontWeight: '900', color: '#dc2626', margin: '6px 0' }}>
+                ৳ {Number(decodedToken?.a !== undefined ? decodedToken.a : (query.get('amount') || 0)).toLocaleString('en-IN')}/-
+              </div>
+              <span style={{ display: 'inline-block', fontSize: '0.74rem', fontWeight: '800', color: '#15803d', background: '#dcfce7', padding: '2px 10px', borderRadius: '10px' }}>
+                ✓ সেন্ট্রাল ক্লাউড লেজার ও ফান্ড হিসাব থেকে অনুমোদিত
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px', fontSize: '0.84rem', lineHeight: '1.6' }}>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ভাউচার নং:</span>
+                <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{decodedToken?.vn || query.get('voucher_no') || 'EXP-001'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ব্যয়ের খাত / ক্যাটাগরি:</span>
+                <strong style={{ color: '#0f172a' }}>{decodedToken?.cat || query.get('category') || 'সাধারণ ব্যয়'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>প্রাপক / বিল পরিশোধ:</span>
+                <strong style={{ color: '#0f172a' }}>{decodedToken?.to || query.get('paid_to') || 'অফিস'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>পরিশোধের মাধ্যম:</span>
+                <strong style={{ color: '#0f172a' }}>{decodedToken?.m || query.get('method') || 'নগদ ক্যাশ'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>খরচের তারিখ:</span>
+                <strong style={{ color: '#0f172a' }}>{date}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ভেরিফিকেশন সিকিউরিটি হ্যাশ:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.76rem', color: '#059669', fontWeight: '800' }}>{hash}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
         {/* CASE 7: OFFICIAL RESOLUTION / DECREE / LETTERHEAD */}
         {/* ------------------------------------------------------------- */}
-        {docType !== 'receipt' && docType !== 'member_list' && docType !== 'due_notice' && docType !== 'membership_cert' && docType !== 'bulk_deposit' && docType !== 'member_id_card' && docType !== 'member_card' && docType !== 'passbook' && (
+        {docType !== 'receipt' && docType !== 'expense_voucher' && docType !== 'member_list' && docType !== 'due_notice' && docType !== 'membership_cert' && docType !== 'bulk_deposit' && docType !== 'member_id_card' && docType !== 'member_card' && docType !== 'passbook' && (
           <div>
             <div
               style={{

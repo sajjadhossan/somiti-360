@@ -848,4 +848,45 @@ export const createSamityMemberListVerificationUrl = (members = [], currentSamit
   }
 };
 
+/**
+ * Generates globally accessible Verification URL for Expense Vouchers (ব্যয়ের ভাউচার)
+ */
+export const createSamityExpenseVoucherVerificationUrl = (expense, currentSamity) => {
+  if (!expense) return 'https://somiti-360.vercel.app';
+  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  const voucherNo = expense.voucherNo || `EXP-${expense.id || '001'}`;
+  const title = expense.title || 'সমিতি পরিচালনা ব্যয়';
+  const category = expense.category || 'অফিস পরিচালনা';
+  const paidTo = expense.paidTo || 'প্রাপক';
+  const amount = Number(expense.amount || 0);
+  const method = expense.paymentMethod || 'নগদ ক্যাশ';
+  const date = expense.expenseDate || expense.date || new Date().toISOString().split('T')[0];
+  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
+  const docHash = `HK360-EXP-${(String(expense.id || '0000')).slice(0, 8).toUpperCase()}`;
+  const docId = expense.id || voucherNo;
+
+  const payload = {
+    t: 'expense_voucher',
+    vn: voucherNo,
+    title,
+    cat: category,
+    to: paidTo,
+    a: amount,
+    m: method,
+    dt: date,
+    sam: samityName,
+    reg: regNo,
+    h: docHash
+  };
+
+  try {
+    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
+    return `${baseUrl}?verify=expense_voucher&doc_id=${encodeURIComponent(docId)}&voucher_no=${encodeURIComponent(voucherNo)}&title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&paid_to=${encodeURIComponent(paidTo)}&amount=${amount}&method=${encodeURIComponent(method)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&data=${token}`;
+  } catch {
+    return `${baseUrl}?verify=expense_voucher&doc_id=${encodeURIComponent(docId)}&voucher_no=${encodeURIComponent(voucherNo)}&amount=${amount}&samity=${encodeURIComponent(samityName)}`;
+  }
+};
+
+
 

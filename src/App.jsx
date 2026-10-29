@@ -569,30 +569,53 @@ function MainView() {
 
   const isLight = theme === 'light' || theme === 'nordic_clean';
 
-  // Listen to popstate or navigation changes
+  // Listen to popstate or navigation changes & initial route check
   useEffect(() => {
-    const handlePopState = () => {
+    const checkVerificationRoute = () => {
       try {
         if (typeof window !== 'undefined') {
+          const path = window.location.pathname || '';
           const params = new URLSearchParams(window.location.search);
+
+          // 1. RESTful Path Format: /verify/:documentType/:documentId?token=...
+          if (path.includes('/verify/')) {
+            const parts = path.split('/verify/')[1]?.split('?')[0]?.split('/') || [];
+            const docType = parts[0] || params.get('verify') || 'receipt';
+            const docId = parts[1] ? decodeURIComponent(parts[1]) : (params.get('doc_id') || params.get('receipt_no') || '');
+            const allParams = Object.fromEntries(params.entries());
+            setVerifyData({
+              ...allParams,
+              type: docType,
+              doc_id: docId,
+              token: params.get('token') || allParams.data || ''
+            });
+            setViewMode('verify');
+            return;
+          }
+
+          // 2. Query String Format: ?verify=receipt&doc_id=...
           if (params.get('verify') || params.get('ref') || params.get('title') || params.get('receipt_no') || params.get('doc_verify')) {
             const allParams = Object.fromEntries(params.entries());
             setVerifyData({
               ...allParams,
-              type: params.get('verify') || allParams.t || 'samity_doc'
+              type: params.get('verify') || allParams.t || 'samity_doc',
+              doc_id: params.get('doc_id') || params.get('receipt_no') || ''
             });
             setViewMode('verify');
-          } else {
-            setViewMode('hub');
-            setVerifyData(null);
+            return;
           }
+
+          setViewMode('hub');
+          setVerifyData(null);
         }
       } catch (e) {
         console.warn('Popstate params parsing error:', e);
       }
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+
+    checkVerificationRoute();
+    window.addEventListener('popstate', checkVerificationRoute);
+    return () => window.removeEventListener('popstate', checkVerificationRoute);
   }, []);
 
   // 1. PUBLIC QR DOCUMENT VERIFICATION VIEW (Instant, Universal, Zero-Login Gate)

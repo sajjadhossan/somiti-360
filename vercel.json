@@ -6,7 +6,27 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/((?!assets/).*)",
+      "source": "/api/public/verify/:documentType/:documentId",
+      "destination": "/api/public/verify?documentType=:documentType&documentId=:documentId"
+    },
+    {
+      "source": "/api/documents/:documentType/:documentId/qr",
+      "destination": "/api/documents/qr?documentType=:documentType&documentId=:documentId"
+    },
+    {
+      "source": "/api/documents/:documentType/:documentId/pdf",
+      "destination": "/api/documents/pdf?documentType=:documentType&documentId=:documentId"
+    },
+    {
+      "source": "/api/documents/:documentType/:documentId/cancel",
+      "destination": "/api/documents/cancel?documentType=:documentType&documentId=:documentId"
+    },
+    {
+      "source": "/verify/:documentType/:documentId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!assets/|api/).*)",
       "destination": "/index.html"
     }
   ],

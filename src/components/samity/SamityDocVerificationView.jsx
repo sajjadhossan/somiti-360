@@ -122,45 +122,84 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
     const token = query.get('token') || verifyData?.token;
 
     if (docId || token) {
-      verifyDocumentOnline({
-        documentType: docType,
-        documentId: docId,
-        token: token
-      }).then(res => {
-        if (res.isValid) {
-          setCloudVerification({
-            loading: false,
-            isVerified: true,
-            status: 'valid',
-            cancellationReason: '',
-            cancelledAt: null,
-            verifiedAt: res.verifiedAt,
-            error: null
+      setCloudVerification(prev => ({ ...prev, loading: true }));
+
+      // 1. First attempt to call Central Serverless REST API
+      const apiUrl = `/api/public/verify/${encodeURIComponent(docType)}/${encodeURIComponent(docId || 'unknown')}?token=${encodeURIComponent(token || '')}`;
+      fetch(apiUrl)
+        .then(async (apiRes) => {
+          if (apiRes.ok) {
+            const json = await apiRes.json();
+            if (json.success && json.data) {
+              setCloudVerification({
+                loading: false,
+                isVerified: json.isValid,
+                status: json.status,
+                cancellationReason: json.data.cancellationReason || '',
+                cancelledAt: json.data.cancelledAt || null,
+                verifiedAt: json.data.verifiedAt || new Date().toISOString(),
+                error: null
+              });
+              return;
+            }
+          } else if (apiRes.status === 404) {
+            // Invalid token or non-existent document
+            setCloudVerification({
+              loading: false,
+              isVerified: false,
+              status: 'invalid',
+              cancellationReason: '',
+              cancelledAt: null,
+              verifiedAt: null,
+              error: 'এই QR কোডটি বৈধ নয়'
+            });
+            return;
+          }
+          throw new Error('API fallback to direct cloud client');
+        })
+        .catch(() => {
+          // 2. Fallback: Direct Supabase / local IndexedDB verification
+          verifyDocumentOnline({
+            documentType: docType,
+            documentId: docId,
+            token: token
+          }).then(res => {
+            if (res.isValid) {
+              setCloudVerification({
+                loading: false,
+                isVerified: true,
+                status: 'valid',
+                cancellationReason: '',
+                cancelledAt: null,
+                verifiedAt: res.verifiedAt || new Date().toISOString(),
+                error: null
+              });
+            } else if (res.status === 'cancelled') {
+              setCloudVerification({
+                loading: false,
+                isVerified: false,
+                status: 'cancelled',
+                cancellationReason: res.cancellationReason || 'কর্তৃপক্ষ কর্তৃক বাতিলকৃত',
+                cancelledAt: res.cancelledAt,
+                verifiedAt: null,
+                error: res.message
+              });
+            } else {
+              setCloudVerification({
+                loading: false,
+                isVerified: false,
+                status: 'invalid',
+                cancellationReason: '',
+                cancelledAt: null,
+                verifiedAt: null,
+                error: 'এই QR কোডটি বৈধ নয়'
+              });
+            }
+          }).catch(err => {
+            console.warn('Online verification check error:', err);
+            setCloudVerification(prev => ({ ...prev, loading: false }));
           });
-        } else if (res.status === 'cancelled') {
-          setCloudVerification({
-            loading: false,
-            isVerified: false,
-            status: 'cancelled',
-            cancellationReason: res.cancellationReason,
-            cancelledAt: res.cancelledAt,
-            verifiedAt: null,
-            error: res.message
-          });
-        } else if (res.status === 'expired') {
-          setCloudVerification({
-            loading: false,
-            isVerified: false,
-            status: 'expired',
-            cancellationReason: '',
-            cancelledAt: null,
-            verifiedAt: null,
-            error: res.message
-          });
-        }
-      }).catch(err => {
-        console.warn('Online verification check error:', err);
-      });
+        });
     }
   }, [docType]);
 
@@ -387,8 +426,30 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
           </div>
         )}
 
-        {/* Cancelled Banner or Active Verified Badge */}
-        {cloudVerification.status === 'cancelled' ? (
+        {/* Invalid Token Warning */}
+        {cloudVerification.status === 'invalid' ? (
+          <div
+            style={{
+              background: '#fef2f2',
+              border: '2px solid #ef4444',
+              borderRadius: '14px',
+              padding: '16px 20px',
+              marginBottom: '18px',
+              textAlign: 'center',
+              color: '#b91c1c'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '6px' }}>
+              <AlertCircle size={24} color="#dc2626" />
+              <strong style={{ fontSize: '1.05rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                এই QR কোডটি বৈধ নয় / INVALID QR CODE
+              </strong>
+            </div>
+            <p style={{ margin: '0', fontSize: '0.88rem', fontWeight: '700' }}>
+              এই কিউআর কোড বা ভেরিফিকেশন টোকেনটি সমিতির কেন্দ্রীয় ডাটাবেজের সাথে মেলেনি অথবা মেয়াদোত্তীর্ণ।
+            </p>
+          </div>
+        ) : cloudVerification.status === 'cancelled' ? (
           <div
             style={{
               background: '#fef2f2',

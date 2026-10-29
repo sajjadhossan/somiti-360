@@ -160,6 +160,11 @@ import { SamityAIAssistantModal } from "./SamityAIAssistantModal";
 import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
 import { optimizeImage } from "../../utils/imageOptimizer";
 import { parseBioDataFile } from "../../services/bioDataDocumentParser";
+import {
+  downloadDocumentPdf,
+  shareDocumentPdfWhatsApp,
+  generatePdfQrDataUrl
+} from "../../services/pdfGeneratorService";
 
 // Bilingual Numeral Formatter (English when lang='en', Bengali otherwise)
 // Bilingual Numeral Formatter (English when lang='en', Bengali otherwise)
@@ -13886,11 +13891,7 @@ ${verifyUrl}
                                     onClick={() => {
                                       const shareText =
                                         getReceiptShareWhatsAppText(
-                                          {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                                          dep,
                                           currentSamity,
                                           "original",
                                         );
@@ -26207,14 +26208,12 @@ ${verifyUrl}
 
                   <button
                     onClick={() => {
-                      showToast?.(
-                        t(
-                          'লেটারহেডটি PDF হিসেবে সংরক্ষণ করতে প্রিন্ট উইন্ডোতে "Save as PDF" নির্বাচন করুন',
-                          'To save letterhead as PDF, choose "Save as PDF" in print window',
-                        ),
-                        "info",
-                      );
-                      handlePrintElement("samity-official-letterhead-preview");
+                      downloadDocumentPdf({
+                        elementId: "samity-official-letterhead-preview",
+                        fileName: `letterhead-${currentSamity.id || "samity"}.pdf`,
+                        docType: "official_doc",
+                        showToast,
+                      });
                     }}
                     style={{
                       background: "rgba(59, 130, 246, 0.2)",
@@ -37843,11 +37842,7 @@ ${verifyUrl}
                       <br />
                       <a
                         href={createSamityOfficialDocVerificationUrl(
-                          {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                          dep,
                           currentSamity,
                         )}
                         target="_blank"
@@ -41844,11 +41839,13 @@ ${verifyUrl}
                     {/* Action 2: Download PDF */}
                     <button
                       onClick={() => {
-                        showToast?.(
-                          'রিসিটটি PDF হিসেবে সংরক্ষণ করতে প্রিন্ট অপশনে "Save as PDF" নির্বাচন করুন',
-                          "info",
-                        );
-                        handlePrintElement("samity-printable-paid-receipt");
+                        downloadDocumentPdf({
+                          elementId: "samity-printable-paid-receipt",
+                          fileName: `money-receipt-${formattedReceiptNo || dep.id || "receipt"}.pdf`,
+                          docType: "receipt",
+                          docNumber: formattedReceiptNo,
+                          showToast,
+                        });
                       }}
                       style={{
                         background: "#3b82f6",
@@ -41871,23 +41868,20 @@ ${verifyUrl}
                     {/* Action 3: Send PDF by WhatsApp */}
                     <button
                       onClick={() => {
-                        const text = getReceiptShareWhatsAppText(
-                          {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                        const receiptText = getReceiptShareWhatsAppText(
+                          dep,
                           currentSamity,
                           receiptCopyType,
                         );
-                        const cleanPhone = String(memberWhatsApp).replace(
-                          /[^0-9]/g,
-                          "",
-                        );
-                        window.open(
-                          `https://wa.me/${cleanPhone.startsWith("88") ? cleanPhone : "88" + cleanPhone}?text=${encodeURIComponent(text)}`,
-                          "_blank",
-                        );
+                        shareDocumentPdfWhatsApp({
+                          elementId: "samity-printable-paid-receipt",
+                          fileName: `money-receipt-${formattedReceiptNo || dep.id || "receipt"}.pdf`,
+                          docType: "receipt",
+                          docNumber: formattedReceiptNo,
+                          recipientPhone: memberWhatsApp,
+                          shareText: receiptText,
+                          showToast,
+                        });
                       }}
                       style={{
                         background: "#25D366",
@@ -41911,11 +41905,7 @@ ${verifyUrl}
                     <button
                       onClick={() => {
                         const text = getReceiptShareWhatsAppText(
-                          {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                          dep,
                           currentSamity,
                           receiptCopyType,
                         );
@@ -42696,11 +42686,7 @@ ${verifyUrl}
                         {(() => {
                           const receiptVerifyUrl =
                             createSamityReceiptVerificationUrl(
-                              {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                              dep,
                               currentSamity,
                             );
                           const qcReceiptUrl = generateQuickChartQrUrl(
@@ -42717,8 +42703,8 @@ ${verifyUrl}
                               src={receiptQrDataUrl || qcReceiptUrl}
                               alt="Official Digital Verification QR"
                               style={{
-                                width: "68px",
-                                height: "68px",
+                                width: "88px",
+                                height: "88px",
                                 display: "block",
                                 borderRadius: "4px",
                                 imageRendering: "pixelated",
@@ -42744,11 +42730,7 @@ ${verifyUrl}
                         <br />
                         <a
                           href={createSamityReceiptVerificationUrl(
-                            {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                            dep,
                             currentSamity,
                           )}
                           target="_blank"
@@ -42763,11 +42745,7 @@ ${verifyUrl}
                           }}
                         >
                           {createSamityReceiptVerificationUrl(
-                            {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                            dep,
                             currentSamity,
                           )}
                         </a>
@@ -43205,11 +43183,13 @@ ${verifyUrl}
                     </button>
                     <button
                       onClick={() => {
-                        showToast?.(
-                          'ভাউচারটি PDF হিসেবে সংরক্ষণ করতে প্রিন্ট অপশনে "Save as PDF" নির্বাচন করুন',
-                          "info",
-                        );
-                        handlePrintElement("samity-printable-expense-voucher");
+                        downloadDocumentPdf({
+                          elementId: "samity-printable-expense-voucher",
+                          fileName: `expense-voucher-${voucherNo}.pdf`,
+                          docType: "expense_voucher",
+                          docNumber: voucherNo,
+                          showToast,
+                        });
                       }}
                       style={{
                         background: "#3b82f6",
@@ -43231,10 +43211,14 @@ ${verifyUrl}
                     <button
                       onClick={() => {
                         const msg = `আসসালামু আলাইকুম,\n\n"${currentSamity.nameBn}" এর অফিসিয়াল ব্যয়ের ভাউচার:\n📄 ভাউচার নং: ${voucherNo}\n💰 মোট টাকা: ৳${expAmount.toLocaleString()} /-\n🏷️ খাত: ${exp.category || "ব্যয়"}\n👤 প্রাপক: ${exp.paidTo || "অফিস"}\n📅 তারিখ: ${expDate}\n\n🔍 সরাসরি অনলাইনে যাচাই ও ডিজিটাল কপি দেখতে লিংকে চাপ দিন:\n${verifyUrl}\n\nধন্যবাদ,\n${currentSamity.nameBn}`;
-                        window.open(
-                          `https://wa.me/?text=${encodeURIComponent(msg)}`,
-                          "_blank",
-                        );
+                        shareDocumentPdfWhatsApp({
+                          elementId: "samity-printable-expense-voucher",
+                          fileName: `expense-voucher-${voucherNo}.pdf`,
+                          docType: "expense_voucher",
+                          docNumber: voucherNo,
+                          shareText: msg,
+                          showToast,
+                        });
                       }}
                       style={{
                         background: "#25D366",
@@ -44005,6 +43989,7 @@ ${verifyUrl}
                       display: "flex",
                       alignItems: "center",
                       gap: "10px",
+                      flexWrap: "wrap",
                     }}
                   >
                     <button
@@ -44028,9 +44013,69 @@ ${verifyUrl}
                       <Printer size={16} />
                       <span>বকেয়া নোটিশ প্রিন্ট করুন</span>
                     </button>
-                    <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                      সরাসরি প্রিন্ট বা PDF হিসেবে সেভ করুন
-                    </span>
+
+                    <button
+                      onClick={() => {
+                        downloadDocumentPdf({
+                          elementId: "samity-printable-due-notice",
+                          fileName: `due-notice-${member.id || "mem"}.pdf`,
+                          docType: "due_notice",
+                          docNumber: memoNo,
+                          showToast,
+                        });
+                      }}
+                      style={{
+                        background: "#3b82f6",
+                        color: "#fff",
+                        border: "none",
+                        padding: "8px 16px",
+                        borderRadius: "8px",
+                        fontSize: "0.85rem",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Download size={16} />
+                      <span>PDF ডাউনলোড</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const noticeVerifyUrl = createSamityDueNoticeVerificationUrl(
+                          activePrintNotice,
+                          currentSamity,
+                        );
+                        const dueMsg = `আসসালামু আলাইকুম ${member.nameBn || member.nameEn},\n\n"${currentSamity.nameBn}" হতে আপনার সদস্য আইডি (${member.id}) এর অনুকূলে বকেয়া পরিশোধের নোটিশ ইস্যু করা হয়েছে।\n📄 স্মারক নং: ${memoNo}\n💰 সর্বমোট বকেয়া: ৳${totalDueAmt?.toLocaleString?.("en-IN") || totalDueAmt}/-\n📅 পরিশোধের শেষ সময়সীমা: ${deadlineDay} ${deadlineMonth} ${deadlineYear}\n\n🔍 সরাসরি অফিসিয়াল ডিজিটাল ভেরিফিকেশন দেখতে নিচের লিংকে প্রবেশ করুন:\n${noticeVerifyUrl}\n\nধন্যবাদ,\n${currentSamity.nameBn}`;
+                        shareDocumentPdfWhatsApp({
+                          elementId: "samity-printable-due-notice",
+                          fileName: `due-notice-${member.id || "mem"}.pdf`,
+                          docType: "due_notice",
+                          docNumber: memoNo,
+                          recipientPhone: member.mobile || member.whatsapp,
+                          shareText: dueMsg,
+                          showToast,
+                        });
+                      }}
+                      style={{
+                        background: "#25D366",
+                        color: "#fff",
+                        border: "none",
+                        padding: "8px 16px",
+                        borderRadius: "8px",
+                        fontSize: "0.85rem",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Share2 size={16} />
+                      <span>WhatsApp-এ পাঠান</span>
+                    </button>
                   </div>
                   <button
                     onClick={() => setActivePrintNotice(null)}
@@ -44585,8 +44630,8 @@ ${verifyUrl}
                               src={noticeQrDataUrl || qcNoticeUrl}
                               alt="Official Due Notice QR"
                               style={{
-                                width: "68px",
-                                height: "68px",
+                                width: "88px",
+                                height: "88px",
                                 display: "block",
                                 borderRadius: "4px",
                                 imageRendering: "pixelated",
@@ -44612,11 +44657,7 @@ ${verifyUrl}
                         <br />
                         <a
                           href={createSamityReceiptVerificationUrl(
-                            {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                            dep,
                             currentSamity,
                           )}
                           target="_blank"
@@ -44631,11 +44672,7 @@ ${verifyUrl}
                           }}
                         >
                           {createSamityReceiptVerificationUrl(
-                            {
-                            ref: `${currentSamity.id || "SAM"}/${selectedDocTemplate?.id?.toUpperCase() || "DOC"}/${new Date().getFullYear()}`,
-                            title: selectedDocTemplate?.title || "অফিসিয়াল নোটিশ ও রেজুলেশন",
-                            date: new Date().toISOString().split("T")[0]
-                          },
+                            dep,
                             currentSamity,
                           )}
                         </a>

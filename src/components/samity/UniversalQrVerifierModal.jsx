@@ -66,6 +66,8 @@ export const UniversalQrVerifierModal = ({
   const [activeVerifyResult, setActiveVerifyResult] = useState(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isScanningCamera, setIsScanningCamera] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' | 'user'
+  const [isCapturingFrame, setIsCapturingFrame] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -156,6 +158,24 @@ export const UniversalQrVerifierModal = ({
     };
   }, [isOpen, activeTab]);
 
+  const playScanChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (_) {}
+  };
+
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = videoRef.current.srcObject.getTracks();
@@ -165,7 +185,7 @@ export const UniversalQrVerifierModal = ({
     setIsScanningCamera(false);
   };
 
-  const startCamera = async () => {
+  const startCamera = async (mode = facingMode) => {
     setCameraError('');
     setIsScanningCamera(true);
     try {
@@ -173,7 +193,7 @@ export const UniversalQrVerifierModal = ({
         throw new Error('আপনার ব্রাউজারে ক্যামেরা এক্সেস সমর্থিত নয়।');
       }
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: { facingMode: mode }
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -188,6 +208,15 @@ export const UniversalQrVerifierModal = ({
     }
   };
 
+  const toggleCameraFacingMode = async () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    stopCamera();
+    setTimeout(() => {
+      startCamera(nextMode);
+    }, 250);
+  };
+
   const scanVideoFrame = async () => {
     if (!videoRef.current || !isScanningCamera) return;
     try {
@@ -196,6 +225,7 @@ export const UniversalQrVerifierModal = ({
         const barcodes = await detector.detect(videoRef.current);
         if (barcodes.length > 0) {
           const val = barcodes[0].rawValue;
+          playScanChime();
           stopCamera();
           handleVerifyRawInput(val);
           showToast?.('✓ QR কোড সফলভাবে স্ক্যান করা হয়েছে!', 'success');
@@ -205,6 +235,56 @@ export const UniversalQrVerifierModal = ({
     } catch (_) {}
     if (isScanningCamera) {
       requestAnimationFrame(scanVideoFrame);
+    }
+  };
+
+  const captureFrameAndDecode = async () => {
+    if (!videoRef.current || !isScanningCamera) return;
+    setIsCapturingFrame(true);
+    showToast?.('ভিডিও ফ্রেম ক্যাপচার ও বিশ্লেষণ করা হচ্ছে...', 'info');
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // 1. Local BarcodeDetector check
+      if ('BarcodeDetector' in window) {
+        try {
+          const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+          const barcodes = await detector.detect(canvas);
+          if (barcodes.length > 0) {
+            playScanChime();
+            stopCamera();
+            handleVerifyRawInput(barcodes[0].rawValue);
+            showToast?.('✓ ফ্রেম থেকে QR কোড সফলভাবে পড়া হয়েছে!', 'success');
+            setIsCapturingFrame(false);
+            return;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Fallback to GoQR.me API with blob snapshot
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+      if (blob) {
+        const decoded = await decodeQrCodeWithGoQrApi(blob);
+        if (decoded) {
+          playScanChime();
+          stopCamera();
+          handleVerifyRawInput(decoded);
+          showToast?.('✓ GoQR ইঞ্জিন দিয়ে ফ্রেম সফলভাবে ডিকোড হয়েছে!', 'success');
+          setIsCapturingFrame(false);
+          return;
+        }
+      }
+      showToast?.('ফ্রেমে কোনো স্পষ্ট QR কোড শনাক্ত হয়নি। ক্যামেরাটি ডকুমেন্টের আরও কাছে এনে চেষ্টা করুন।', 'warning');
+    } catch (err) {
+      console.warn('Frame capture decode error:', err);
+      showToast?.('ফ্রেম বিশ্লেষণে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন বা ছবি ফাইল আপলোড করুন।', 'error');
+    } finally {
+      setIsCapturingFrame(false);
     }
   };
 
@@ -1279,11 +1359,71 @@ export const UniversalQrVerifierModal = ({
                 )}
 
                 {isScanningCamera && (
-                  <div style={{ position: 'relative', width: '100%', maxWidth: '400px', margin: '0 auto 16px', borderRadius: '12px', overflow: 'hidden', border: '2px solid #eab308' }}>
-                    <video ref={videoRef} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    <div style={{ position: 'absolute', inset: '15%', border: '2px dashed #fde047', borderRadius: '8px', pointerEvents: 'none' }} />
-                    <div style={{ position: 'absolute', bottom: '8px', left: 0, right: 0, textAlign: 'center', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '0.72rem', padding: '4px' }}>
-                      QR কোড ফ্রেমের ভেতরে রাখুন
+                  <div style={{ position: 'relative', width: '100%', maxWidth: '420px', margin: '0 auto 16px', borderRadius: '14px', overflow: 'hidden', border: '2px solid #eab308', background: '#000', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                    <video ref={videoRef} style={{ width: '100%', height: 'auto', display: 'block', minHeight: '260px', objectFit: 'cover' }} />
+                    
+                    {/* Viewfinder Target Reticle */}
+                    <div style={{ position: 'absolute', inset: '16%', border: '2.5px solid #22c55e', borderRadius: '12px', pointerEvents: 'none', boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45)' }}>
+                      <div style={{ position: 'absolute', top: '-2px', left: '-2px', width: '20px', height: '20px', borderTop: '4px solid #fde047', borderLeft: '4px solid #fde047', borderTopLeftRadius: '10px' }} />
+                      <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '20px', height: '20px', borderTop: '4px solid #fde047', borderRight: '4px solid #fde047', borderTopRightRadius: '10px' }} />
+                      <div style={{ position: 'absolute', bottom: '-2px', left: '-2px', width: '20px', height: '20px', borderBottom: '4px solid #fde047', borderLeft: '4px solid #fde047', borderBottomLeftRadius: '10px' }} />
+                      <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '20px', height: '20px', borderBottom: '4px solid #fde047', borderRight: '4px solid #fde047', borderBottomRightRadius: '10px' }} />
+                      
+                      {/* Laser scanning line */}
+                      <div style={{ position: 'absolute', left: 0, right: 0, top: '40%', height: '2px', background: '#22c55e', boxShadow: '0 0 10px #22c55e' }} />
+                    </div>
+
+                    {/* Camera Control Overlays */}
+                    <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 10 }}>
+                      <button
+                        onClick={toggleCameraFacingMode}
+                        title="ক্যামেরা পরিবর্তন করুন (Flip Camera)"
+                        style={{
+                          background: 'rgba(15, 23, 42, 0.8)',
+                          color: '#f8fafc',
+                          border: '1px solid rgba(255, 255, 255, 0.3)',
+                          borderRadius: '8px',
+                          padding: '6px 10px',
+                          fontSize: '0.74rem',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          backdropFilter: 'blur(4px)'
+                        }}
+                      >
+                        <RefreshCw size={13} />
+                        <span>{facingMode === 'environment' ? 'সেলফি/ফ্রন্ট' : 'ব্যাক ক্যামেরা'}</span>
+                      </button>
+                    </div>
+
+                    <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', zIndex: 10 }}>
+                      <span style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.72rem', padding: '5px 10px', borderRadius: '6px', backdropFilter: 'blur(4px)' }}>
+                        QR কোড বক্সের ভেতরে ধরুন
+                      </span>
+
+                      <button
+                        onClick={captureFrameAndDecode}
+                        disabled={isCapturingFrame}
+                        style={{
+                          background: isCapturingFrame ? '#64748b' : 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          fontSize: '0.76rem',
+                          fontWeight: '800',
+                          cursor: isCapturingFrame ? 'not-allowed' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 4px 12px rgba(34, 197, 94, 0.4)'
+                        }}
+                      >
+                        <Sparkles size={13} />
+                        <span>{isCapturingFrame ? 'যাচাই হচ্ছে...' : 'ফ্রেম ক্যাপচার ও স্ক্যান'}</span>
+                      </button>
                     </div>
                   </div>
                 )}

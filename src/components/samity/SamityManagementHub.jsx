@@ -7230,6 +7230,401 @@ ${verifyUrl}
               </div>
             </div>
 
+            {/* Digital Documents Verification & Audit Lifecycle Widget */}
+            {(() => {
+              const samityDeposits = (data?.deposits || []).filter(
+                (d) => d.samityId === currentSamity.id,
+              );
+              const samityExpenses = (data?.expenses || []).filter(
+                (e) => e.samityId === currentSamity.id,
+              );
+              const samityMembers = (data?.members || []).filter(
+                (m) => m.samityId === currentSamity.id,
+              );
+
+              const validReceiptsCount = samityDeposits.filter(
+                (d) =>
+                  !d.isCancelled &&
+                  d.approvalStatus !== "rejected" &&
+                  d.approvalStatus !== "cancelled",
+              ).length;
+              const cancelledReceiptsCount = samityDeposits.filter(
+                (d) =>
+                  d.isCancelled ||
+                  d.approvalStatus === "rejected" ||
+                  d.approvalStatus === "cancelled",
+              ).length;
+
+              const validExpensesCount = samityExpenses.filter(
+                (e) =>
+                  !e.isCancelled &&
+                  e.approvalStatus !== "rejected" &&
+                  e.approvalStatus !== "cancelled",
+              ).length;
+              const cancelledExpensesCount = samityExpenses.filter(
+                (e) =>
+                  e.isCancelled ||
+                  e.approvalStatus === "rejected" ||
+                  e.approvalStatus === "cancelled",
+              ).length;
+
+              const totalIssuedDocs =
+                samityDeposits.length +
+                samityExpenses.length +
+                samityMembers.length;
+              const totalActiveValid =
+                validReceiptsCount + validExpensesCount + samityMembers.length;
+              const totalCancelled =
+                cancelledReceiptsCount + cancelledExpensesCount;
+
+              return (
+                <div
+                  style={{
+                    background: isLight
+                      ? "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)"
+                      : "linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)",
+                    border: isLight
+                      ? "1.5px solid #cbd5e1"
+                      : "1px solid rgba(255, 255, 255, 0.1)",
+                    borderRadius: "16px",
+                    padding: "18px 20px",
+                    boxShadow: isLight
+                      ? "0 4px 20px rgba(0, 0, 0, 0.05)"
+                      : "0 10px 30px rgba(0, 0, 0, 0.3)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: "12px",
+                      borderBottom: isLight
+                        ? "1px solid #e2e8f0"
+                        : "1px solid rgba(255, 255, 255, 0.08)",
+                      paddingBottom: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "10px",
+                          background:
+                            "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                        }}
+                      >
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: "900",
+                            fontSize: "0.96rem",
+                            color: isLight ? "#0f172a" : "#f8fafc",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <span>
+                            {t(
+                              "ডিজিটাল ডকুমেন্ট লাইফসাইকেল ও QR ভেরিফিকেশন হাব",
+                              "Digital Documents Lifecycle & QR Verification Hub",
+                            )}
+                          </span>
+                          <span
+                            style={{
+                              background: "rgba(16, 185, 129, 0.15)",
+                              color: "#10b981",
+                              fontSize: "0.68rem",
+                              fontWeight: "800",
+                              padding: "2px 8px",
+                              borderRadius: "12px",
+                              border: "1px solid rgba(16, 185, 129, 0.3)",
+                            }}
+                          >
+                            v1.8.0 LIVE
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: isLight ? "#64748b" : "#94a3b8",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {t(
+                            "সকল রসিদ, ব্যয় ভাউচার ও মেম্বার সনদে ক্রিপ্টোগ্রাফিক কিউআর ও ক্লাউড অডিট সক্রিয়।",
+                            "All receipts, expense vouchers, and certificates are cryptographically verified and cloud audited.",
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <button
+                        onClick={() => setIsUniversalVerifierOpen(true)}
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #10b981 0%, #047857 100%)",
+                          color: "#fff",
+                          border: "none",
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          fontSize: "0.82rem",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          boxShadow: "0 4px 12px rgba(16, 185, 129, 0.35)",
+                        }}
+                      >
+                        <QrCode size={15} />
+                        <span>
+                          {t(
+                            "ইন-অ্যাপ QR স্ক্যানার খুলুন",
+                            "Open Live QR Scanner",
+                          )}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 4 Metric Badges Grid */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(180px, 1fr))",
+                      gap: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: isLight
+                          ? "#f1f5f9"
+                          : "rgba(15, 23, 42, 0.6)",
+                        border: isLight
+                          ? "1px solid #e2e8f0"
+                          : "1px solid rgba(255, 255, 255, 0.06)",
+                        borderRadius: "10px",
+                        padding: "12px 14px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "0.72rem",
+                          color: isLight ? "#64748b" : "#94a3b8",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {t("মোট ইস্যুকৃত ডকুমেন্ট", "Total Issued Documents")}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "1.35rem",
+                          fontWeight: "900",
+                          color: isLight ? "#0f172a" : "#fff",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {totalIssuedDocs}{" "}
+                        <span
+                          style={{
+                            fontSize: "0.74rem",
+                            fontWeight: "600",
+                            color: isLight ? "#64748b" : "#94a3b8",
+                          }}
+                        >
+                          টি
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: isLight ? "#64748b" : "#94a3b8",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {samityDeposits.length} রসিদ • {samityExpenses.length}{" "}
+                        ভাউচার • {samityMembers.length} সনদ
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: isLight
+                          ? "#ecfdf5"
+                          : "rgba(16, 185, 129, 0.08)",
+                        border: isLight
+                          ? "1px solid #a7f3d0"
+                          : "1px solid rgba(16, 185, 129, 0.25)",
+                        borderRadius: "10px",
+                        padding: "12px 14px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "0.72rem",
+                          color: isLight ? "#047857" : "#34d399",
+                          fontWeight: "800",
+                        }}
+                      >
+                        {t("সক্রিয় ও ভেরিফাইড", "Valid & Verifiable")}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "1.35rem",
+                          fontWeight: "900",
+                          color: isLight ? "#047857" : "#10b981",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {totalActiveValid}{" "}
+                        <span
+                          style={{
+                            fontSize: "0.74rem",
+                            fontWeight: "700",
+                            color: isLight ? "#059669" : "#34d399",
+                          }}
+                        >
+                          টি
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: isLight ? "#059669" : "#34d399",
+                          marginTop: "2px",
+                        }}
+                      >
+                        ✓ ১০০% ক্লাউড লেজার ও SHA-256 সুরক্ষিত
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: isLight
+                          ? "#fef2f2"
+                          : "rgba(239, 68, 68, 0.08)",
+                        border: isLight
+                          ? "1px solid #fecaca"
+                          : "1px solid rgba(239, 68, 68, 0.25)",
+                        borderRadius: "10px",
+                        padding: "12px 14px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "0.72rem",
+                          color: isLight ? "#b91c1c" : "#f87171",
+                          fontWeight: "800",
+                        }}
+                      >
+                        {t("বাতিলকৃত ডকুমেন্ট", "Cancelled Documents")}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "1.35rem",
+                          fontWeight: "900",
+                          color: isLight ? "#b91c1c" : "#ef4444",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {totalCancelled}{" "}
+                        <span
+                          style={{
+                            fontSize: "0.74rem",
+                            fontWeight: "700",
+                            color: isLight ? "#dc2626" : "#f87171",
+                          }}
+                        >
+                          টি
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: isLight ? "#991b1b" : "#fca5a5",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {totalCancelled > 0
+                          ? "⚠️ স্বয়ংক্রিয় ওয়াটারমার্ক ও কারণসহ ব্লকড"
+                          : "✓ কোনো ডকুমেন্ট বাতিল নেই"}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: isLight
+                          ? "#eff6ff"
+                          : "rgba(59, 130, 246, 0.08)",
+                        border: isLight
+                          ? "1px solid #bfdbfe"
+                          : "1px solid rgba(59, 130, 246, 0.25)",
+                        borderRadius: "10px",
+                        padding: "12px 14px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "0.72rem",
+                          color: isLight ? "#1d4ed8" : "#60a5fa",
+                          fontWeight: "800",
+                        }}
+                      >
+                        {t("শেয়ারিং ও অডিট লগ", "Sharing & Audit Logs")}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "1.35rem",
+                          fontWeight: "900",
+                          color: isLight ? "#1d4ed8" : "#3b82f6",
+                          marginTop: "2px",
+                        }}
+                      >
+                        সক্রিয়
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: isLight ? "#1e40af" : "#93c5fd",
+                          marginTop: "2px",
+                        }}
+                      >
+                        WhatsApp ও পাবলিক লিংক ট্র্যাকিং প্রস্তুত
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Quick Actions & Collection Progress */}
             <div
               style={{

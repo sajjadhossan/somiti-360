@@ -599,10 +599,12 @@ export const createSamityReceiptVerificationUrl = (deposit, currentSamity) => {
   };
 
   try {
+    const docId = deposit.id || formattedReceiptNo;
     const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}?verify=receipt&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&depositor=${encodeURIComponent(payload.d)}&relation=${encodeURIComponent(payload.rel)}&method=${encodeURIComponent(payload.method)}&month=${encodeURIComponent(payload.month)}&year=${encodeURIComponent(payload.year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(samityReg)}&data=${token}`;
+    return `${baseUrl}?verify=receipt&doc_id=${encodeURIComponent(docId)}&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&depositor=${encodeURIComponent(payload.d)}&relation=${encodeURIComponent(payload.rel)}&method=${encodeURIComponent(payload.method)}&month=${encodeURIComponent(payload.month)}&year=${encodeURIComponent(payload.year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(samityReg)}&data=${token}`;
   } catch {
-    return `${baseUrl}?verify=receipt&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&samity=${encodeURIComponent(samityName)}`;
+    const docId = deposit.id || formattedReceiptNo;
+    return `${baseUrl}?verify=receipt&doc_id=${encodeURIComponent(docId)}&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&samity=${encodeURIComponent(samityName)}`;
   }
 };
 
@@ -634,10 +636,12 @@ export const createSamityDueNoticeVerificationUrl = (notice, currentSamity) => {
   };
 
   try {
+    const docId = member.id ? `DUE-${member.id}` : 'DUE-001';
     const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}?verify=due_notice&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(member.id || '')}&due=${dueAmount}&months=${encodeURIComponent(dueMonths)}&deadline=${encodeURIComponent(deadline)}&samity=${encodeURIComponent(samityName)}&data=${token}`;
+    return `${baseUrl}?verify=due_notice&doc_id=${encodeURIComponent(docId)}&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(member.id || '')}&due=${dueAmount}&months=${encodeURIComponent(dueMonths)}&deadline=${encodeURIComponent(deadline)}&samity=${encodeURIComponent(samityName)}&data=${token}`;
   } catch {
-    return `${baseUrl}?verify=due_notice&member=${encodeURIComponent(memberName)}&due=${dueAmount}&samity=${encodeURIComponent(samityName)}`;
+    const docId = member.id ? `DUE-${member.id}` : 'DUE-001';
+    return `${baseUrl}?verify=due_notice&doc_id=${encodeURIComponent(docId)}&member=${encodeURIComponent(memberName)}&due=${dueAmount}&samity=${encodeURIComponent(samityName)}`;
   }
 };
 
@@ -664,10 +668,12 @@ export const createSamityOfficialDocVerificationUrl = (doc, currentSamity) => {
   };
 
   try {
+    const docId = doc?.id || ref;
     const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}?verify=samity_doc&ref=${encodeURIComponent(ref)}&title=${encodeURIComponent(title)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&hash=${encodeURIComponent(docHash)}&data=${token}`;
+    return `${baseUrl}?verify=samity_doc&doc_id=${encodeURIComponent(docId)}&ref=${encodeURIComponent(ref)}&title=${encodeURIComponent(title)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&hash=${encodeURIComponent(docHash)}&data=${token}`;
   } catch {
-    return `${baseUrl}?verify=samity_doc&ref=${encodeURIComponent(ref)}&title=${encodeURIComponent(title)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}`;
+    const docId = doc?.id || ref;
+    return `${baseUrl}?verify=samity_doc&doc_id=${encodeURIComponent(docId)}&ref=${encodeURIComponent(ref)}&title=${encodeURIComponent(title)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}`;
   }
 };
 
@@ -697,10 +703,12 @@ export const createSamityMembershipCertVerificationUrl = (member, currentSamity)
   };
 
   try {
+    const docId = member?.id || memberId;
     const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}?verify=membership_cert&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&data=${token}`;
+    return `${baseUrl}?verify=membership_cert&doc_id=${encodeURIComponent(docId)}&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&data=${token}`;
   } catch {
-    return `${baseUrl}?verify=membership_cert&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}`;
+    const docId = member?.id || memberId;
+    return `${baseUrl}?verify=membership_cert&doc_id=${encodeURIComponent(docId)}&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}`;
   }
 };
 

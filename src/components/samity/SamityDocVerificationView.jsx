@@ -18,10 +18,13 @@ import {
   Phone,
   Wallet,
   Clock,
-  AlertCircle
+  AlertCircle,
+  AlertOctagon,
+  MessageSquare
 } from 'lucide-react';
 import { useSamityTranslator } from '../../utils/samityDictionary';
 import { safeBase64ToUtf8 } from '../../services/qrService';
+import { verifyDocumentOnline, logDocumentShare } from '../../services/somitiDocumentService';
 
 /**
  * SamityDocVerificationView
@@ -41,6 +44,16 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   });
   const containerRef = useRef(null);
   const { t } = useSamityTranslator(containerRef, lang);
+
+  const [cloudVerification, setCloudVerification] = useState({
+    loading: false,
+    isVerified: true,
+    status: 'valid',
+    cancellationReason: '',
+    cancelledAt: null,
+    verifiedAt: null,
+    error: null
+  });
 
   // Parse parameters from props or window URL
   const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -104,6 +117,53 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   const memberPhoto = decodedToken?.photo || query.get('photo') || '';
   const passbookSavings = Number(decodedToken?.savings !== undefined ? decodedToken.savings : (query.get('savings') || 0));
 
+  useEffect(() => {
+    const docId = query.get('doc_id') || verifyData?.doc_id || query.get('receipt_no') || query.get('ref') || verifyData?.receiptNo;
+    const token = query.get('token') || verifyData?.token;
+
+    if (docId || token) {
+      verifyDocumentOnline({
+        documentType: docType,
+        documentId: docId,
+        token: token
+      }).then(res => {
+        if (res.isValid) {
+          setCloudVerification({
+            loading: false,
+            isVerified: true,
+            status: 'valid',
+            cancellationReason: '',
+            cancelledAt: null,
+            verifiedAt: res.verifiedAt,
+            error: null
+          });
+        } else if (res.status === 'cancelled') {
+          setCloudVerification({
+            loading: false,
+            isVerified: false,
+            status: 'cancelled',
+            cancellationReason: res.cancellationReason,
+            cancelledAt: res.cancelledAt,
+            verifiedAt: null,
+            error: res.message
+          });
+        } else if (res.status === 'expired') {
+          setCloudVerification({
+            loading: false,
+            isVerified: false,
+            status: 'expired',
+            cancellationReason: '',
+            cancelledAt: null,
+            verifiedAt: null,
+            error: res.message
+          });
+        }
+      }).catch(err => {
+        console.warn('Online verification check error:', err);
+      });
+    }
+  }, [docType]);
+
   const handleCopyLink = () => {
     if (typeof window !== 'undefined') {
       navigator.clipboard?.writeText(window.location.href);
@@ -116,6 +176,22 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
     if (typeof window !== 'undefined') {
       window.print();
     }
+  };
+
+  const handleWhatsAppShare = () => {
+    const docTitle = docType === 'receipt'
+      ? `আমানত জমার রসিদ (${receiptNo})`
+      : docType === 'due_notice'
+      ? `বকেয়া পরিশোধ নোটিশ`
+      : docType === 'membership_cert'
+      ? `সদস্যপদ সনদপত্র`
+      : title || 'অফিসিয়াল ডকুমেন্ট';
+
+    const msg = `আসসালামু আলাইকুম,\n\nআপনার জন্য "${docTitle}" এর অফিসিয়াল ডিজিটাল ভেরিফিকেশন তথ্য।\n\n🏢 সমিতি: ${samityName}\n📅 ইস্যুর তারিখ: ${date}\n\n🔍 সরাসরি অনলাইনে যাচাই ও ডিজিটাল কপি দেখতে লিংকে চাপ দিন:\n${window.location.href}\n\nধন্যবাদ,\n${samityName}\nচালিত: সমিতি ৩৬০`;
+
+    logDocumentShare(query.get('doc_id') || receiptNo || refNo, 'whatsapp');
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -217,6 +293,27 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
           </button>
 
           <button
+            onClick={handleWhatsAppShare}
+            style={{
+              background: 'rgba(37, 211, 102, 0.15)',
+              border: '1px solid rgba(37, 211, 102, 0.45)',
+              color: '#25d366',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontSize: '0.82rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            title={lang === 'en' ? 'Share via WhatsApp' : 'হোয়াটসঅ্যাপে শেয়ার করুন'}
+          >
+            <MessageSquare size={15} />
+            <span>{lang === 'en' ? 'WhatsApp' : 'হোয়াটসঅ্যাপ'}</span>
+          </button>
+
+          <button
             onClick={handlePrint}
             style={{
               background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -249,7 +346,7 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
           borderRadius: '18px',
           padding: '28px 24px',
           boxShadow: '0 20px 50px -15px rgba(0, 0, 0, 0.6)',
-          border: '2px solid #10b981',
+          border: cloudVerification.status === 'cancelled' ? '3px solid #ef4444' : '2px solid #10b981',
           position: 'relative',
           overflow: 'hidden'
         }}
@@ -262,45 +359,108 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
             left: 0,
             right: 0,
             height: '6px',
-            background: 'linear-gradient(90deg, #10b981, #06b6d4, #3b82f6)'
+            background: cloudVerification.status === 'cancelled'
+              ? 'linear-gradient(90deg, #ef4444, #dc2626, #b91c1c)'
+              : 'linear-gradient(90deg, #10b981, #06b6d4, #3b82f6)'
           }}
         />
 
-        {/* Verification Verified Badge */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#ecfdf5',
-            border: '1.5px solid #10b981',
-            borderRadius: '24px',
-            padding: '6px 14px',
-            color: '#047857',
-            fontWeight: '800',
-            fontSize: '0.82rem',
-            marginBottom: '18px'
-          }}
-        >
-          <ShieldCheck size={18} color="#059669" />
-          <span>
-            {docType === 'receipt'
-              ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল জমা রসিদ (Digitally Verified Official Receipt)'
-              : docType === 'member_list'
-              ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল সদস্য তালিকা (Digitally Verified Official Member Registry)'
-              : docType === 'due_notice'
-              ? '✓ ডিজিটালভাবে সত্যায়িত বকেয়া নোটিশ (Digitally Verified Official Due Notice)'
-              : docType === 'membership_cert'
-              ? '✓ ডিজিটালভাবে সত্যায়িত সদস্যপদ সনদপত্র (Digitally Verified Membership Certificate)'
-              : docType === 'member_id_card' || docType === 'member_card'
-              ? '✓ ডিজিটালভাবে সত্যায়িত সদস্য স্মার্ট আইডি কার্ড (Digitally Verified Member Smart ID Card)'
-              : docType === 'passbook'
-              ? '✓ ডিজিটালভাবে সত্যায়িত সদস্য সঞ্চয় পাসবুক ও লেজার (Digitally Verified Member Passbook)'
-              : docType === 'bulk_deposit'
-              ? '✓ ডিজিটালভাবে সত্যায়িত ব্যাংক ডিপোজিট রিপোর্ট (Digitally Verified Bank Deposit Report)'
-              : '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল নথি (Digitally Verified Official Document)'}
-          </span>
-        </div>
+        {/* Diagonal Watermark for Cancelled Documents */}
+        {cloudVerification.status === 'cancelled' && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) rotate(-35deg)',
+              fontSize: '4.5rem',
+              fontWeight: '900',
+              color: 'rgba(239, 68, 68, 0.12)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              pointerEvents: 'none',
+              zIndex: 1,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            বাতিল / CANCELLED
+          </div>
+        )}
+
+        {/* Cancelled Banner or Active Verified Badge */}
+        {cloudVerification.status === 'cancelled' ? (
+          <div
+            style={{
+              background: '#fef2f2',
+              border: '2px solid #ef4444',
+              borderRadius: '14px',
+              padding: '16px 20px',
+              marginBottom: '18px',
+              textAlign: 'center',
+              color: '#b91c1c'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '6px' }}>
+              <AlertOctagon size={24} color="#dc2626" />
+              <strong style={{ fontSize: '1.05rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                বাতিলকৃত ডকুমেন্ট / CANCELLED DOCUMENT
+              </strong>
+            </div>
+            <p style={{ margin: '0 0 4px', fontSize: '0.88rem', fontWeight: '700' }}>
+              এই ডকুমেন্টটি প্রাতিষ্ঠানিকভাবে বাতিল করা হয়েছে। এর কোনো আর্থিক বা আইনি কার্যকারিতা নেই।
+            </p>
+            {cloudVerification.cancellationReason && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.82rem', color: '#991b1b', marginTop: '6px' }}>
+                <strong>বাতিলকরণের কারণ:</strong> {cloudVerification.cancellationReason}
+              </div>
+            )}
+            {cloudVerification.cancelledAt && (
+              <div style={{ fontSize: '0.72rem', color: '#7f1d1d', marginTop: '6px' }}>
+                বাতিলের সময়: {new Date(cloudVerification.cancelledAt).toLocaleString('bn-BD')}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#ecfdf5',
+              border: '1.5px solid #10b981',
+              borderRadius: '24px',
+              padding: '6px 14px',
+              color: '#047857',
+              fontWeight: '800',
+              fontSize: '0.82rem',
+              marginBottom: '18px'
+            }}
+          >
+            <ShieldCheck size={18} color="#059669" />
+            <span>
+              {docType === 'receipt'
+                ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল জমা রসিদ (Digitally Verified Official Receipt)'
+                : docType === 'member_list'
+                ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল সদস্য তালিকা (Digitally Verified Official Member Registry)'
+                : docType === 'due_notice'
+                ? '✓ ডিজিটালভাবে সত্যায়িত বকেয়া নোটিশ (Digitally Verified Official Due Notice)'
+                : docType === 'membership_cert'
+                ? '✓ ডিজিটালভাবে সত্যায়িত সদস্যপদ সনদপত্র (Digitally Verified Membership Certificate)'
+                : docType === 'member_id_card' || docType === 'member_card'
+                ? '✓ ডিজিটালভাবে সত্যায়িত সদস্য স্মার্ট আইডি কার্ড (Digitally Verified Member Smart ID Card)'
+                : docType === 'passbook'
+                ? '✓ ডিজিটালভাবে সত্যায়িত সদস্য সঞ্চয় পাসবুক ও লেজার (Digitally Verified Member Passbook)'
+                : docType === 'bulk_deposit'
+                ? '✓ ডিজিটালভাবে সত্যায়িত ব্যাংক ডিপোজিট রিপোর্ট (Digitally Verified Bank Deposit Report)'
+                : '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল নথি (Digitally Verified Official Document)'}
+            </span>
+            {cloudVerification.verifiedAt && (
+              <span style={{ fontSize: '0.7rem', color: '#059669', opacity: 0.85 }}>
+                • লাইভ ক্লাউড ভেরিফাইড
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Samity Header */}
         <div style={{ textAlign: 'center', borderBottom: '2px dashed #e2e8f0', paddingBottom: '16px', marginBottom: '18px' }}>

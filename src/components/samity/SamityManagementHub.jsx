@@ -110,6 +110,7 @@ import {
   exportReportToExcel
 } from '../../services/samityService';
 import * as XLSX from 'xlsx';
+import { cancelDocumentRecord } from '../../services/somitiDocumentService';
 import {
   generateQrDataUrl,
   generateQuickChartQrUrl,
@@ -3146,6 +3147,13 @@ ${verifyUrl}
         cancelledBy: cancelReceiptApprovedBy
       }));
     }
+
+    try {
+      cancelDocumentRecord(targetId, cancelReceiptReason, cancelReceiptApprovedBy);
+      if (cancelReceiptTarget?.receiptNo) {
+        cancelDocumentRecord(cancelReceiptTarget.receiptNo, cancelReceiptReason, cancelReceiptApprovedBy);
+      }
+    } catch (_) {}
 
     setIsCancelReceiptModalOpen(false);
     setCancelReceiptTarget(null);
@@ -18535,7 +18543,10 @@ ${verifyUrl}
                       })()}
                     </div>
                     <div style={{ fontSize: '0.66rem', color: '#475569', lineHeight: '1.4' }}>
-                      <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />
+                      <strong style={{ color: '#0f172a' }}>স্ক্যান করে যাচাই করুন / Scan to Verify</strong><br />
+                      <a href={createSamityReceiptVerificationUrl(dep, currentSamity)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.60rem', color: '#0284c7', wordBreak: 'break-all', display: 'block', marginBottom: '2px', textDecoration: 'none' }}>
+                        {createSamityReceiptVerificationUrl(dep, currentSamity)}
+                      </a>
                       স্ক্যান করে নোটিশ সত্যতা যাচাই করুন
                     </div>
                   </div>
@@ -20820,7 +20831,10 @@ ${verifyUrl}
                       })()}
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: '1.4' }}>
-                      <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />
+                      <strong style={{ color: '#0f172a' }}>স্ক্যান করে যাচাই করুন / Scan to Verify</strong><br />
+                      <a href={createSamityReceiptVerificationUrl(dep, currentSamity)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.60rem', color: '#0284c7', wordBreak: 'break-all', display: 'block', marginBottom: '2px', textDecoration: 'none' }}>
+                        {createSamityReceiptVerificationUrl(dep, currentSamity)}
+                      </a>
                       রসিদ নং: {formattedReceiptNo}<br />
                       মোবাইল ক্যামেরা দিয়ে স্ক্যান করলেই ভেরিফাই হবে
                     </div>
@@ -21356,7 +21370,10 @@ ${verifyUrl}
                       })()}
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: '1.4' }}>
-                      <strong style={{ color: '#0f172a' }}>ডিজিটাল ভেরিফিকেশন QR</strong><br />
+                      <strong style={{ color: '#0f172a' }}>স্ক্যান করে যাচাই করুন / Scan to Verify</strong><br />
+                      <a href={createSamityReceiptVerificationUrl(dep, currentSamity)} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.60rem', color: '#0284c7', wordBreak: 'break-all', display: 'block', marginBottom: '2px', textDecoration: 'none' }}>
+                        {createSamityReceiptVerificationUrl(dep, currentSamity)}
+                      </a>
                       মোবাইল ক্যামেরা দিয়ে স্ক্যান করলেই<br />সরকারি নিবন্ধন ও বকেয়া খতিয়ান আসবে
                     </div>
                   </div>

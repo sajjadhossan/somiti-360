@@ -22,7 +22,9 @@ import {
   Calendar,
   User,
   Check,
-  ArrowLeft
+  ArrowLeft,
+  Share2,
+  AlertOctagon
 } from 'lucide-react';
 import {
   createSamityReceiptVerificationUrl,
@@ -31,6 +33,7 @@ import {
   createSamityMembershipCertVerificationUrl,
   createSamityMemberIdCardVerificationUrl,
   createSamityBulkDepositVerificationUrl,
+  createSamityExpenseVoucherVerificationUrl,
   getGlobalVerificationBaseUrl,
   generateQrDataUrl,
   generateQuickChartQrUrl,
@@ -38,6 +41,10 @@ import {
   decodeQrCodeWithGoQrApi,
   safeBase64ToUtf8
 } from '../../services/qrService';
+import {
+  verifyDocumentOnline,
+  logDocumentShare
+} from '../../services/somitiDocumentService';
 
 export const UniversalQrVerifierModal = ({
   isOpen,
@@ -74,6 +81,7 @@ export const UniversalQrVerifierModal = ({
     const loadRealVerificationQrs = async () => {
       try {
         const latestDeposit = (data?.deposits || []).find(d => d.samityId === currentSamity.id) || (data?.deposits || [])[0];
+        const latestExpense = (data?.expenses || []).find(e => e.samityId === currentSamity.id) || (data?.expenses || [])[0];
         const firstMember = (data?.members || []).find(m => m.samityId === currentSamity.id) || (data?.members || [])[0];
         const previews = {};
 
@@ -85,6 +93,17 @@ export const UniversalQrVerifierModal = ({
             qr: receiptQr,
             label: 'সর্বশেষ জমার রসিদ',
             code: latestDeposit.receiptNo || latestDeposit.voucherNo || `RCPT-${latestDeposit.id}`
+          };
+        }
+
+        if (latestExpense) {
+          const expenseUrl = createSamityExpenseVoucherVerificationUrl(latestExpense, currentSamity);
+          const expenseQr = await generateQrDataUrl(expenseUrl, { width: 140, margin: 1 });
+          previews.expense = {
+            url: expenseUrl,
+            qr: expenseQr,
+            label: 'খরচের ভাউচার (Expense Voucher)',
+            code: latestExpense.voucherNo || `EXP-${latestExpense.id}`
           };
         }
 
@@ -261,30 +280,95 @@ export const UniversalQrVerifierModal = ({
         } catch (_) {}
       }
 
+      const resolvedType = decodedToken?.t || queryParams.get('verify') || 'receipt';
+      const docId = queryParams.get('doc_id') || decodedToken?.docId || queryParams.get('voucher_no') || queryParams.get('receipt_no') || '';
+      
+      // Look up in central database if exists
+      let matchedRecord = null;
+      if (resolvedType === 'expense_voucher') {
+        matchedRecord = (data?.expenses || []).find(e => 
+          (docId && (e.id === docId || e.voucherNo === docId)) ||
+          (e.voucherNo && e.voucherNo.toLowerCase() === (queryParams.get('voucher_no') || '').toLowerCase())
+        );
+      } else {
+        matchedRecord = (data?.deposits || []).find(d => 
+          (docId && (d.id === docId || d.receiptNo === docId)) ||
+          (d.receiptNo && d.receiptNo.toLowerCase() === (queryParams.get('receipt_no') || '').toLowerCase())
+        );
+      }
+
+      const isRecordCancelled = matchedRecord?.isCancelled || 
+                                matchedRecord?.approvalStatus === 'cancelled' || 
+                                matchedRecord?.approvalStatus === 'rejected';
+
       return {
-        type: decodedToken?.t || queryParams.get('verify') || 'receipt',
+        type: resolvedType,
+        docId: docId,
         samity: decodedToken?.sam || queryParams.get('samity') || currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি',
         reg: decodedToken?.reg || queryParams.get('reg') || currentSamity?.regNo || 'সছস-২০২৪/০৯',
-        receiptNo: decodedToken?.rn || queryParams.get('receipt_no') || 'RCPT-2026-0001',
+        receiptNo: decodedToken?.rn || queryParams.get('receipt_no') || (resolvedType === 'expense_voucher' ? (decodedToken?.vn || queryParams.get('voucher_no') || 'EXP-001') : 'RCPT-2026-0001'),
+        voucherNo: decodedToken?.vn || queryParams.get('voucher_no') || matchedRecord?.voucherNo || '',
+        category: decodedToken?.cat || queryParams.get('category') || matchedRecord?.category || 'অফিস পরিচালনা',
+        paidTo: decodedToken?.to || queryParams.get('paid_to') || matchedRecord?.paidTo || matchedRecord?.recipient || 'প্রাপক',
+        payee: decodedToken?.to || queryParams.get('paid_to') || matchedRecord?.paidTo || matchedRecord?.recipient || 'প্রাপক',
+        approvedBy: matchedRecord?.approvedBy || 'সভাপতি ও সাধারণ সম্পাদক',
+        description: matchedRecord?.description || queryParams.get('title') || 'সমিতি পরিচালনা ও দাপ্তরিক ব্যয়',
         member: decodedToken?.m || queryParams.get('member') || 'সম্মানিত সদস্য',
         memberId: decodedToken?.mid || queryParams.get('memberId') || queryParams.get('mid') || '',
         depositor: decodedToken?.d || queryParams.get('depositor') || '',
         relation: decodedToken?.rel || queryParams.get('relation') || 'নিজে',
-        amount: Number(decodedToken?.a !== undefined ? decodedToken.a : (queryParams.get('amount') || 0)),
+        amount: Number(decodedToken?.a !== undefined ? decodedToken.a : (queryParams.get('amount') || matchedRecord?.amount || 0)),
         depositType: decodedToken?.type || queryParams.get('type') || 'মাসিক সঞ্চয়/চাঁদা',
-        method: decodedToken?.method || queryParams.get('method') || 'নগদ',
-        date: decodedToken?.dt || queryParams.get('date') || new Date().toISOString().split('T')[0],
+        method: decodedToken?.m || decodedToken?.method || queryParams.get('method') || matchedRecord?.paymentMethod || 'নগদ ক্যাশ',
+        date: decodedToken?.dt || queryParams.get('date') || matchedRecord?.expenseDate || matchedRecord?.date || new Date().toISOString().split('T')[0],
         hash: decodedToken?.h || queryParams.get('hash') || `HK360-VERIFIED-${Date.now().toString(16).toUpperCase()}`,
+        status: isRecordCancelled ? 'cancelled' : (matchedRecord?.approvalStatus || 'approved'),
+        cancellationReason: matchedRecord?.cancellationReason || '',
         due: Number(decodedToken?.due !== undefined ? decodedToken.due : (queryParams.get('due') || 0)),
         months: decodedToken?.months || queryParams.get('months') || 'চলতি মাস',
         deadline: decodedToken?.dl || queryParams.get('deadline') || '১০ তারিখের মধ্যে',
         ref: queryParams.get('ref') || 'সছস/২০২৬/০১',
-        title: queryParams.get('title') || 'অফিসিয়াল নথি ও রেজুলেশন',
+        title: queryParams.get('title') || (resolvedType === 'expense_voucher' ? 'সমিতি পরিচালনা ব্যয় ভাউচার' : 'অফিসিয়াল নথি ও রেজুলেশন'),
         fullUrl: urlString.startsWith('http') ? urlString : `${effectiveBaseUrl}${urlString.startsWith('/') ? '' : '/'}${urlString}`
       };
     }
 
-    // Look up in central database by Receipt / Voucher / Member ID
+    // 1. Look up in central database by Expense Voucher No / ID / Category
+    const foundExpense = (data?.expenses || []).find(e => 
+      (e.voucherNo && e.voucherNo.toLowerCase() === urlString.toLowerCase()) ||
+      (e.id && e.id.toLowerCase() === urlString.toLowerCase()) ||
+      (e.expenseNo && e.expenseNo.toLowerCase() === urlString.toLowerCase())
+    );
+
+    if (foundExpense) {
+      const generatedUrl = createSamityExpenseVoucherVerificationUrl(foundExpense, currentSamity);
+      const isCancelled = foundExpense.isCancelled || 
+                          foundExpense.approvalStatus === 'cancelled' || 
+                          foundExpense.approvalStatus === 'rejected';
+      return {
+        type: 'expense_voucher',
+        docId: foundExpense.id,
+        samity: currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি',
+        reg: currentSamity?.regNo || 'সছস-২০২৪/০৯',
+        voucherNo: foundExpense.voucherNo || `EXP-${foundExpense.id || '001'}`,
+        receiptNo: foundExpense.voucherNo || `EXP-${foundExpense.id || '001'}`,
+        category: foundExpense.category || 'অফিস পরিচালনা',
+        paidTo: foundExpense.paidTo || foundExpense.recipient || 'প্রাপক',
+        payee: foundExpense.paidTo || foundExpense.recipient || 'প্রাপক',
+        title: foundExpense.title || 'সমিতি পরিচালনা ব্যয় ভাউচার',
+        description: foundExpense.description || foundExpense.title || 'সমিতির দাপ্তরিক খরচ',
+        approvedBy: foundExpense.approvedBy || 'সভাপতি ও সাধারণ সম্পাদক',
+        amount: Number(foundExpense.amount || 0),
+        method: foundExpense.paymentMethod || foundExpense.method || 'নগদ ক্যাশ',
+        date: foundExpense.expenseDate || foundExpense.date || new Date().toISOString().split('T')[0],
+        hash: `HK360-EXP-DB-${(foundExpense.id || '001').slice(0, 8).toUpperCase()}`,
+        status: isCancelled ? 'cancelled' : (foundExpense.approvalStatus || 'approved'),
+        cancellationReason: foundExpense.cancellationReason || '',
+        fullUrl: generatedUrl
+      };
+    }
+
+    // 2. Look up in central database by Receipt / Voucher / Member ID
     const foundDeposit = (data?.deposits || []).find(d => 
       (d.receiptNo && d.receiptNo.toLowerCase() === urlString.toLowerCase()) ||
       (d.voucherNo && d.voucherNo.toLowerCase() === urlString.toLowerCase()) ||
@@ -293,11 +377,16 @@ export const UniversalQrVerifierModal = ({
 
     if (foundDeposit) {
       const generatedUrl = createSamityReceiptVerificationUrl(foundDeposit, currentSamity);
+      const isCancelled = foundDeposit.isCancelled || 
+                          foundDeposit.approvalStatus === 'cancelled' || 
+                          foundDeposit.approvalStatus === 'rejected';
       return {
         type: 'receipt',
+        docId: foundDeposit.id,
         samity: currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি',
         reg: currentSamity?.regNo || 'সছস-২০২৪/০৯',
         receiptNo: foundDeposit.receiptNo || foundDeposit.voucherNo || `RCPT-${foundDeposit.id}`,
+        voucherNo: foundDeposit.voucherNo || '',
         member: foundDeposit.memberName || foundDeposit.depositorName || 'সদস্য',
         memberId: foundDeposit.memberId || '',
         depositor: foundDeposit.depositorName || '',
@@ -307,7 +396,8 @@ export const UniversalQrVerifierModal = ({
         method: foundDeposit.depositMethod || foundDeposit.method || 'নগদ',
         date: foundDeposit.depositDate || foundDeposit.date || new Date().toISOString().split('T')[0],
         hash: `HK360-DB-VERIFIED-${(foundDeposit.id || '001').toUpperCase()}`,
-        status: foundDeposit.approvalStatus || 'approved',
+        status: isCancelled ? 'cancelled' : (foundDeposit.approvalStatus || 'approved'),
+        cancellationReason: foundDeposit.cancellationReason || '',
         fullUrl: generatedUrl
       };
     }
@@ -329,10 +419,36 @@ export const UniversalQrVerifierModal = ({
     };
   };
 
-  const handleVerifyRawInput = (rawText) => {
+  const handleVerifyRawInput = async (rawText) => {
     const payload = resolveVerificationPayload(rawText);
     if (payload) {
       setActiveVerifyResult(payload);
+
+      // Async live verification with Supabase cloud database
+      try {
+        const queryId = payload.docId || payload.voucherNo || payload.receiptNo || payload.ref;
+        if (queryId) {
+          const onlineRes = await verifyDocumentOnline({
+            documentType: payload.type,
+            documentId: queryId,
+            samityId: currentSamity?.id
+          });
+          if (onlineRes?.document) {
+            setActiveVerifyResult(prev => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                status: onlineRes.document.status || prev.status,
+                cancellationReason: onlineRes.document.cancellation_reason || prev.cancellationReason,
+                cancelledAt: onlineRes.document.cancelled_at || null,
+                onlineVerified: true
+              };
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Live online verify check skipped or failed:', err);
+      }
     }
   };
 
@@ -453,8 +569,40 @@ export const UniversalQrVerifierModal = ({
         {/* IN-MODAL VERIFIED CERTIFICATE DISPLAY (If Active Result Exists) */}
         {/* ------------------------------------------------------------- */}
         {activeVerifyResult ? (
-          <div style={{ background: '#ffffff', color: '#0f172a', borderRadius: '16px', padding: '24px', marginBottom: '20px', border: '2px solid #10b981', boxShadow: '0 15px 40px rgba(0,0,0,0.4)', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{
+            background: '#ffffff',
+            color: '#0f172a',
+            borderRadius: '16px',
+            padding: '24px',
+            marginBottom: '20px',
+            border: activeVerifyResult.status === 'cancelled' ? '2px solid #ef4444' : '2px solid #10b981',
+            boxShadow: '0 15px 40px rgba(0,0,0,0.4)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Watermark for cancelled documents */}
+            {activeVerifyResult.status === 'cancelled' && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%) rotate(-25deg)',
+                fontSize: '3.6rem',
+                fontWeight: '900',
+                color: 'rgba(239, 68, 68, 0.12)',
+                border: '6px dashed rgba(239, 68, 68, 0.25)',
+                padding: '10px 40px',
+                borderRadius: '16px',
+                pointerEvents: 'none',
+                letterSpacing: '4px',
+                whiteSpace: 'nowrap',
+                zIndex: 0
+              }}>
+                বাতিল / CANCELLED
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px', position: 'relative', zIndex: 1 }}>
               <button
                 onClick={() => setActiveVerifyResult(null)}
                 style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#0f172a', borderRadius: '8px', padding: '6px 12px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -463,7 +611,24 @@ export const UniversalQrVerifierModal = ({
                 <span>ফিরে যান (আরেকটি যাচাই করুন)</span>
               </button>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {/* WhatsApp Share Button */}
+                <button
+                  onClick={() => {
+                    const docText = activeVerifyResult.type === 'expense_voucher'
+                      ? `*${activeVerifyResult.samity}*\n📜 অফিসিয়াল খরচের ভাউচার ভেরিফিকেশন\n🔹 ভাউচার নং: ${activeVerifyResult.voucherNo || activeVerifyResult.receiptNo}\n🔹 ব্যয়ের খাত: ${activeVerifyResult.category}\n🔹 প্রাপক: ${activeVerifyResult.paidTo || activeVerifyResult.payee}\n💰 পরিমাণ: ৳${activeVerifyResult.amount.toLocaleString('en-IN')}/-\n📅 তারিখ: ${activeVerifyResult.date}\n\nলিংক থেকে সরাসরি অনলাইনে সত্যায়িত কপি দেখুন:\n${activeVerifyResult.fullUrl}`
+                      : `*${activeVerifyResult.samity}*\n📜 অফিসিয়াল ডিজিটাল রসিদ ভেরিফিকেশন\n🔹 রসিদ নং: ${activeVerifyResult.receiptNo}\n🔹 সদস্য: ${activeVerifyResult.member}\n💰 জমার পরিমাণ: ৳${activeVerifyResult.amount.toLocaleString('en-IN')}/-\n📅 তারিখ: ${activeVerifyResult.date}\n\nলিংক থেকে সরাসরি অনলাইনে সত্যায়িত কপি দেখুন:\n${activeVerifyResult.fullUrl}`;
+                    const waUrl = `https://wa.me/?text=${encodeURIComponent(docText)}`;
+                    window.open(waUrl, '_blank', 'noopener,noreferrer');
+                    logDocumentShare?.(activeVerifyResult.docId || activeVerifyResult.receiptNo, 'whatsapp');
+                    showToast?.('✓ WhatsApp এ ভেরিফিকেশন লিংক পাঠানো হচ্ছে...', 'success');
+                  }}
+                  style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Share2 size={14} />
+                  <span>WhatsApp শেয়ার</span>
+                </button>
+
                 <a
                   href={activeVerifyResult.fullUrl}
                   target="_blank"
@@ -478,62 +643,137 @@ export const UniversalQrVerifierModal = ({
                   style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 14px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Printer size={14} />
-                  <span>প্রিন্ট রসিদ</span>
+                  <span>প্রিন্ট {activeVerifyResult.type === 'expense_voucher' ? 'ভাউচার' : 'রসিদ'}</span>
                 </button>
               </div>
             </div>
 
-            {/* Verified Badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#ecfdf5', border: '1.5px solid #10b981', borderRadius: '24px', padding: '6px 14px', color: '#047857', fontWeight: '800', fontSize: '0.84rem', marginBottom: '16px' }}>
-              <ShieldCheck size={18} color="#059669" />
-              <span>✓ ডিজিটালভাবে সত্যায়িত ও অনুমোদিত অফিসিয়াল রসিদ (Digitally Verified Official Document)</span>
-            </div>
+            {/* Status Alert Banner if Cancelled */}
+            {activeVerifyResult.status === 'cancelled' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fef2f2', border: '1.5px solid #ef4444', borderRadius: '12px', padding: '12px 16px', color: '#991b1b', fontWeight: '700', fontSize: '0.86rem', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                <AlertOctagon size={22} color="#dc2626" style={{ flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontWeight: '900', color: '#dc2626' }}>
+                    ⚠️ সতর্কবার্তা: এই {activeVerifyResult.type === 'expense_voucher' ? 'খরচের ভাউচারটি' : 'রসিদটি'} সমিতি কর্তৃপক্ষ কর্তৃক বাতিল (CANCELLED) করা হয়েছে!
+                  </div>
+                  {activeVerifyResult.cancellationReason && (
+                    <div style={{ fontSize: '0.78rem', marginTop: '2px', color: '#b91c1c' }}>
+                      বাতিলের কারণ: <strong>{activeVerifyResult.cancellationReason}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Verified Badge */
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#ecfdf5', border: '1.5px solid #10b981', borderRadius: '24px', padding: '6px 14px', color: '#047857', fontWeight: '800', fontSize: '0.84rem', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                <ShieldCheck size={18} color="#059669" />
+                <span>
+                  ✓ {activeVerifyResult.type === 'expense_voucher' ? 'ডিজিটালভাবে সত্যায়িত ও অনুমোদিত খরচের ভাউচার (Digitally Verified Expense Voucher)' : 'ডিজিটালভাবে সত্যায়িত ও অনুমোদিত অফিসিয়াল রসিদ (Digitally Verified Official Document)'}
+                </span>
+              </div>
+            )}
 
             {/* Samity Title */}
-            <div style={{ textAlign: 'center', borderBottom: '2px dashed #e2e8f0', paddingBottom: '14px', marginBottom: '16px' }}>
-              <h2 style={{ margin: '0 0 4px', fontSize: '1.35rem', fontWeight: '900', color: '#064e3b' }}>
+            <div style={{ textAlign: 'center', borderBottom: '2px dashed #e2e8f0', paddingBottom: '14px', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+              <h2 style={{ margin: '0 0 4px', fontSize: '1.35rem', fontWeight: '900', color: activeVerifyResult.status === 'cancelled' ? '#991b1b' : '#064e3b' }}>
                 {activeVerifyResult.samity}
               </h2>
-              <div style={{ fontSize: '0.78rem', color: '#059669', fontWeight: '700' }}>
-                নিবন্ধন নং: {activeVerifyResult.reg} • রসিদ নং: {activeVerifyResult.receiptNo}
+              <div style={{ fontSize: '0.78rem', color: activeVerifyResult.status === 'cancelled' ? '#dc2626' : '#059669', fontWeight: '700' }}>
+                নিবন্ধন নং: {activeVerifyResult.reg} • {activeVerifyResult.type === 'expense_voucher' ? 'ভাউচার নং' : 'রসিদ নং'}: {activeVerifyResult.voucherNo || activeVerifyResult.receiptNo}
               </div>
             </div>
 
             {/* Amount Spotlight */}
             {activeVerifyResult.amount > 0 && (
-              <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', border: '1.5px solid #86efac', borderRadius: '12px', padding: '14px 20px', textAlign: 'center', marginBottom: '16px' }}>
-                <span style={{ fontSize: '0.74rem', color: '#065f46', fontWeight: '800', textTransform: 'uppercase' }}>পরিশোধকৃত জমা অংক (PAID AMOUNT)</span>
-                <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#047857', margin: '2px 0' }}>
+              <div style={{
+                background: activeVerifyResult.status === 'cancelled' ? '#fef2f2' : 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                border: activeVerifyResult.status === 'cancelled' ? '1.5px solid #fca5a5' : '1.5px solid #86efac',
+                borderRadius: '12px',
+                padding: '14px 20px',
+                textAlign: 'center',
+                marginBottom: '16px',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <span style={{ fontSize: '0.74rem', color: activeVerifyResult.status === 'cancelled' ? '#991b1b' : '#065f46', fontWeight: '800', textTransform: 'uppercase' }}>
+                  {activeVerifyResult.type === 'expense_voucher' ? 'পরিশোধকৃত খরচের অংক (PAID EXPENSE AMOUNT)' : 'পরিশোধকৃত জমা অংক (PAID AMOUNT)'}
+                </span>
+                <div style={{ fontSize: '1.8rem', fontWeight: '900', color: activeVerifyResult.status === 'cancelled' ? '#dc2626' : '#047857', margin: '2px 0' }}>
                   ৳ {activeVerifyResult.amount.toLocaleString('en-IN')}/-
                 </div>
-                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#059669' }}>✓ সেন্ট্রাল ক্লাউড লেজারে সংরক্ষিত ও অনুমোদিত</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: activeVerifyResult.status === 'cancelled' ? '#ef4444' : '#059669' }}>
+                  {activeVerifyResult.status === 'cancelled' ? '✕ এই খরচের লেনদেনটি বাতিল হিসেবে চিহ্নিত' : '✓ সেন্ট্রাল ক্লাউড লেজারে সংরক্ষিত ও অনুমোদিত'}
+                </span>
               </div>
             )}
 
             {/* Details Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', fontSize: '0.82rem', lineHeight: '1.5' }}>
-              <div>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>হিসাবধারী সদস্য:</span>
-                <strong style={{ color: '#0f172a' }}>{activeVerifyResult.member}</strong> {activeVerifyResult.memberId ? `(${activeVerifyResult.memberId})` : ''}
-              </div>
-              {activeVerifyResult.depositor && (
-                <div>
-                  <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>টাকা জমা দিয়েছেন:</span>
-                  <strong style={{ color: '#0284c7' }}>{activeVerifyResult.depositor} [{activeVerifyResult.relation}]</strong>
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', fontSize: '0.82rem', lineHeight: '1.5', position: 'relative', zIndex: 1 }}>
+              {activeVerifyResult.type === 'expense_voucher' ? (
+                <>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>টাকা গ্রহণকারী (Payee / প্রাপক):</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.paidTo || activeVerifyResult.payee}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ব্যয়ের খাত (Category):</span>
+                    <strong style={{ color: '#0284c7' }}>{activeVerifyResult.category}</strong>
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>খরচের বিবরণী (Title / Details):</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.description || activeVerifyResult.title}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>অনুমোদনকারী (Approved By):</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.approvedBy}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>পরিশোধ মাধ্যম:</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.method}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>তারিখ:</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.date}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>বর্তমান অবস্থা (Status):</span>
+                    <strong style={{ color: activeVerifyResult.status === 'cancelled' ? '#dc2626' : '#059669' }}>
+                      {activeVerifyResult.status === 'cancelled' ? 'বাতিলকৃত (Cancelled)' : 'অনুমোদিত ও সক্রিয় (Active)'}
+                    </strong>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>হিসাবধারী সদস্য:</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.member}</strong> {activeVerifyResult.memberId ? `(${activeVerifyResult.memberId})` : ''}
+                  </div>
+                  {activeVerifyResult.depositor && (
+                    <div>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>টাকা জমা দিয়েছেন:</span>
+                      <strong style={{ color: '#0284c7' }}>{activeVerifyResult.depositor} [{activeVerifyResult.relation}]</strong>
+                    </div>
+                  )}
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>খাত ও বিবরণ:</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.depositType}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>পরিশোধ মাধ্যম:</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.method}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>তারিখ:</span>
+                    <strong style={{ color: '#0f172a' }}>{activeVerifyResult.date}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>বর্তমান অবস্থা (Status):</span>
+                    <strong style={{ color: activeVerifyResult.status === 'cancelled' ? '#dc2626' : '#059669' }}>
+                      {activeVerifyResult.status === 'cancelled' ? 'বাতিলকৃত (Cancelled)' : 'অনুমোদিত ও সংরক্ষিত (Valid)'}
+                    </strong>
+                  </div>
+                </>
               )}
-              <div>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>খাত ও বিবরণ:</span>
-                <strong style={{ color: '#0f172a' }}>{activeVerifyResult.depositType}</strong>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>পরিশোধ মাধ্যম:</span>
-                <strong style={{ color: '#0f172a' }}>{activeVerifyResult.method}</strong>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>তারিখ:</span>
-                <strong style={{ color: '#0f172a' }}>{activeVerifyResult.date}</strong>
-              </div>
               <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed #cbd5e1', paddingTop: '8px' }}>
                 <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', display: 'block' }}>ডিজিটাল সিকিউরিটি টোকেন ও অডিট হ্যাশ:</span>
                 <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#059669', fontWeight: '800' }}>{activeVerifyResult.hash}</span>
@@ -683,6 +923,52 @@ export const UniversalQrVerifierModal = ({
                       >
                         <ShieldCheck size={13} />
                         <span>সার্টিফিকেট ওপেন করুন</span>
+                      </button>
+                    </div>
+                  </div>
+                  )}
+
+                  {/* Card 1.5: Real Expense Voucher */}
+                  {previewQrMap.expense && (
+                  <div style={{ background: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px', display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    <div style={{ background: '#ffffff', padding: '6px', borderRadius: '8px', border: '1px solid #cbd5e1', flexShrink: 0, textAlign: 'center' }}>
+                      {previewQrMap.expense?.qr ? (
+                        <img src={previewQrMap.expense.qr} alt="Expense Voucher QR" style={{ width: '84px', height: '84px', display: 'block' }} />
+                      ) : (
+                        <div style={{ width: '84px', height: '84px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <QrCode size={36} color="#ef4444" />
+                        </div>
+                      )}
+                      <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#ef4444', display: 'block', marginTop: '2px' }}>ক্যামেরায় স্ক্যান করুন</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '0.65rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px' }}>ব্যয় ভাউচার</span>
+                        <strong style={{ color: '#f8fafc', fontSize: '0.88rem' }}>খরচের ভাউচার ভেরিফিকেশন</strong>
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', margin: '4px 0 10px' }}>
+                        কোড: {previewQrMap.expense?.code || 'EXP-001'} • ব্যয় খাত ও অনুমোদন
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (previewQrMap.expense?.url) handleVerifyRawInput(previewQrMap.expense.url);
+                        }}
+                        style={{
+                          background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <ShieldCheck size={13} />
+                        <span>ভাউচারটি ভেরিফাই করুন</span>
                       </button>
                     </div>
                   </div>

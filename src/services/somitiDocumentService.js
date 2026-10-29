@@ -228,6 +228,36 @@ export const verifyDocumentOnline = async ({
             metadata: matchedDeposit
           };
         }
+
+        // Search expenses / vouchers
+        if (!doc) {
+          const matchedExpense = (hubData.expenses || []).find(
+            e => e.id === documentId || 
+                 e.voucherNo === documentId || 
+                 (e.voucherNo && e.voucherNo.toLowerCase() === (documentId || '').toLowerCase()) ||
+                 e.expenseNo === documentId
+          );
+          if (matchedExpense) {
+            const isCancelled = matchedExpense.isCancelled || 
+                                matchedExpense.approvalStatus === 'rejected' || 
+                                matchedExpense.approvalStatus === 'cancelled';
+            doc = {
+              id: matchedExpense.id,
+              samity_id: matchedExpense.samityId,
+              document_type: 'expense_voucher',
+              document_number: matchedExpense.voucherNo || `EXP-${matchedExpense.id}`,
+              title: matchedExpense.title || 'সমিতি পরিচালনা ব্যয় ভাউচার',
+              issue_date: matchedExpense.expenseDate || matchedExpense.date,
+              recipient_name: matchedExpense.paidTo || matchedExpense.recipient || 'প্রাপক',
+              amount: matchedExpense.amount,
+              currency: 'BDT',
+              status: isCancelled ? 'cancelled' : 'valid',
+              cancellation_reason: matchedExpense.cancellationReason || (isCancelled ? 'কর্তৃপক্ষ কর্তৃক বাতিলকৃত' : ''),
+              cancelled_at: matchedExpense.cancelledAt || null,
+              metadata: matchedExpense
+            };
+          }
+        }
       }
     } catch (_) {}
   }

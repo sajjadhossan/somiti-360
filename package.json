@@ -67,20 +67,8 @@
       "icon": "public/logo-512.png",
       "category": "public.app-category.finance",
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
+        "zip",
+        "dmg"
       ],
       "hardenedRuntime": false,
       "gatekeeperAssess": false,

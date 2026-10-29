@@ -53,6 +53,7 @@ import {
   FileDown,
   MapPin,
   Image as ImageIcon,
+  Menu,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import {
@@ -159,6 +160,7 @@ import { DeviceMeshStatusModal } from "./DeviceMeshStatusModal";
 import { SupervisorLiveRadarModal } from "./SupervisorLiveRadarModal";
 import { SamityAIAssistantModal } from "./SamityAIAssistantModal";
 import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
+import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
 import { optimizeImage } from "../../utils/imageOptimizer";
 import { parseBioDataFile } from "../../services/bioDataDocumentParser";
 import {
@@ -893,6 +895,44 @@ export const SamityManagementHub = ({ onClose }) => {
 
   // Active Hub Sub-Tab
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isDrawerOpenMobile, setIsDrawerOpenMobile] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("s360_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleDrawerAction = (actionKey) => {
+    if (actionKey === "supervisor_radar") {
+      setIsSupervisorRadarOpen(true);
+    } else if (actionKey === "universal_qr") {
+      setIsUniversalVerifierOpen(true);
+    } else if (actionKey === "new_member") {
+      handleOpenMemberModal();
+    } else if (actionKey === "deposit_entry") {
+      handleOpenDepositModal();
+    } else if (actionKey === "device_mesh") {
+      setIsDeviceMeshModalOpen(true);
+    } else if (actionKey === "ai_voice") {
+      setIsAIAssistantOpen(true);
+    } else if (actionKey === "recycle_bin") {
+      setIsRecycleBinModalOpen(true);
+    } else if (actionKey === "saas_guide") {
+      setIsSaaSGuideModalOpen(true);
+    } else if (actionKey === "contact") {
+      setActiveTab("samity_setup");
+      setSamityFormActiveTab("contact");
+    } else if (actionKey === "bank") {
+      setActiveTab("samity_setup");
+      setSamityFormActiveTab("bank");
+    } else if (actionKey.startsWith("sub_tab:")) {
+      const sub = actionKey.replace("sub_tab:", "");
+      setActiveTab("reminders");
+      setReminderActiveTab(sub);
+    }
+  };
   // 'dashboard' | 'members' | 'deposits' | 'bulk_deposit' | 'payment_status' | 'reminders' | 'expenses' | 'fund_balance' | 'letterhead' | 'signatures' | 'documents' | 'reports' | 'sql_schema' | 'setup'
 
   // 4-Platform Live Device Mesh & Presence Tracking
@@ -5375,13 +5415,61 @@ ${samityTitle}
       id="samity-hub-root"
       style={{
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         minHeight: "100vh",
+        height: "100vh",
+        maxHeight: "100vh",
+        overflow: "hidden",
         background: isLight ? "#f1f5f9" : "var(--bg-primary, #0f172a)",
         color: isLight ? "#0f172a" : "var(--text-main, #f8fafc)",
         fontFamily: "'Inter', 'SolaimanLipi', sans-serif",
       }}
     >
+      {/* 0. PROFESSIONAL FULL-SCREEN LEFT-SIDE DRAWER & COLLAPSIBLE SIDEBAR */}
+      <SamityDrawerNavigation
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        currentSamity={currentSamity}
+        samities={data.samities || []}
+        activeSamityId={activeSamityId}
+        setActiveSamityId={setActiveSamityId}
+        currentUser={currentUser}
+        activeUserRole={activeUserRole}
+        isLight={isLight}
+        activeLang={activeLang}
+        setLang={setLocalLang}
+        toggleTheme={() => setIsLight((prev) => !prev)}
+        effectiveMetrics={effectiveMetrics}
+        data={data}
+        isOpenMobile={isDrawerOpenMobile}
+        setIsOpenMobile={setIsDrawerOpenMobile}
+        isCollapsedDesktop={isSidebarCollapsed}
+        setIsCollapsedDesktop={(val) => {
+          setIsSidebarCollapsed(val);
+          try {
+            localStorage.setItem("s360_sidebar_collapsed", String(val));
+          } catch {}
+        }}
+        onAction={handleDrawerAction}
+        t={t}
+        playButtonClick={playButtonClick}
+        triggerHaptic={triggerHaptic}
+      />
+
+      {/* Main Workspace Frame (Right side) */}
+      <div
+        className="samity-main-workspace"
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          maxHeight: "100vh",
+          overflowY: "auto",
+          minWidth: 0,
+        }}
+      >
+      
       {/* ==================================================================== */}
       {/* Mobile-First Samity Management Hub Subbar Stylesheet */}
       <style>{`
@@ -5532,6 +5620,42 @@ ${samityTitle}
         <div className="samity-hub-tier1">
           {/* Left: Organization Identity */}
           <div className="samity-hub-identity-block">
+            {/* Left-Side Drawer Hamburger Button (Mobile & Desktop) */}
+            <button
+              type="button"
+              onClick={() => {
+                playButtonClick?.();
+                triggerHaptic?.();
+                if (typeof window !== "undefined" && window.innerWidth < 992) {
+                  setIsDrawerOpenMobile(true);
+                } else {
+                  setIsSidebarCollapsed((prev) => {
+                    const next = !prev;
+                    try {
+                      localStorage.setItem("s360_sidebar_collapsed", String(next));
+                    } catch {}
+                    return next;
+                  });
+                }
+              }}
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                background: isLight ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
+                border: "1.5px solid " + (isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.16)"),
+                color: isLight ? "#0f172a" : "#f8fafc",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                flexShrink: 0,
+                boxShadow: isLight ? "0 2px 6px rgba(0,0,0,0.05)" : "none",
+              }}
+              title={t("লেফট ড্রয়ার ও সম্পূর্ণ মডিউল মেনু", "Open Left-Side Drawer & Complete Modules")}
+            >
+              <Menu size={18} />
+            </button>
             {/* Active Samity Logo with Instant 1-Click Upload */}
             <div style={{ position: "relative" }}>
               <input
@@ -49931,6 +50055,8 @@ ${samityTitle}
           </div>
         </div>
       )}
+
+      </div> {/* end samity-main-workspace */}
 
       {/* Universal QR Code Document Verifier & Test Center Modal */}
       <UniversalQrVerifierModal

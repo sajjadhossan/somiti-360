@@ -5859,1033 +5859,172 @@ ${samityTitle}
           </div>
 
           {/* Right: Primary Operations CTA Deck (+ জমা এন্ট্রি, + নতুন সদস্য, 📡 সুপারভাইজার রাডার) */}
-          <div className="samity-hub-primary-actions">
-            <button
-              onClick={() => handleOpenDepositModal()}
+                    {/* Right: Clean Modern Status, Notifications, Language & Theme Toggles */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            {/* Active Module Indicator Badge */}
+            <div
               style={{
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                color: "#fff",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "10px",
-                fontSize: "0.82rem",
-                fontWeight: "900",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "6px",
-                cursor: "pointer",
-                boxShadow: "0 4px 14px rgba(16, 185, 129, 0.35)",
-                transition: "transform 0.12s ease",
-              }}
-            >
-              <Plus size={16} />
-              <span>{t("জমা এন্ট্রি", "Deposit Entry")}</span>
-            </button>
-
-            <button
-              onClick={() => handleOpenMemberModal()}
-              style={{
-                background: isLight
-                  ? "rgba(59, 130, 246, 0.12)"
-                  : "rgba(59, 130, 246, 0.2)",
-                color: isLight ? "#1d4ed8" : "#60a5fa",
-                border: isLight
-                  ? "1.5px solid #93c5fd"
-                  : "1.5px solid rgba(59, 130, 246, 0.45)",
-                padding: "8px 14px",
+                background: isLight ? "#f1f5f9" : "rgba(30, 41, 59, 0.8)",
+                border: "1.5px solid " + (isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.12)"),
                 borderRadius: "10px",
+                padding: "6px 14px",
                 fontSize: "0.82rem",
                 fontWeight: "800",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.15)",
+                color: isLight ? "#0f172a" : "#f8fafc",
               }}
             >
-              <Users size={16} />
-              <span>{t("নতুন সদস্য", "New Member")}</span>
-            </button>
-
-            {/* Live Supervisor Radar Widget Button */}
-            <button
-              onClick={() => {
-                playButtonClick?.();
-                triggerHaptic();
-                setIsSupervisorRadarOpen(true);
-              }}
-              className="full-width-mobile"
-              style={{
-                background:
-                  pendingAuditCount > 0
-                    ? isLight
-                      ? "#fef3c7"
-                      : "rgba(245, 158, 11, 0.25)"
-                    : isLight
-                      ? "#eff6ff"
-                      : "rgba(59, 130, 246, 0.15)",
-                color:
-                  pendingAuditCount > 0
-                    ? isLight
-                      ? "#b45309"
-                      : "#fbbf24"
-                    : isLight
-                      ? "#1d4ed8"
-                      : "#60a5fa",
-                border:
-                  pendingAuditCount > 0
-                    ? "1.5px solid #f59e0b"
-                    : isLight
-                      ? "1.5px solid #93c5fd"
-                      : "1px solid rgba(59, 130, 246, 0.4)",
-                borderRadius: "10px",
-                padding: "8px 13px",
-                fontSize: "0.8rem",
-                fontWeight: "800",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                cursor: "pointer",
-                boxShadow:
-                  pendingAuditCount > 0
-                    ? "0 0 12px rgba(245, 158, 11, 0.35)"
-                    : "none",
-              }}
-              title={t(
-                "সুপারভাইজার লাইভ কালেকশন রাডার ও অডিট উইন্ডো",
-                "Supervisor Live Collection Radar & Audit Window",
-              )}
-            >
-              <span>📡</span>
+              <span style={{ color: "#10b981", fontSize: "0.9rem" }}>●</span>
               <span>
-                {pendingAuditCount > 0
-                  ? t(
-                      `রাডার (${pendingAuditCount} পেন্ডিং) ⏳`,
-                      `Radar (${pendingAuditCount} Pending) ⏳`,
-                    )
-                  : t("সুপারভাইজার রাডার 📡", "Supervisor Radar 📡")}
+                {activeTab === "dashboard"
+                  ? t("📊 লাইভ ড্যাশবোর্ড", "📊 Live Dashboard")
+                  : activeTab === "deposits"
+                  ? t("💳 সঞ্চয় ও কিস্তি জমা", "💳 Deposits & Savings")
+                  : activeTab === "members"
+                  ? t("👥 সদস্য রেজিস্টার", "👥 Members Directory")
+                  : activeTab === "due_mgmt"
+                  ? t("⚠️ বকেয়া খতিয়ান", "⚠️ Due Management")
+                  : activeTab === "paid_receipt"
+                  ? t("🧾 মানি রিসিট ও ভেরিফিকেশন", "🧾 Receipts & Verification")
+                  : activeTab === "expenses"
+                  ? t("💸 খরচ ও ভাউচার", "💸 Expenses & Vouchers")
+                  : activeTab === "fund_balance"
+                  ? t("🏛️ তহবিল ও ব্যাংক স্থিতি", "🏛️ Fund Balance")
+                  : activeTab === "reminders"
+                  ? t("📢 স্মার্ট রিমাইন্ডার হাব", "📢 Smart Reminders")
+                  : activeTab === "letterhead"
+                  ? t("📜 অফিশিয়াল প্যাড ও রেজুলেশন", "📜 Official Pad")
+                  : activeTab === "reports"
+                  ? t("📈 অডিট ও বিজনেস রিপোর্ট", "📈 Reports & Analytics")
+                  : activeTab === "samity_setup"
+                  ? t("🏛️ সমিতি প্রোফাইল ও সেটআপ", "🏛️ Samity Setup")
+                  : activeTab}
               </span>
-            </button>
+            </div>
 
-            {/* AI Voice Assistant Button */}
+            {/* Notifications Button */}
             <button
+              type="button"
               onClick={() => {
                 playButtonClick?.();
-                triggerHaptic();
-                setIsAIAssistantOpen(true);
+                triggerHaptic?.();
+                setActiveTab("notifications");
               }}
-              className="full-width-mobile"
               style={{
-                background:
-                  "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.25))",
-                color: isLight ? "#6366f1" : "#c084fc",
-                border: isLight
-                  ? "1.5px solid #c7d2fe"
-                  : "1px solid rgba(168, 85, 247, 0.45)",
+                height: "38px",
+                padding: "0 12px",
                 borderRadius: "10px",
-                padding: "8px 12px",
-                fontSize: "0.8rem",
-                fontWeight: "800",
+                background: isLight ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
+                border: "1.5px solid " + (isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.16)"),
+                color: isLight ? "#0f172a" : "#f8fafc",
                 display: "inline-flex",
                 alignItems: "center",
-                justifyContent: "center",
                 gap: "6px",
                 cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(99, 102, 241, 0.2)",
+                fontWeight: "700",
+                fontSize: "0.78rem",
               }}
-              title="এআই ভয়েস রসিদ রোল ও বায়োডাটা সহকারী"
+              title={t("নোটিফিকেশন সেন্টার", "Notification Center")}
             >
-              <Sparkles size={15} color="#c084fc" />
-              <span>🎙️ এআই ভয়েস রোল</span>
-            </button>
-
-            {/* Universal Document QR Verifier Hub Button */}
-            <button
-              onClick={() => {
-                playButtonClick?.();
-                triggerHaptic();
-                setIsUniversalVerifierOpen(true);
-              }}
-              className="full-width-mobile"
-              style={{
-                background: isLight
-                  ? "rgba(20, 184, 166, 0.12)"
-                  : "rgba(20, 184, 166, 0.22)",
-                color: isLight ? "#0f766e" : "#2dd4bf",
-                border: isLight
-                  ? "1.5px solid #99f6e4"
-                  : "1px solid rgba(45, 212, 191, 0.45)",
-                borderRadius: "10px",
-                padding: "8px 13px",
-                fontSize: "0.8rem",
-                fontWeight: "800",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(20, 184, 166, 0.2)",
-              }}
-              title={t(
-                "ডকুমেন্ট কিউআর কোড স্ক্যানার ও লাইভ ভেরিফিকেশন টেস্ট",
-                "Document QR Code Scanner & Live Verification Test",
+              <Bell size={15} color="#f59e0b" />
+              <span>{t("নোটিফিকেশন", "Alerts")}</span>
+              {pendingAuditCount > 0 && (
+                <span
+                  style={{
+                    background: "#ef4444",
+                    color: "#fff",
+                    borderRadius: "10px",
+                    padding: "1px 6px",
+                    fontSize: "0.68rem",
+                    fontWeight: "900",
+                  }}
+                >
+                  {pendingAuditCount}
+                </span>
               )}
-            >
-              <QrCode size={15} color="#2dd4bf" />
-              <span>{t("🔍 কিউআর যাচাই", "🔍 Verify QR")}</span>
             </button>
 
-            {/* Financial Recycle Bin Button */}
+            {/* Language Switcher */}
             <button
+              type="button"
               onClick={() => {
                 playButtonClick?.();
-                triggerHaptic();
-                setIsRecycleBinModalOpen(true);
+                triggerHaptic?.();
+                setLocalLang(activeLang === "bn" ? "en" : "bn");
               }}
-              className="full-width-mobile"
               style={{
-                background:
-                  (data.recycleBinDeposits || []).length > 0
-                    ? isLight
-                      ? "#fee2e2"
-                      : "rgba(239, 68, 68, 0.2)"
-                    : isLight
-                      ? "#f1f5f9"
-                      : "rgba(255, 255, 255, 0.08)",
-                color:
-                  (data.recycleBinDeposits || []).length > 0
-                    ? "#ef4444"
-                    : isLight
-                      ? "#475569"
-                      : "#cbd5e1",
-                border:
-                  (data.recycleBinDeposits || []).length > 0
-                    ? "1.5px solid rgba(239, 68, 68, 0.4)"
-                    : isLight
-                      ? "1.5px solid #cbd5e1"
-                      : "1px solid rgba(255, 255, 255, 0.15)",
+                height: "38px",
+                padding: "0 12px",
                 borderRadius: "10px",
-                padding: "8px 11px",
-                fontSize: "0.8rem",
+                background: isLight ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
+                border: "1.5px solid " + (isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.16)"),
+                color: isLight ? "#0f172a" : "#f8fafc",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
                 fontWeight: "800",
+                fontSize: "0.78rem",
+              }}
+              title={t("ভাষা পরিবর্তন করুন", "Switch Language")}
+            >
+              <Globe size={14} />
+              <span>{activeLang === "bn" ? "English" : "বাংলা"}</span>
+            </button>
+
+            {/* Theme Switcher */}
+            <button
+              type="button"
+              onClick={() => {
+                playButtonClick?.();
+                triggerHaptic?.();
+                setIsLight((prev) => !prev);
+              }}
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                background: isLight ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
+                border: "1.5px solid " + (isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.16)"),
+                color: isLight ? "#0f172a" : "#f8fafc",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "5px",
                 cursor: "pointer",
               }}
-              title="রিসাইকেল বিন ও অপসারিত লেনদেন পুনরুদ্ধার"
+              title={t("থিম পরিবর্তন", "Toggle Dark/Light Mode")}
             >
-              <Trash2 size={14} />
-              <span>
-                রিসাইকেল বিন ({(data.recycleBinDeposits || []).length})
-              </span>
+              {isLight ? <Moon size={16} /> : <Sun size={16} />}
             </button>
 
+            {/* Close Button */}
             {onClose && (
               <button
+                type="button"
                 onClick={onClose}
                 style={{
-                  background: isLight ? "#f1f5f9" : "rgba(255, 255, 255, 0.08)",
-                  border: isLight ? "1px solid #cbd5e1" : "none",
-                  color: isLight ? "#0f172a" : "#fff",
-                  width: "36px",
-                  height: "36px",
+                  background: isLight ? "#fee2e2" : "rgba(239, 68, 68, 0.15)",
+                  border: "1.5px solid " + (isLight ? "#fca5a5" : "rgba(239, 68, 68, 0.3)"),
+                  color: "#ef4444",
+                  width: "38px",
+                  height: "38px",
                   borderRadius: "10px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
                 }}
+                title={t("বন্ধ করুন", "Close")}
               >
                 <X size={18} />
               </button>
             )}
           </div>
         </div>
-
-        {/* TIER 2: UNIFIED COMMAND & OPERATIONS TOOLBAR (শাখা নির্বাচন, সার্চ, আর্কিটেকচার, ৪-প্ল্যাটফর্ম স্ক্যান) */}
-        <div className="samity-hub-tier2">
-          {/* Left Group: Branch Selector & Samity Management */}
-          <div className="samity-tier2-left">
-            <span
-              style={{
-                fontSize: "0.76rem",
-                color: isLight ? "#475569" : "var(--text-muted, #94a3b8)",
-                fontWeight: "800",
-                flexShrink: 0,
-              }}
-            >
-              {t("🏛️ শাখা/সমিতি:", "🏛️ Branch / Society:")}
-            </span>
-            <select
-              value={activeSamityId}
-              onChange={(e) => {
-                playButtonClick?.();
-                setActiveSamityId(e.target.value);
-              }}
-              className="samity-branch-select-box"
-              title={
-                activeLang === "en"
-                  ? "Select Active Samity / Branch"
-                  : "সক্রিয় সমিতি অথবা শাখা নির্বাচন করুন"
-              }
-            >
-              {data.samities.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nameBn} ({s.type})
-                </option>
-              ))}
-            </select>
-
-            <button
-              onClick={handleOpenNewSamityModal}
-              style={{
-                height: "34px",
-                background: "rgba(20, 184, 166, 0.15)",
-                color: "#2dd4bf",
-                border: "1.5px solid rgba(20, 184, 166, 0.45)",
-                borderRadius: "9px",
-                padding: "0 11px",
-                fontSize: "0.76rem",
-                fontWeight: "800",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-              title={t("নতুন সমিতি তৈরি করুন", "Create New Samity")}
-            >
-              <Plus size={14} />
-              <span>{t("নতুন সমিতি", "New Samity")}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                playButtonClick?.();
-                triggerHaptic();
-                setActiveTab("samity_setup");
-              }}
-              style={{
-                height: "34px",
-                background:
-                  activeTab === "samity_setup"
-                    ? isLight
-                      ? "#059669"
-                      : "#2dd4bf"
-                    : isLight
-                      ? "#ffffff"
-                      : "rgba(255, 255, 255, 0.08)",
-                color:
-                  activeTab === "samity_setup"
-                    ? "#ffffff"
-                    : isLight
-                      ? "#0f172a"
-                      : "#fff",
-                border: isLight
-                  ? "1.5px solid #cbd5e1"
-                  : "1px solid rgba(255, 255, 255, 0.15)",
-                borderRadius: "9px",
-                padding: "0 11px",
-                fontSize: "0.76rem",
-                fontWeight: "800",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-              title={t(
-                "সমিতি ও শাখা তালিকা/সেটআপ",
-                "Samity & Branch Directory/Setup",
-              )}
-            >
-              <Building2 size={14} />
-              <span>{t("শাখা ও সমিতি", "Branches & Samity")}</span>
-            </button>
-          </div>
-
-          {/* Center Group: Universal Smart Search */}
-          <div className="samity-tier2-center">
-            <div style={{ position: "relative", width: "100%" }}>
-              <div className="samity-search-box">
-                <Search size={14} color="#94a3b8" />
-                <input
-                  type="text"
-                  placeholder={
-                    activeLang === "en"
-                      ? "Search options (e.g. Pad, Seal, Deposit)..."
-                      : "সার্চ অপশন (যেমন: প্যাড, সিল, চাঁদা)..."
-                  }
-                  value={globalModuleSearchQuery}
-                  onChange={(e) => {
-                    setGlobalModuleSearchQuery(e.target.value);
-                    setIsGlobalSearchOpen(Boolean(e.target.value.trim()));
-                  }}
-                  onFocus={() => {
-                    if (globalModuleSearchQuery.trim())
-                      setIsGlobalSearchOpen(true);
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    outline: "none",
-                    color: isLight ? "#0f172a" : "#fff",
-                    fontSize: "0.76rem",
-                    padding: "4px 6px",
-                    width: "100%",
-                  }}
-                />
-                {globalModuleSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGlobalModuleSearchQuery("");
-                      setIsGlobalSearchOpen(false);
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#94a3b8",
-                      cursor: "pointer",
-                      padding: 0,
-                    }}
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-
-              {/* Global Search Results Dropdown */}
-              {isGlobalSearchOpen &&
-                globalModuleSearchQuery.trim() &&
-                (() => {
-                  const q = globalModuleSearchQuery.toLowerCase();
-                  const searchableItems = [
-                    {
-                      titleBn: "অফিসিয়াল লেটারহেড প্যাড ও রাইটার",
-                      titleEn: "Official Letterhead Pad",
-                      tab: "letterhead",
-                      icon: FileText,
-                    },
-                    {
-                      titleBn: "কর্মকর্তা, ডিজিটাল সিল ও স্বাক্ষর",
-                      titleEn: "Signatures & Digital Seals",
-                      tab: "signatures",
-                      icon: PenTool,
-                    },
-                    {
-                      titleBn: "সদস্য তালিকা ও নতুন মেম্বার নিবন্ধন",
-                      titleEn: "Member Directory & Registration",
-                      tab: "members",
-                      icon: Users,
-                    },
-                    {
-                      titleBn: "দৈনন্দিন চাঁদা ও সঞ্চয় কিস্তি জমা",
-                      titleEn: "Daily Deposit & Savings Entry",
-                      tab: "deposits",
-                      icon: Plus,
-                    },
-                    {
-                      titleBn:
-                        "এক ব্যাংক স্লিপে বহু সদস্যের চাঁদা (Bulk Deposit)",
-                      titleEn: "Bulk Bank Slip Deposit",
-                      tab: "bulk_deposit",
-                      icon: Landmark,
-                    },
-                    {
-                      titleBn: "সদস্যভিত্তিক চাঁদার হার ও পলিসি",
-                      titleEn: "Member Fee Rates & Policies",
-                      tab: "subscription_policy",
-                      icon: Wallet,
-                    },
-                    {
-                      titleBn: "বকেয়া হিসাব ও নোটিশ রিমাইন্ডার",
-                      titleEn: "Due Management & Reminders",
-                      tab: "payment_status",
-                      icon: Clock,
-                    },
-                    {
-                      titleBn: "সমিতির দৈনিক ও নিয়মিত খরচ ভাউচার",
-                      titleEn: "Samity Expenses & Vouchers",
-                      tab: "expenses",
-                      icon: Receipt,
-                    },
-                    {
-                      titleBn: "সমিতি ও শাখা তালিকা/সেটআপ",
-                      titleEn: "Samity Setup & Branches",
-                      tab: "samity_setup",
-                      icon: Building2,
-                    },
-                    {
-                      titleBn: "কেন্দ্রীয় অডিট ও লাইভ ট্রেইল",
-                      titleEn: "Central Audit Trail",
-                      tab: "audit_trail",
-                      icon: ShieldCheck,
-                    },
-                    {
-                      titleBn: "২৮টি বহুমুখী অডিট ও সমবায় রিপোর্ট",
-                      titleEn: "28 Master Cooperative Reports",
-                      tab: "reports",
-                      icon: FileSpreadsheet,
-                    },
-                    {
-                      titleBn: "টেলিগ্রাম ক্লাউড অটো-ব্যাকআপ",
-                      titleEn: "Telegram Cloud Backup",
-                      tab: "dashboard",
-                      icon: Send,
-                    },
-                  ].filter(
-                    (item) =>
-                      item.titleBn.toLowerCase().includes(q) ||
-                      item.titleEn.toLowerCase().includes(q),
-                  );
-
-                  return (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "110%",
-                        left: 0,
-                        right: 0,
-                        maxHeight: "260px",
-                        overflowY: "auto",
-                        background: isLight ? "#ffffff" : "#0f172a",
-                        border: isLight
-                          ? "1.5px solid #cbd5e1"
-                          : "1px solid rgba(45, 212, 191, 0.4)",
-                        borderRadius: "10px",
-                        boxShadow: "0 15px 35px rgba(0,0,0,0.4)",
-                        zIndex: 999,
-                        padding: "6px",
-                      }}
-                    >
-                      {searchableItems.length === 0 ? (
-                        <div
-                          style={{
-                            padding: "10px",
-                            textAlign: "center",
-                            color: "#94a3b8",
-                            fontSize: "0.74rem",
-                          }}
-                        >
-                          কোনো অপশন খুঁজে পাওয়া যায়নি
-                        </div>
-                      ) : (
-                        searchableItems.map((item) => {
-                          const Icon = item.icon;
-                          return (
-                            <div
-                              key={item.tab}
-                              onClick={() => {
-                                setActiveTab(item.tab);
-                                setIsGlobalSearchOpen(false);
-                                setGlobalModuleSearchQuery("");
-                                playButtonClick?.();
-                                triggerHaptic();
-                              }}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                padding: "8px 10px",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                fontSize: "0.76rem",
-                                fontWeight: "700",
-                                color: isLight ? "#0f172a" : "#f8fafc",
-                                transition: "background 0.15s ease",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = isLight
-                                  ? "#f1f5f9"
-                                  : "rgba(45, 212, 191, 0.15)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background =
-                                  "transparent";
-                              }}
-                            >
-                              <Icon size={14} color="#2dd4bf" />
-                              <span>{item.titleBn}</span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  );
-                })()}
-            </div>
-          </div>
-
-          {/* Right Group: Telemetry & Commercial Architecture Pills */}
-          <div className="samity-tier2-right">
-            {/* Active Role Badge */}
-            {(() => {
-              const currentRoleObj =
-                SAMITY_RBAC_ROLES.find((r) => r.role === activeUserRole) ||
-                SAMITY_RBAC_ROLES[0];
-              const roleColor = currentRoleObj.color || "#8b5cf6";
-              return (
-                <button
-                  type="button"
-                  onClick={() => {
-                    playButtonClick?.();
-                    triggerHaptic();
-                    setIsRoleModalOpen(true);
-                  }}
-                  title={
-                    activeLang === "en"
-                      ? "Click to open Role-Based Access Control Hub"
-                      : "ব্যবহারকারী পদবি ও কন্ট্রোল হাব দেখতে ক্লিক করুন"
-                  }
-                  style={{
-                    height: "34px",
-                    background: isLight ? `${roleColor}18` : `${roleColor}25`,
-                    color: roleColor,
-                    border: `1.5px solid ${roleColor}60`,
-                    padding: "0 10px",
-                    borderRadius: "9px",
-                    fontSize: "0.74rem",
-                    fontWeight: "800",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                    boxShadow: `0 2px 8px ${roleColor}20`,
-                  }}
-                >
-                  <ShieldCheck size={14} />
-                  <span>{currentRoleObj.titleBn.split(" ")[0]}</span>
-                  <span
-                    style={{
-                      fontSize: "0.64rem",
-                      opacity: 0.8,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    ({activeUserRole})
-                  </span>
-                </button>
-              );
-            })()}
-
-            {/* SaaS Commercial Architecture Button */}
-            <button
-              type="button"
-              onClick={() => {
-                playButtonClick?.();
-                triggerHaptic();
-                setIsSaaSGuideModalOpen(true);
-              }}
-              title={
-                activeLang === "en"
-                  ? "Commercial Software Architecture & White-Label Guide"
-                  : "সফটওয়্যার বিক্রির বাণিজ্যিক আর্কিটেকচার ও লাইসেন্সিং গাইড"
-              }
-              style={{
-                height: "34px",
-                background:
-                  "linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.2))",
-                color: "#f59e0b",
-                border: "1.5px solid rgba(245, 158, 11, 0.45)",
-                padding: "0 10px",
-                borderRadius: "9px",
-                fontSize: "0.74rem",
-                fontWeight: "800",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <Sparkles size={13} />
-              <span>
-                {activeLang === "en" ? "Architecture" : "আর্কিটেকচার"}
-              </span>
-            </button>
-
-            {/* 4-Platform Live Device Mesh & Instant Sync Button with 12-Hour Scan Time */}
-            <button
-              onClick={() => {
-                playButtonClick?.();
-                triggerHaptic();
-                setIsDeviceMeshModalOpen(true);
-              }}
-              style={{
-                height: "34px",
-                flexShrink: 0,
-                background:
-                  onlineDevicesCount > 1
-                    ? isLight
-                      ? "#dcfce7"
-                      : "rgba(16, 185, 129, 0.25)"
-                    : isLight
-                      ? "#f0fdf4"
-                      : "rgba(16, 185, 129, 0.15)",
-                color: isLight ? "#15803d" : "#34d399",
-                border:
-                  onlineDevicesCount > 1
-                    ? "1.5px solid #10b981"
-                    : isLight
-                      ? "1.5px solid #86efac"
-                      : "1px solid rgba(16, 185, 129, 0.4)",
-                borderRadius: "9px",
-                padding: "0 11px",
-                fontSize: "0.76rem",
-                fontWeight: "800",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                cursor: "pointer",
-                boxShadow:
-                  onlineDevicesCount > 1
-                    ? "0 0 10px rgba(16, 185, 129, 0.4)"
-                    : "none",
-              }}
-              title={t(
-                `৪টি প্ল্যাটফর্ম লাইভ ডিভাইস মেশ (সর্বশেষ স্ক্যান: ${format12HourTime(lastScanTimestamp, "bn")} - ১২-ঘণ্টা AM/PM)`,
-                `4-Platform Live Device Mesh (Last Scan: ${format12HourTime(lastScanTimestamp, "en")} - 12-Hour AM/PM)`,
-              )}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  background: "#10b981",
-                  boxShadow: "0 0 8px #10b981",
-                }}
-              />
-              <span>
-                {t(
-                  `মেশ স্ক্যান: ${format12HourTime(lastScanTimestamp, "bn")}`,
-                  `Mesh Scan: ${format12HourTime(lastScanTimestamp, "en")}`,
-                )}
-              </span>
-            </button>
-          </div>
-        </div>
       </div>
-
-      {/* ==================================================================== */}
-      {/* 2. TWO-TIER NAVIGATION: 6 MASTER CLUSTERS + CONTEXTUAL SUB-PILLS */}
-      {/* ==================================================================== */}
-      {/* Tier 1: 6 Master Clusters + All Modules Directory Quick Access */}
-      <div
-        style={{
-          background: isLight ? "#ffffff" : "rgba(15, 23, 42, 0.9)",
-          borderBottom: isLight
-            ? "1px solid #e2e8f0"
-            : "1px solid rgba(255, 255, 255, 0.08)",
-          padding: "4px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          overflowX: "auto",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {[
-          {
-            id: "fin_operations",
-            label: t(
-              "💳 দৈনন্দিন ক্যাশ ও লেনদেন",
-              "💳 Cash & Financial Operations",
-            ),
-            defaultTab: "deposits",
-            count: data.deposits.length,
-          },
-          {
-            id: "members_welfare",
-            label: t("👥 সদস্য ও সমাজকল্যাণ", "👥 Members & Welfare"),
-            defaultTab: "members",
-            count: effectiveMetrics.totalMembers,
-          },
-          {
-            id: "communication",
-            label: t(
-              "💬 অভ্যন্তরীণ চ্যাট ও নোটিস",
-              "💬 Internal Chat & Notices",
-            ),
-            defaultTab: "internal_chat",
-            count: (data.chatMessages || []).length,
-          },
-          {
-            id: "secretariat",
-            label: t("🏛️ অফিশিয়াল প্যাড ও নোটিশ", "🏛️ Official Pad & Notices"),
-            defaultTab: "letterhead",
-          },
-          {
-            id: "audit_governance",
-            label: t(
-              "⚖️ অডিট, ব্যাকআপ ও সেটিংস",
-              "⚖️ Audit, Backup & Settings",
-            ),
-            defaultTab: "dashboard",
-          },
-        ].map((cluster) => {
-          const isClusterActive = activeCluster === cluster.id;
-          return (
-            <button
-              key={cluster.id}
-              onClick={() => {
-                playButtonClick?.();
-                triggerHaptic();
-                setActiveTab(cluster.defaultTab);
-              }}
-              style={{
-                background: isClusterActive
-                  ? cluster.isDirectory
-                    ? isLight
-                      ? "rgba(59, 130, 246, 0.12)"
-                      : "rgba(59, 130, 246, 0.25)"
-                    : isLight
-                      ? "rgba(20, 184, 166, 0.12)"
-                      : "rgba(20, 184, 166, 0.2)"
-                  : "transparent",
-                color: isClusterActive
-                  ? cluster.isDirectory
-                    ? isLight
-                      ? "#2563eb"
-                      : "#60a5fa"
-                    : isLight
-                      ? "#047857"
-                      : "#2dd4bf"
-                  : isLight
-                    ? "#475569"
-                    : "var(--text-muted, #94a3b8)",
-                border: "none",
-                borderBottom: `2.5px solid ${isClusterActive ? (cluster.isDirectory ? (isLight ? "#2563eb" : "#3b82f6") : isLight ? "#047857" : "#2dd4bf") : "transparent"}`,
-                padding: "10px 14px",
-                fontSize: "0.82rem",
-                fontWeight: isClusterActive ? "800" : "600",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <span>{cluster.label}</span>
-              {cluster.count !== undefined && (
-                <span
-                  style={{
-                    background: isClusterActive
-                      ? isLight
-                        ? "#047857"
-                        : "#2dd4bf"
-                      : isLight
-                        ? "#e2e8f0"
-                        : "rgba(255, 255, 255, 0.1)",
-                    color: isClusterActive
-                      ? "#ffffff"
-                      : isLight
-                        ? "#0f172a"
-                        : "#fff",
-                    padding: "1px 6px",
-                    borderRadius: "10px",
-                    fontSize: "0.68rem",
-                    fontWeight: "800",
-                  }}
-                >
-                  {cluster.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tier 2: Contextual Sub-Navigation Pills for the Active Cluster */}
-      {activeCluster !== "all_modules" && (
-        <div
-          style={{
-            background: isLight ? "#f8fafc" : "rgba(30, 41, 59, 0.75)",
-            borderBottom: isLight
-              ? "1px solid #e2e8f0"
-              : "1px solid rgba(255, 255, 255, 0.06)",
-            padding: "8px 16px",
-            display: "flex",
-            gap: "8px",
-            overflowX: "auto",
-            whiteSpace: "nowrap",
-            alignItems: "center",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "0.72rem",
-              color: isLight ? "#475569" : "var(--text-muted)",
-              fontWeight: "800",
-              marginRight: "4px",
-            }}
-          >
-            {t("সেকশন:", "Section:")}
-          </span>
-          {activeCluster === "fin_operations" &&
-            [
-              {
-                id: "deposits",
-                label: t("💳 ব্যাংক ও নগদ জমা", "💳 Bank & Cash Deposits"),
-                count: data.deposits.length,
-              },
-              {
-                id: "bulk_deposit",
-                label: t("📑 বাল্ক ব্যাংক জমা", "📑 Bulk Bank Deposits"),
-              },
-              {
-                id: "paid_receipt",
-                label: t(
-                  "🧾 পেইড রিসিট ও ভাউচার হাব",
-                  "🧾 Receipts & Vouchers",
-                ),
-                count: data.deposits.length,
-              },
-              {
-                id: "expenses",
-                label: t("💸 সমিতির খরচ খতিয়ান", "💸 Expense Ledger"),
-                count: data.expenses.length,
-              },
-              {
-                id: "fund_balance",
-                label: t(
-                  "⚖️ ফান্ড ও ক্যাশ ব্যালেন্স",
-                  "⚖️ Fund & Cash Balance",
-                ),
-              },
-            ].map(renderSubPill)}
-
-          {activeCluster === "members_welfare" &&
-            [
-              {
-                id: "members",
-                label: t(
-                  "👥 সদস্য তালিকা ও ভর্তি",
-                  "👥 Members Roster & Entry",
-                ),
-                count: effectiveMetrics.totalMembers,
-              },
-              {
-                id: "due_mgmt",
-                label: t("⏳ বকেয়া ও ডিউ ব্যবস্থাপনা", "⏳ Due Management"),
-              },
-              {
-                id: "payment_status",
-                label: t(
-                  "📋 চাঁদা ও পেমেন্ট স্ট্যাটাস",
-                  "📋 Subscription Status",
-                ),
-              },
-              {
-                id: "reminders",
-                label: t(
-                  "📢 স্মার্ট তাগাদা ও নোটিশ",
-                  "📢 Smart Reminders & Notices",
-                ),
-              },
-              {
-                id: "subscription_cfg",
-                label: t(
-                  "⚙️ চাঁদা পলিসি ও অটো-বিলিং",
-                  "⚙️ Fee Policy & Billing",
-                ),
-              },
-            ].map(renderSubPill)}
-
-          {activeCluster === "communication" &&
-            [
-              {
-                id: "internal_chat",
-                label: t(
-                  "💬 লাইভ চ্যাট ও নোটিস হাব",
-                  "💬 Live Chat & Notice Hub",
-                ),
-                count: (data.chatMessages || []).length,
-              },
-            ].map(renderSubPill)}
-
-          {activeCluster === "secretariat" &&
-            [
-              {
-                id: "letterhead",
-                label: t(
-                  "📜 অফিশিয়াল প্যাড ও নোটিশ কম্পোজার",
-                  "📜 Official Pad & Notice Composer",
-                ),
-              },
-              {
-                id: "documents",
-                label: t(
-                  "📝 অফিসিয়াল চিঠি ও রেজুলেশন দলিল",
-                  "📝 Official Docs & Resolutions",
-                ),
-              },
-              {
-                id: "signatures",
-                label: t(
-                  "✍️ কর্মকর্তা স্বাক্ষর ও সিল",
-                  "✍️ Officer Signatures & Seals",
-                ),
-              },
-              {
-                id: "approvals",
-                label: t("🛡️ লেনদেন অনুমোদন হাব", "🛡️ Approvals Hub"),
-                count:
-                  data.deposits.filter((d) => d.approvalStatus === "pending")
-                    .length +
-                  data.expenses.filter((e) => e.approvalStatus === "pending")
-                    .length,
-              },
-            ].map(renderSubPill)}
-
-          {activeCluster === "audit_governance" &&
-            [
-              {
-                id: "dashboard",
-                label: t("📊 লাইভ ড্যাশবোর্ড", "📊 Live Dashboard"),
-              },
-              {
-                id: "reports",
-                label: t(
-                  "📈 পূর্ণাঙ্গ অডিট ও বিজনেস রিপোর্ট",
-                  "📈 Audit & Business Reports",
-                ),
-              },
-              {
-                id: "backup_restore",
-                label: t(
-                  "💾 সেন্ট্রাল ব্যাকআপ ও রিস্টোর",
-                  "💾 Central Backup & Restore",
-                ),
-              },
-              {
-                id: "samity_setup",
-                label: t("🏛️ সমিতি ও শাখা সেটআপ", "🏛️ Samity & Branch Setup"),
-                count: data.samities.length,
-              },
-              {
-                id: "notifications",
-                label: t("🔔 নোটিফিকেশন সেন্টার", "🔔 Notifications"),
-                count: getSamityNotifications(data, activeSamityId).length,
-              },
-              {
-                id: "roles_permissions",
-                label: t("👥 ইউজার রোল ও RBAC", "👥 User Roles & RBAC"),
-              },
-              {
-                id: "audit_trail",
-                label: t("🔍 অডিট ট্রেইল ও হিস্টোরি", "🔍 Audit Trail"),
-              },
-              {
-                id: "sql_schema",
-                label: t("🗄️ SQL ডাটাবেজ স্কিমা ও API", "🗄️ SQL Schema & API"),
-              },
-            ].map(renderSubPill)}
-        </div>
-      )}
-
+      
       {/* ==================================================================== */}
       {/* 3. MAIN WORKSPACE / CONTENT AREA */}
       {/* ==================================================================== */}

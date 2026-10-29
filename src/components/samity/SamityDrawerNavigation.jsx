@@ -36,6 +36,19 @@ import {
   PanelLeftOpen,
   HelpCircle,
   Menu,
+  FileDown,
+  Lock,
+  LogOut,
+  FolderOpen,
+  Calendar,
+  CreditCard,
+  HeartHandshake,
+  DollarSign,
+  TrendingUp,
+  Activity,
+  Award,
+  RefreshCw,
+  Info,
 } from "lucide-react";
 
 export const SamityDrawerNavigation = ({
@@ -63,7 +76,12 @@ export const SamityDrawerNavigation = ({
   triggerHaptic = () => {},
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedDomains, setExpandedDomains] = useState({});
+  const [expandedSections, setExpandedSections] = useState({
+    s1_profile: true,
+    s2_dashboard: true,
+    s3_finance: true,
+  });
+
   const [pinnedModules, setPinnedModules] = useState(() => {
     try {
       const saved = localStorage.getItem("s360_pinned_modules");
@@ -72,28 +90,6 @@ export const SamityDrawerNavigation = ({
       return ["dashboard", "deposits", "members", "paid_receipt"];
     }
   });
-
-  const [recentModules, setRecentModules] = useState(() => {
-    try {
-      const saved = localStorage.getItem("s360_recent_modules");
-      return saved ? JSON.parse(saved) : ["dashboard", "deposits"];
-    } catch {
-      return ["dashboard", "deposits"];
-    }
-  });
-
-  // Track recent module access
-  useEffect(() => {
-    if (!activeTab || activeTab === "all_modules") return;
-    setRecentModules((prev) => {
-      const filtered = prev.filter((id) => id !== activeTab);
-      const updated = [activeTab, ...filtered].slice(0, 4);
-      try {
-        localStorage.setItem("s360_recent_modules", JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  }, [activeTab]);
 
   // Toggle Pinned/Favorite Module
   const togglePin = (moduleId, e) => {
@@ -111,13 +107,13 @@ export const SamityDrawerNavigation = ({
     });
   };
 
-  // Toggle Domain Expansion
-  const toggleDomain = (domainId) => {
+  // Toggle Section Expansion
+  const toggleSection = (sectionId) => {
     playButtonClick?.();
     triggerHaptic?.();
-    setExpandedDomains((prev) => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [domainId]: !prev[domainId],
+      [sectionId]: !prev[sectionId],
     }));
   };
 
@@ -142,76 +138,108 @@ export const SamityDrawerNavigation = ({
     return effectiveMetrics?.dueMembers || 0;
   }, [effectiveMetrics]);
 
-  // 12 Comprehensive Business Domains
-  const domains = useMemo(() => {
+  // 13 Full Enterprise Menu Sections
+  const menuSections = useMemo(() => {
     return [
+      // 3.1 Samity Profile
       {
-        id: "d1_profile",
-        number: "০১",
-        titleBn: "সমিতি প্রোফাইল ও সেটআপ",
-        titleEn: "Samity Profile & Setup",
+        id: "s1_profile",
+        number: "১",
+        titleBn: "সমিতি প্রোফাইল",
+        titleEn: "Samity Profile",
+        descBn: "পরিচিতি, ব্যাংক হিসাব ও কমিটি",
+        descEn: "Identity, Bank & Committee",
         icon: Building2,
         color: "#10b981",
         items: [
           {
-            id: "samity_setup",
-            titleBn: "সমিতি পরিচিতি ও লোগো",
-            titleEn: "Samity Profile & Logo",
+            id: "samity_profile_info",
+            titleBn: "সমিতি প্রোফাইল ও পরিচিতি",
+            titleEn: "Samity Profile & Info",
+            descBn: "নাম, স্লোগান ও সরকারি রেজিঃ নম্বর",
+            descEn: "Name, slogan & registration info",
             icon: Building2,
             targetTab: "samity_setup",
           },
           {
-            id: "samity_contact",
-            titleBn: "যোগাযোগ ও সোশ্যাল প্রোফাইল",
-            titleEn: "Contact & Social Profile",
+            id: "samity_address_contact",
+            titleBn: "ঠিকানা ও যোগাযোগ",
+            titleEn: "Address & Contact",
+            descBn: "অফিস ঠিকানা, ফোন ও ওয়েবসাইট",
+            descEn: "Office address, phone & web",
             icon: Globe,
             targetTab: "samity_setup",
             subAction: "contact",
           },
           {
-            id: "samity_bank",
-            titleBn: "ব্যাংক ও মোবাইল ব্যাংকিং",
-            titleEn: "Bank & Mobile Banking Accounts",
+            id: "samity_bank_accounts",
+            titleBn: "ব্যাংক অ্যাকাউন্ট ও মোবাইল ব্যাংকিং",
+            titleEn: "Bank Accounts & MFS",
+            descBn: "সমিতির ব্যাংক হিসাব ও বিকাশ/নগদ নম্বর",
+            descEn: "Bank & mobile financial accounts",
             icon: Landmark,
             targetTab: "samity_setup",
             subAction: "bank",
           },
           {
-            id: "subscription_cfg",
-            titleBn: "চাঁদার হার ও আর্থিক নীতি",
-            titleEn: "Subscription Fee & Policy",
-            icon: Wallet,
-            targetTab: "subscription_cfg",
+            id: "samity_signatures_seals",
+            titleBn: "সিগনেচার ও অফিসিয়াল সিল",
+            titleEn: "Signatures & Seals",
+            descBn: "ডিজিটাল সিল ও সভাপতির স্বাক্ষর",
+            descEn: "Official rubber stamps & signatures",
+            icon: PenTool,
+            targetTab: "signatures",
+          },
+          {
+            id: "samity_branch_action",
+            titleBn: "শাখা ও সমিতি ব্যবস্থাপনা",
+            titleEn: "Branch & Multi-Samity Hub",
+            descBn: "শাখা নির্বাচন ও নতুন সমিতি তৈরি",
+            descEn: "Select branch or register new society",
+            icon: Building2,
+            isModalAction: true,
+            actionKey: "new_samity",
           },
         ],
       },
+
+      // 3.2 Dashboard
       {
-        id: "d2_dashboard",
-        number: "০২",
-        titleBn: "ড্যাশবোর্ড ও বিশ্লেষণ",
-        titleEn: "Dashboard & Live Analytics",
+        id: "s2_dashboard",
+        number: "২",
+        titleBn: "ড্যাশবোর্ড",
+        titleEn: "Dashboard",
+        descBn: "সমিতির সার্বিক অবস্থা ও মেট্রিক্স",
+        descEn: "Executive Summary & Metrics",
         icon: Layers,
         color: "#3b82f6",
         items: [
           {
-            id: "dashboard",
-            titleBn: "লাইভ এক্সিকিউটিভ ড্যাশবোর্ড",
-            titleEn: "Live Executive Dashboard",
+            id: "dashboard_overview",
+            titleBn: "ড্যাশবোর্ড ও সার্বিক সারসংক্ষেপ",
+            titleEn: "Live Dashboard Overview",
+            descBn: "আদায়, বকেয়া ও তহবিলের লাইভ চিত্র",
+            descEn: "Live status of collections & funds",
             icon: Layers,
             targetTab: "dashboard",
             badge: "Live",
+            badgeColor: "#10b981",
           },
           {
-            id: "payment_status",
-            titleBn: "চলতি মাসের আদায় চিত্র",
-            titleEn: "Current Month Collection Status",
-            icon: Clock,
+            id: "dashboard_collection_summary",
+            titleBn: "আদায়ের সারসংক্ষেপ ও স্ট্যাটাস",
+            titleEn: "Collection Status Matrix",
+            descBn: "চলতি মাসের আদায়ের অগ্রগতি ও তালিকা",
+            descEn: "Current month collection progress",
+            icon: TrendingUp,
             targetTab: "payment_status",
           },
           {
-            id: "supervisor_radar",
+            id: "supervisor_radar_action",
             titleBn: "সুপারভাইজার লাইভ রাডার",
             titleEn: "Supervisor Live Radar",
+            descBn: "ফিল্ড অফিসার ট্র্যাকিং ও অডিট রাডার",
+            descEn: "Field collection audit radar",
             icon: Radio,
             isModalAction: true,
             actionKey: "supervisor_radar",
@@ -220,84 +248,124 @@ export const SamityDrawerNavigation = ({
           },
         ],
       },
+
+      // 3.3 Cash & Finance
       {
-        id: "d3_finance",
-        number: "০৩",
+        id: "s3_finance",
+        number: "৩",
         titleBn: "ক্যাশ ও ফিন্যান্স",
-        titleEn: "Cash & Finance Operations",
+        titleEn: "Cash & Finance",
+        descBn: "জমা, ব্যয়, তহবিল ও ব্যাংক লেনদেন",
+        descEn: "Deposits, Expenses & Funds",
         icon: Wallet,
         color: "#059669",
         items: [
           {
-            id: "deposits",
-            titleBn: "দৈনন্দিন সঞ্চয় ও কিস্তি জমা",
-            titleEn: "Daily Deposit & Savings",
+            id: "deposit_entry_action",
+            titleBn: "+ ক্যাশ ও কিস্তি ডিপোজিট এন্ট্রি",
+            titleEn: "+ Cash & Installment Deposit",
+            descBn: "সদস্যের সঞ্চয় ও কিস্তি জমা গ্রহণ",
+            descEn: "Receive member savings deposit",
+            icon: Plus,
+            isModalAction: true,
+            actionKey: "deposit_entry",
+            badge: "নতুন",
+            badgeColor: "#10b981",
+          },
+          {
+            id: "deposits_list",
+            titleBn: "জমার তালিকা ও ডিপোজিট লেজার",
+            titleEn: "Deposits & Savings Ledger",
+            descBn: "অনুমোদিত সঞ্চয় ও কিস্তির খতিয়ান",
+            descEn: "Approved deposits history",
             icon: Wallet,
             targetTab: "deposits",
             count: data.deposits?.length || 0,
           },
           {
-            id: "bulk_deposit",
-            titleBn: "এক ব্যাংক স্লিপে বহু সদস্যের জমা",
+            id: "bulk_deposit_entry",
+            titleBn: "বাল্ক ডিপোজিট (এক স্লিপে বহু সদস্য)",
             titleEn: "Bulk Bank Slip Deposit",
+            descBn: "এক ব্যাংক চালানে একাধিক সদস্যের চাঁদা",
+            descEn: "Bulk multi-member bank deposit",
             icon: Landmark,
             targetTab: "bulk_deposit",
           },
           {
-            id: "expenses",
-            titleBn: "দৈনিক ও নিয়মিত খরচ ভাউচার",
-            titleEn: "Daily Expenses & Vouchers",
+            id: "expenses_management",
+            titleBn: "ব্যয় ও খরচ ভাউচার",
+            titleEn: "Expense & Payment Vouchers",
+            descBn: "দৈনিক ও নিয়মিত প্রাতিষ্ঠানিক খরচ",
+            descEn: "Daily operational expenses",
             icon: Receipt,
             targetTab: "expenses",
             count: data.expenses?.length || 0,
           },
           {
-            id: "fund_balance",
-            titleBn: "তহবিল স্থিতি ও ব্যাংক রিকনসিলিয়েশন",
-            titleEn: "Fund Balance & Bank Reconciliation",
+            id: "fund_balance_sheet",
+            titleBn: "তহবিল, ক্যাশ ও ব্যাংক রিকনসিলিয়েশন",
+            titleEn: "Fund Balance & Reconciliation",
+            descBn: "ক্যাশ ইন হ্যান্ড, ব্যাংক ও মোবাইল ব্যালেন্স",
+            descEn: "Cash in hand & bank reconciliation",
             icon: Landmark,
             targetTab: "fund_balance",
           },
         ],
       },
+
+      // 3.4 Member & Welfare
       {
-        id: "d4_members",
-        number: "০৪",
-        titleBn: "সদস্য ও সমাজকল্যাণ",
-        titleEn: "Members & Welfare Wing",
+        id: "s4_members",
+        number: "৪",
+        titleBn: "সদস্য ও কল্যাণ",
+        titleEn: "Member & Welfare",
+        descBn: "সদস্য রোস্টার, বায়োডাটা ও কল্যাণ তহবিল",
+        descEn: "Roster, Biodata & Welfare",
         icon: Users,
         color: "#0ea5e9",
         items: [
           {
-            id: "members",
-            titleBn: "সদস্য তালিকা ও বায়োডাটা রেজিস্টার",
-            titleEn: "Member Directory & Biodata",
+            id: "new_member_action",
+            titleBn: "+ নতুন সদস্য ভর্তি ও নিবন্ধন",
+            titleEn: "+ Register New Member",
+            descBn: "নতুন সদস্যের ভর্তি ফর্ম ও বায়োডাটা",
+            descEn: "Membership registration form",
+            icon: Plus,
+            isModalAction: true,
+            actionKey: "new_member",
+            badge: "ভর্তি",
+            badgeColor: "#0ea5e9",
+          },
+          {
+            id: "members_roster",
+            titleBn: "সদস্য রোস্টার ও পূর্ণাঙ্গ রেজিস্টার",
+            titleEn: "Member Directory & Roster",
+            descBn: "সকল সক্রিয় ও নিবন্ধিত সদস্যদের প্রোফাইল",
+            descEn: "All active registered members",
             icon: Users,
             targetTab: "members",
             count: effectiveMetrics.totalMembers || 0,
           },
-          {
-            id: "new_member_action",
-            titleBn: "+ নতুন সদস্য নিবন্ধন",
-            titleEn: "+ Register New Member",
-            icon: Plus,
-            isModalAction: true,
-            actionKey: "new_member",
-          },
         ],
       },
+
+      // 3.5 Subscription & Due
       {
-        id: "d5_dues",
-        number: "০৫",
-        titleBn: "চাঁদা ও বকেয়া ব্যবস্থাপনা",
-        titleEn: "Subscription & Dues Control",
+        id: "s5_dues",
+        number: "৫",
+        titleBn: "চাঁদা ও বকেয়া",
+        titleEn: "Subscription & Due",
+        descBn: "মাসিক চাঁদা, বকেয়া ও তাগিদপত্র",
+        descEn: "Monthly Fees & Dues Control",
         icon: AlertTriangle,
         color: "#f59e0b",
         items: [
           {
-            id: "due_mgmt",
-            titleBn: "বকেয়া সদস্য তালিকা ও হিসাব",
-            titleEn: "Outstanding Dues Ledger",
+            id: "due_management_ledger",
+            titleBn: "বকেয়া তালিকা ও বকেয়া ব্যবস্থাপনা",
+            titleEn: "Due Management & Overdue List",
+            descBn: "সকল বকেয়া সদস্য ও বকেয়া কিস্তির খাতা",
+            descEn: "List of members with pending dues",
             icon: AlertTriangle,
             targetTab: "due_mgmt",
             badge: dueMembersCount > 0 ? `${dueMembersCount} জন` : null,
@@ -305,121 +373,159 @@ export const SamityDrawerNavigation = ({
           },
           {
             id: "payment_status_matrix",
-            titleBn: "পেমেন্ট মেট্রিক্স ও ট্র্যাকার",
-            titleEn: "Payment Matrix & Tracker",
+            titleBn: "সাবস্ক্রিপশন ও পেমেন্ট স্ট্যাটাস",
+            titleEn: "Payment Status Matrix",
+            descBn: "পরিশোধিত, অপরিশোধিত ও আংশিক পরিশোধ",
+            descEn: "Paid, unpaid & partial payment status",
             icon: Clock,
             targetTab: "payment_status",
           },
+          {
+            id: "subscription_policy_config",
+            titleBn: "চাঁদার হার ও কনফিগারেশন",
+            titleEn: "Subscription Fee Configuration",
+            descBn: "মাসিক চাঁদা, গ্রেস পিরিয়ড ও জরিমানা",
+            descEn: "Monthly fee, grace period & late fees",
+            icon: Wallet,
+            targetTab: "subscription_cfg",
+          },
         ],
       },
+
+      // 3.6 Smart Reminder
       {
-        id: "d6_reminders",
-        number: "০৬",
-        titleBn: "স্মার্ট রিমাইন্ডার হাব",
-        titleEn: "Smart Reminder Hub",
+        id: "s6_reminders",
+        number: "৬",
+        titleBn: "স্মার্ট রিমাইন্ডার",
+        titleEn: "Smart Reminder",
+        descBn: "হোয়াটসঅ্যাপ, এসএমএস ও টেলিগ্রাম তাগাদা",
+        descEn: "WhatsApp, SMS & Telegram Hub",
         icon: Send,
         color: "#8b5cf6",
         items: [
           {
-            id: "reminders_queue",
-            titleBn: "স্বয়ংক্রিয় রিমাইন্ডার কিউ",
-            titleEn: "Automated Reminder Queue",
+            id: "reminders_queue_hub",
+            titleBn: "রিমাইন্ডার ড্যাশবোর্ড ও কিউ",
+            titleEn: "Reminder Dashboard & Queue",
+            descBn: "সকল বকেয়া সদস্যের অটো রিমাইন্ডার শিডিউল",
+            descEn: "Automated due reminders queue",
             icon: Send,
             targetTab: "reminders",
             subTab: "queue",
           },
           {
-            id: "reminders_whatsapp",
-            titleBn: "হোয়াটসঅ্যাপ ওয়ান-ক্লিক ব্রডকাস্ট",
-            titleEn: "WhatsApp 1-Click Broadcast Hub",
+            id: "reminders_whatsapp_hub",
+            titleBn: "হোয়াটসঅ্যাপ ওয়ান-ক্লিক রিমাইন্ডার",
+            titleEn: "WhatsApp 1-Click Reminder",
+            descBn: "সরাসরি ওয়ান-ক্লিক হোয়াটসঅ্যাপ তাগাদা",
+            descEn: "Direct WhatsApp broadcast messages",
             icon: MessageSquare,
             targetTab: "reminders",
             subTab: "whatsapp_hub",
           },
           {
-            id: "reminders_sms",
-            titleBn: "এসএমএস গেটওয়ে হাব",
-            titleEn: "SMS Gateway Hub",
+            id: "reminders_sms_hub",
+            titleBn: "বাংলা ইউনিকোড এসএমএস হাব",
+            titleEn: "Unicode SMS Gateway Hub",
+            descBn: "মোবাইল এসএমএস গেটওয়ে ও টেমপ্লেট",
+            descEn: "Bulk SMS gateway & templates",
             icon: Send,
             targetTab: "reminders",
             subTab: "sms_hub",
           },
           {
-            id: "reminders_telegram",
-            titleBn: "টেলিগ্রাম বট নোটিফায়ার",
+            id: "reminders_telegram_hub",
+            titleBn: "টেলিগ্রাম বট নোটিফিকেশন",
             titleEn: "Telegram Bot Notifier",
+            descBn: "টেলিগ্রাম চ্যানেল ও গ্রুপ নোটিফিকেশন",
+            descEn: "Automated Telegram notifications",
             icon: Send,
             targetTab: "reminders",
             subTab: "telegram_hub",
           },
           {
-            id: "reminders_history",
-            titleBn: "রিমাইন্ডার ইতিহাস ও ডেলিভারি লগ",
-            titleEn: "Reminder History & Delivery Log",
+            id: "reminders_history_log",
+            titleBn: "রিমাইন্ডার হিস্টোরি ও ডেলিভারি রিপোর্ট",
+            titleEn: "Reminder History & Report",
+            descBn: "অতীতে প্রেরিত সকল রিমাইন্ডারের ডেলিভারি স্ট্যাটাস",
+            descEn: "Delivery status log of past reminders",
             icon: Clock,
             targetTab: "reminders",
             subTab: "history",
           },
         ],
       },
+
+      // 3.7 Documents & QR Verification
       {
-        id: "d7_documents",
-        number: "০৭",
+        id: "s7_documents",
+        number: "৭",
         titleBn: "ডকুমেন্ট ও QR যাচাই",
-        titleEn: "Documents & QR Verification",
+        titleEn: "Documents & QR",
+        descBn: "রিসিট, সনদ, প্যাড ও QR ভেরিফিকেশন",
+        descEn: "Receipts, Docs & Verification",
         icon: QrCode,
         color: "#14b8a6",
         items: [
           {
-            id: "paid_receipt",
-            titleBn: "পরিশোধিত মানি রিসিট ও রসিদ খাতা",
-            titleEn: "Paid Receipts with Scannable QR",
+            id: "paid_receipts_hub",
+            titleBn: "পেইড মানি রিসিট ও রসিদ খাতা",
+            titleEn: "Paid Money Receipts & Ledger",
+            descBn: "হাই-রেজুলেশন QR কোড সহ রসিদ প্রিন্ট ও PDF",
+            descEn: "Print and download receipts with QR",
             icon: Receipt,
             targetTab: "paid_receipt",
           },
           {
-            id: "letterhead",
-            titleBn: "অফিসিয়াল লেটারহেড প্যাড ও রাইটার",
+            id: "universal_qr_action",
+            titleBn: "🔍 কিউআর কোড স্ক্যানার ও যাচাই",
+            titleEn: "🔍 Universal QR Scanner & Verifier",
+            descBn: "ক্যামেরা বা ছবি আপলোড করে রিসিট ভেরিফাই",
+            descEn: "Verify document by camera or image QR",
+            icon: QrCode,
+            isModalAction: true,
+            actionKey: "universal_qr",
+            badge: "স্ক্যানার",
+            badgeColor: "#14b8a6",
+          },
+          {
+            id: "letterhead_composer",
+            titleBn: "অফিসিয়াল লেটারহেড প্যাড ও চিঠি",
             titleEn: "Official Letterhead Pad",
+            descBn: "সমিতির অফিশিয়াল প্যাডে চিঠি ও নোটিস রাইটার",
+            descEn: "Official letterhead notice composer",
             icon: FileText,
             targetTab: "letterhead",
           },
           {
-            id: "signatures",
-            titleBn: "ডিজিটাল সিল ও স্বাক্ষর কনফিগারেশন",
-            titleEn: "Digital Seals & Signatures",
-            icon: PenTool,
-            targetTab: "signatures",
-          },
-          {
-            id: "documents_archive",
-            titleBn: "প্রত্যয়নপত্র ও সনদপত্র আর্কাইভ",
-            titleEn: "Certificates & Document Archive",
+            id: "documents_archive_box",
+            titleBn: "প্রত্যয়নপত্র, সনদ ও ডকুমেন্টস",
+            titleEn: "Membership Certs & Archive",
+            descBn: "সদস্য প্রত্যয়নপত্র ও সভার রেজুলেশন দলিল",
+            descEn: "Official certificates & resolutions",
             icon: FileText,
             targetTab: "documents",
           },
-          {
-            id: "universal_qr_verifier",
-            titleBn: "🔍 কিউআর কোড স্ক্যানার ও যাচাই",
-            titleEn: "🔍 Universal QR Scanner & Verifier",
-            icon: QrCode,
-            isModalAction: true,
-            actionKey: "universal_qr",
-          },
         ],
       },
+
+      // 3.8 Internal Chat & Communication
       {
-        id: "d8_communication",
-        number: "০৮",
-        titleBn: "অভ্যন্তরীণ চ্যাট ও যোগাযোগ",
-        titleEn: "Internal Chat & Communication",
+        id: "s8_communication",
+        number: "৮",
+        titleBn: "ইন্টারনাল চ্যাট ও যোগাযোগ",
+        titleEn: "Internal Chat",
+        descBn: "কমিটি চ্যাট, নোটিস বোর্ড ও ডিভাইস মেশ",
+        descEn: "Board Chat & Device Mesh",
         icon: MessageSquare,
         color: "#6366f1",
         items: [
           {
-            id: "internal_chat",
+            id: "internal_chat_hub",
             titleBn: "পরিচালনা পর্ষদের অভ্যন্তরীণ চ্যাট",
-            titleEn: "Official Board Internal Chat",
+            titleEn: "Executive Committee Chat",
+            descBn: "সমিতির কর্মকর্তাদের নিরাপদ মেসেজিং হাব",
+            descEn: "Secure in-app communication hub",
             icon: MessageSquare,
             targetTab: "internal_chat",
             badge: unreadChatCount > 0 ? `${unreadChatCount}` : null,
@@ -428,32 +534,32 @@ export const SamityDrawerNavigation = ({
             id: "device_mesh_action",
             titleBn: "৪-প্ল্যাটফর্ম লাইভ ডিভাইস মেশ",
             titleEn: "4-Platform Live Device Mesh",
+            descBn: "ওয়েব, এপিকে, উইন্ডোজ ও ম্যাক লাইভ কানেকশন",
+            descEn: "Live sync status across 4 platforms",
             icon: Radio,
             isModalAction: true,
             actionKey: "device_mesh",
           },
-          {
-            id: "ai_voice_action",
-            titleBn: "🎙️ এআই ভয়েস অ্যাসিস্ট্যান্ট",
-            titleEn: "🎙️ AI Voice Receipt Assistant",
-            icon: Sparkles,
-            isModalAction: true,
-            actionKey: "ai_voice",
-          },
         ],
       },
+
+      // 3.9 Office & Administration
       {
-        id: "d9_office",
-        number: "০৯",
+        id: "s9_office",
+        number: "৯",
         titleBn: "অফিস ও প্রশাসন",
         titleEn: "Office & Administration",
+        descBn: "কমিটি, সভার রেজুলেশন ও কার্যবিবরণী",
+        descEn: "Committee, Meetings & Minutes",
         icon: Building2,
         color: "#d97706",
         items: [
           {
-            id: "office_resolutions",
-            titleBn: "কার্যনির্বাহী সভার রেজুলেশন রাইটার",
-            titleEn: "Executive Meeting Resolutions",
+            id: "meeting_minutes_composer",
+            titleBn: "সভার নোটিশ ও রেজুলেশন কার্যবিবরণী",
+            titleEn: "Meeting Notices & Minutes",
+            descBn: "কার্যনির্বাহী ও সাধারণ সভার রেজুলেশন",
+            descEn: "Executive & AGM meeting minutes",
             icon: FileText,
             targetTab: "letterhead",
           },
@@ -461,110 +567,167 @@ export const SamityDrawerNavigation = ({
             id: "saas_guide_action",
             titleBn: "বাণিজ্যিক সফটওয়্যার আর্কিটেকচার",
             titleEn: "Commercial SaaS Architecture Guide",
+            descBn: "সফটওয়্যার বিক্রির লাইসেন্সিং ও হোয়াইট-লেবেল গাইড",
+            descEn: "Commercial licensing & architecture",
             icon: Sparkles,
             isModalAction: true,
             actionKey: "saas_guide",
           },
         ],
       },
+
+      // 3.10 Paid Notice & Approval
       {
-        id: "d10_approvals",
+        id: "s10_approvals",
         number: "১০",
         titleBn: "পেইড নোটিস ও অনুমোদন",
-        titleEn: "Paid Notice & Approvals",
+        titleEn: "Paid Notice & Approval",
+        descBn: "জমা ও খরচের পেন্ডিং অনুমোদন পাইপলাইন",
+        descEn: "Pending Deposit & Expense Approvals",
         icon: CheckCircle2,
         color: "#16a34a",
         items: [
           {
-            id: "approvals",
-            titleBn: "পেন্ডিং সঞ্চয় ও খরচ অনুমোদন",
+            id: "approvals_pipeline",
+            titleBn: "অনুমোদনের অপেক্ষায় (পেন্ডিং রিকুয়েস্ট)",
             titleEn: "Pending Approvals Pipeline",
+            descBn: "কোষাধ্যক্ষ ও সভাপতির অনুমোদনের পাইপলাইন",
+            descEn: "Treasurer & President approval queue",
             icon: CheckCircle2,
             targetTab: "approvals",
             badge:
               pendingDepositsCount + pendingExpensesCount > 0
-                ? `${pendingDepositsCount + pendingExpensesCount}`
+                ? `${pendingDepositsCount + pendingExpensesCount}টি পেন্ডিং`
                 : null,
             badgeColor: "#ea580c",
           },
-          {
-            id: "recycle_bin_action",
-            titleBn: "রিসাইকেল বিন ও পুনরুদ্ধার",
-            titleEn: "Financial Recycle Bin",
-            icon: Trash2,
-            isModalAction: true,
-            actionKey: "recycle_bin",
-            badge: recycleBinCount > 0 ? `${recycleBinCount}` : null,
-          },
         ],
       },
+
+      // 3.11 Reports & Analytics
       {
-        id: "d11_reports",
+        id: "s11_reports",
         number: "১১",
-        titleBn: "রিপোর্ট ও বিশ্লেষণ (২৮টি রিপোর্ট)",
-        titleEn: "Reports & Analytics (28 Reports)",
+        titleBn: "রিপোর্ট ও বিশ্লেষণ",
+        titleEn: "Reports & Analytics",
+        descBn: "২৮টি সম্পূর্ণ অডিট ও আর্থিক রিপোর্ট",
+        descEn: "28 Master Cooperative Audit Reports",
         icon: FileSpreadsheet,
         color: "#0284c7",
         items: [
           {
-            id: "reports_all",
+            id: "all_28_reports_suite",
             titleBn: "২৮টি বহুমুখী সমবায় অডিট রিপোর্ট",
-            titleEn: "28 Master Cooperative Audit Reports",
+            titleEn: "28 Master Cooperative Reports",
+            descBn: "দৈনিক খতিয়ান, সদস্য লেজার, এক্সেল ও সিএসভি",
+            descEn: "Master audit reports & Excel/CSV export",
             icon: FileSpreadsheet,
             targetTab: "reports",
-            badge: "28",
+            badge: "28টি",
+            badgeColor: "#0284c7",
           },
           {
-            id: "reports_fund",
-            titleBn: "আর্থিক স্থিতির সারাংশ ও তহবিল স্থিতি",
-            titleEn: "Financial Summary & Fund Balance",
+            id: "annual_financial_summary",
+            titleBn: "আর্থিক স্থিতির সারাংশ ও তহবিল প্রতিবেদন",
+            titleEn: "Annual Financial Summary",
+            descBn: "সমিতির মোট তহবিল, ক্যাশ ও ব্যালেন্স শিট",
+            descEn: "Net fund balance & balance sheet",
             icon: Landmark,
             targetTab: "fund_balance",
           },
         ],
       },
+
+      // 3.12 System Tools
       {
-        id: "d12_settings",
+        id: "s12_system_tools",
         number: "১২",
-        titleBn: "অডিট, ব্যাকআপ ও সেটিংস",
-        titleEn: "Audit, Backup & Governance",
-        icon: ShieldCheck,
+        titleBn: "সিস্টেম টুলস",
+        titleEn: "System Tools",
+        descBn: "রিসাইকেল বিন, ব্যাকআপ ও সেন্ট্রাল SQL",
+        descEn: "Recycle Bin, Backup & SQL Schema",
+        icon: Database,
         color: "#475569",
         items: [
           {
-            id: "roles_permissions",
-            titleBn: "ইউজার রোল ও এক্সেস কন্ট্রোল (RBAC)",
-            titleEn: "User Roles & RBAC Matrix",
-            icon: ShieldCheck,
-            targetTab: "roles_permissions",
+            id: "recycle_bin_action",
+            titleBn: "রিসাইকেল বিন ও মুছে ফেলা লেনদেন",
+            titleEn: "Financial Recycle Bin & Restore",
+            descBn: "মুছে ফেলা জমা ও সদস্য রেকর্ড পুনরুদ্ধার",
+            descEn: "Restore deleted deposits & members",
+            icon: Trash2,
+            isModalAction: true,
+            actionKey: "recycle_bin",
+            badge: recycleBinCount > 0 ? `${recycleBinCount}` : null,
           },
           {
-            id: "audit_trail",
-            titleBn: "লাইভ অ্যাক্টিভিটি ও অডিট ট্রেইল",
-            titleEn: "Live Audit Trail & History",
-            icon: Clock,
-            targetTab: "audit_trail",
-          },
-          {
-            id: "backup_restore",
+            id: "backup_restore_hub",
             titleBn: "টেলিগ্রাম ও ক্লাউড অটো-ব্যাকআপ",
-            titleEn: "Telegram & Cloud Auto-Backup",
+            titleEn: "Cloud & Telegram Auto-Backup",
+            descBn: "স্বয়ংক্রিয় ক্লাউড ব্যাকআপ ও JSON/Excel সংরক্ষণ",
+            descEn: "Automated backups & data restore",
             icon: Send,
             targetTab: "backup_restore",
           },
           {
-            id: "notifications",
-            titleBn: "সিস্টেম নোটিফিকেশন সেন্টার",
-            titleEn: "System Notification Center",
-            icon: Bell,
-            targetTab: "notifications",
-          },
-          {
-            id: "sql_schema",
-            titleBn: "SQL ডাটাবেজ স্কিমা ও মাইগ্রেশন",
-            titleEn: "SQL Database Schema & Migration",
+            id: "sql_database_schema",
+            titleBn: "পোস্টগ্রেস্কেল ডাটাবেস স্কিমা ও API",
+            titleEn: "PostgreSQL Database Schema & API",
+            descBn: "সেন্ট্রালাইজড ক্লাউড স্কিমা ও এপিআই এন্ডপয়েন্ট",
+            descEn: "Central cloud database schema & endpoints",
             icon: Database,
             targetTab: "sql_schema",
+          },
+          {
+            id: "audit_trail_log",
+            titleBn: "লাইভ অ্যাক্টিভিটি ও অডিট ট্রেইল",
+            titleEn: "Live Audit Trail & History",
+            descBn: "প্রতিটি এডিটিং ও ডিলিটের অপরিবর্তনযোগ্য লগ",
+            descEn: "Immutable audit trail of user actions",
+            icon: Clock,
+            targetTab: "audit_trail",
+          },
+        ],
+      },
+
+      // 3.13 Settings & Support
+      {
+        id: "s13_settings",
+        number: "১৩",
+        titleBn: "সেটিংস ও সহায়তা",
+        titleEn: "Settings & Support",
+        descBn: "ভূমিকা, পারমিশন, ভাষা ও এআই সহকারী",
+        descEn: "Roles, RBAC, AI & Preferences",
+        icon: Sliders,
+        color: "#64748b",
+        items: [
+          {
+            id: "roles_permissions_hub",
+            titleBn: "ইউজার রোল ও ভূমিকা পারমিশন (RBAC)",
+            titleEn: "User Roles & RBAC Matrix",
+            descBn: "সভাপতি, কোষাধ্যক্ষ ও সদস্যদের ক্ষমতা নির্ধারণ",
+            descEn: "Control permissions for each role",
+            icon: ShieldCheck,
+            targetTab: "roles_permissions",
+          },
+          {
+            id: "ai_voice_assistant_action",
+            titleBn: "🎙️ এআই ভয়েস সহকারী (Smart AI)",
+            titleEn: "🎙️ AI Voice Receipt Assistant",
+            descBn: "ভয়েস কম্যান্ডে রসিদ যাচাই ও বায়োডাটা সার্চ",
+            descEn: "Voice assistant for receipts & biodata",
+            icon: Sparkles,
+            isModalAction: true,
+            actionKey: "ai_voice",
+          },
+          {
+            id: "system_notifications_center",
+            titleBn: "নোটিফিকেশন সেন্টার ও সিস্টেম অ্যালার্ট",
+            titleEn: "System Notifications Center",
+            descBn: "সমিতির জরুরি নোটিশ ও পেমেন্ট রিমাইন্ডার",
+            descEn: "Alerts, notices & reminders",
+            icon: Bell,
+            targetTab: "notifications",
           },
         ],
       },
@@ -585,39 +748,41 @@ export const SamityDrawerNavigation = ({
   // Flatten all items for search & pinned lookup
   const allItems = useMemo(() => {
     const list = [];
-    domains.forEach((d) => {
-      d.items.forEach((item) => {
-        list.push({ ...item, domainTitleBn: d.titleBn, domainTitleEn: d.titleEn });
+    menuSections.forEach((s) => {
+      s.items.forEach((item) => {
+        list.push({ ...item, sectionTitleBn: s.titleBn, sectionTitleEn: s.titleEn });
       });
     });
     return list;
-  }, [domains]);
+  }, [menuSections]);
 
   // Filter items by search query
-  const filteredDomains = useMemo(() => {
-    if (!searchQuery.trim()) return domains;
+  const filteredSections = useMemo(() => {
+    if (!searchQuery.trim()) return menuSections;
     const q = searchQuery.toLowerCase().trim();
-    return domains
-      .map((domain) => {
-        const matchingItems = domain.items.filter(
+    return menuSections
+      .map((section) => {
+        const matchingItems = section.items.filter(
           (item) =>
             item.titleBn.toLowerCase().includes(q) ||
             item.titleEn.toLowerCase().includes(q) ||
+            item.descBn?.toLowerCase().includes(q) ||
+            item.descEn?.toLowerCase().includes(q) ||
             item.id.toLowerCase().includes(q)
         );
-        const domainMatches =
-          domain.titleBn.toLowerCase().includes(q) ||
-          domain.titleEn.toLowerCase().includes(q);
-        if (domainMatches || matchingItems.length > 0) {
+        const sectionMatches =
+          section.titleBn.toLowerCase().includes(q) ||
+          section.titleEn.toLowerCase().includes(q);
+        if (sectionMatches || matchingItems.length > 0) {
           return {
-            ...domain,
-            items: domainMatches ? domain.items : matchingItems,
+            ...section,
+            items: sectionMatches ? section.items : matchingItems,
           };
         }
         return null;
       })
       .filter(Boolean);
-  }, [domains, searchQuery]);
+  }, [menuSections, searchQuery]);
 
   // Handle item click
   const handleItemClick = (item) => {
@@ -659,9 +824,9 @@ export const SamityDrawerNavigation = ({
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0, 0, 0, 0.65)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             zIndex: 1000,
             transition: "opacity 0.25s ease",
           }}
@@ -672,7 +837,7 @@ export const SamityDrawerNavigation = ({
       <aside
         className={`samity-drawer-sidebar ${isOpenMobile ? "mobile-open" : ""}`}
         style={{
-          width: isCollapsedDesktop ? "70px" : "300px",
+          width: isCollapsedDesktop ? "80px" : "340px",
           background: bgColor,
           borderRight: `1px solid ${borderColor}`,
           display: "flex",
@@ -685,17 +850,16 @@ export const SamityDrawerNavigation = ({
           top: 0,
           left: 0,
           zIndex: isOpenMobile ? 1001 : 30,
-          transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s ease",
+          transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
           boxShadow: isOpenMobile
-            ? "4px 0 24px rgba(0,0,0,0.4)"
+            ? "6px 0 32px rgba(0,0,0,0.45)"
             : isCollapsedDesktop
             ? "none"
             : isLight
-            ? "2px 0 8px rgba(0,0,0,0.02)"
+            ? "2px 0 10px rgba(0,0,0,0.03)"
             : "none",
         }}
       >
-        {/* Style definitions for smooth responsive behavior */}
         <style>{`
           @media (max-width: 991px) {
             .samity-drawer-sidebar {
@@ -703,68 +867,87 @@ export const SamityDrawerNavigation = ({
               top: 0 !important;
               left: 0 !important;
               bottom: 0 !important;
-              width: 86vw !important;
-              max-width: 320px !important;
+              width: 88vw !important;
+              max-width: 360px !important;
               transform: translateX(-100%);
-              transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
             }
             .samity-drawer-sidebar.mobile-open {
               transform: translateX(0) !important;
             }
           }
           .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+            width: 5px;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: ${isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.15)"};
-            border-radius: 4px;
+            background: ${isLight ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.18)"};
+            border-radius: 5px;
+          }
+          .menu-card-item {
+            transition: all 0.15s ease;
+          }
+          .menu-card-item:hover {
+            transform: translateX(2px);
+          }
+          .menu-card-item:active {
+            transform: scale(0.98);
           }
         `}</style>
 
-        {/* 1. DRAWER HEADER: SAMITY PROFILE & USER CREDENTIALS */}
+        {/* 1. STICKY DRAWER HEADER: SAMITY PROFILE & CONTROLS */}
         <div
           style={{
-            padding: isCollapsedDesktop ? "14px 8px" : "16px 14px 12px",
+            padding: isCollapsedDesktop ? "16px 8px" : "18px 16px 14px",
             borderBottom: `1px solid ${borderColor}`,
             background: isLight
               ? "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)"
-              : "linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(11, 17, 32, 0.95) 100%)",
+              : "linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(11, 17, 32, 0.98) 100%)",
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
+            gap: "12px",
             flexShrink: 0,
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
           }}
         >
-          {/* Top Row: Samity Logo, Name & Close / Collapse Toggle */}
+          {/* Top Row: Logo, Name & Close/Collapse */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: isCollapsedDesktop ? "center" : "space-between",
-              gap: "8px",
+              gap: "10px",
             }}
           >
             <div
+              onClick={() => {
+                playButtonClick?.();
+                setActiveTab("samity_setup");
+                if (isOpenMobile && setIsOpenMobile) setIsOpenMobile(false);
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "10px",
+                gap: "12px",
                 minWidth: 0,
+                cursor: "pointer",
               }}
+              title={t("সমিতি প্রোফাইল খুলতে ক্লিক করুন", "Click to open Samity Profile")}
             >
               {/* Samity Logo */}
               <div
                 style={{
-                  width: isCollapsedDesktop ? "38px" : "42px",
-                  height: isCollapsedDesktop ? "38px" : "42px",
-                  borderRadius: "10px",
-                  background: isLight ? "#f1f5f9" : "rgba(255, 255, 255, 0.06)",
-                  border: `1.5px solid ${isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.12)"}`,
+                  width: isCollapsedDesktop ? "44px" : "48px",
+                  height: isCollapsedDesktop ? "44px" : "48px",
+                  borderRadius: "12px",
+                  background: isLight ? "#f1f5f9" : "rgba(255, 255, 255, 0.08)",
+                  border: `2px solid ${isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.15)"}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   overflow: "hidden",
                   flexShrink: 0,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                 }}
               >
                 <img
@@ -777,18 +960,19 @@ export const SamityDrawerNavigation = ({
                 />
               </div>
 
-              {/* Samity Name & ID (Expanded view only) */}
+              {/* Samity Name & Slogan (Expanded view only) */}
               {!isCollapsedDesktop && (
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: "0.88rem",
+                      fontSize: "0.98rem",
                       fontWeight: "900",
                       color: textColor,
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       letterSpacing: "-0.01em",
+                      lineHeight: 1.2,
                     }}
                   >
                     {activeLang === "en"
@@ -797,42 +981,22 @@ export const SamityDrawerNavigation = ({
                   </div>
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
+                      fontSize: "0.72rem",
+                      color: mutedTextColor,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                       marginTop: "2px",
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: "0.64rem",
-                        fontWeight: "800",
-                        padding: "1px 6px",
-                        borderRadius: "4px",
-                        background: "rgba(16, 185, 129, 0.15)",
-                        color: "#10b981",
-                        border: "1px solid rgba(16, 185, 129, 0.3)",
-                      }}
-                    >
-                      {currentSamity.regNo ? `রেজি: ${currentSamity.regNo}` : "ID: S360-001"}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "0.62rem",
-                        color: mutedTextColor,
-                        fontWeight: "600",
-                      }}
-                    >
-                      FY 2026-27
-                    </span>
+                    {currentSamity.sloganBn || "স্বপ্ন সাজাই, ভবিষ্যৎ গড়ি"}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Close Button on Mobile OR Collapse Toggle on Desktop */}
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              {/* Mobile Close Button */}
+            {/* Close on Mobile or Collapse on Desktop */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               {isOpenMobile && (
                 <button
                   type="button"
@@ -841,10 +1005,10 @@ export const SamityDrawerNavigation = ({
                     setIsOpenMobile(false);
                   }}
                   style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "8px",
-                    border: `1px solid ${borderColor}`,
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "10px",
+                    border: `1.5px solid ${borderColor}`,
                     background: isLight ? "#f1f5f9" : "rgba(255, 255, 255, 0.08)",
                     color: textColor,
                     display: "flex",
@@ -854,11 +1018,10 @@ export const SamityDrawerNavigation = ({
                   }}
                   title={t("ড্রয়ার বন্ধ করুন", "Close Drawer")}
                 >
-                  <X size={16} />
+                  <X size={18} />
                 </button>
               )}
 
-              {/* Desktop Collapse Toggle */}
               {!isOpenMobile && setIsCollapsedDesktop && (
                 <button
                   type="button"
@@ -868,9 +1031,9 @@ export const SamityDrawerNavigation = ({
                     setIsCollapsedDesktop(!isCollapsedDesktop);
                   }}
                   style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "7px",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
                     border: `1px solid ${borderColor}`,
                     background: "transparent",
                     color: mutedTextColor,
@@ -879,28 +1042,27 @@ export const SamityDrawerNavigation = ({
                     justifyContent: "center",
                     cursor: "pointer",
                   }}
-                  title={isCollapsedDesktop ? t("সাইডবার বড় করুন", "Expand Sidebar") : t("সাইডবার ছোট করুন", "Collapse Sidebar")}
+                  title={isCollapsedDesktop ? t("সাইডবার বড় করুন", "Expand") : t("সাইডবার ছোট করুন", "Collapse")}
                 >
-                  {isCollapsedDesktop ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+                  {isCollapsedDesktop ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                 </button>
               )}
             </div>
           </div>
 
-          {/* User Badge, Metrics & Quick Toggles (Expanded view) */}
+          {/* User Badge, Quick Actions & Theme/Language (Expanded view) */}
           {!isCollapsedDesktop && (
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: "8px",
-                background: isLight ? "rgba(241, 245, 249, 0.6)" : "rgba(15, 23, 42, 0.6)",
-                padding: "8px 10px",
-                borderRadius: "8px",
+                background: isLight ? "#f1f5f9" : "rgba(15, 23, 42, 0.7)",
+                padding: "10px 12px",
+                borderRadius: "10px",
                 border: `1px solid ${borderColor}`,
               }}
             >
-              {/* Logged-in User Profile Row */}
               <div
                 style={{
                   display: "flex",
@@ -908,28 +1070,40 @@ export const SamityDrawerNavigation = ({
                   justifyContent: "space-between",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {/* User avatar & role */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
                   <div
                     style={{
-                      width: "26px",
-                      height: "26px",
+                      width: "32px",
+                      height: "32px",
                       borderRadius: "50%",
                       background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                       color: "#fff",
-                      fontSize: "0.72rem",
+                      fontSize: "0.85rem",
                       fontWeight: "900",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      flexShrink: 0,
                     }}
                   >
                     {(currentUser.name || "U")[0]}
                   </div>
-                  <div>
-                    <div style={{ fontSize: "0.76rem", fontWeight: "800", color: textColor, lineHeight: 1.1 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: "0.84rem",
+                        fontWeight: "800",
+                        color: textColor,
+                        lineHeight: 1.2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
                       {currentUser.name || "সাজ্জাদ হোসেন"}
                     </div>
-                    <div style={{ fontSize: "0.64rem", color: "#10b981", fontWeight: "700" }}>
+                    <div style={{ fontSize: "0.7rem", color: "#10b981", fontWeight: "700" }}>
                       {activeUserRole === "admin"
                         ? t("অ্যাডমিন (Admin)", "Admin")
                         : activeUserRole === "president"
@@ -941,8 +1115,46 @@ export const SamityDrawerNavigation = ({
                   </div>
                 </div>
 
-                {/* Quick Toggles: Language & Dark Theme */}
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                {/* Notification Bell, Language & Dark Mode */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playButtonClick?.();
+                      setActiveTab("notifications");
+                      if (isOpenMobile && setIsOpenMobile) setIsOpenMobile(false);
+                    }}
+                    style={{
+                      width: "28px",
+                      height: "28px",
+                      borderRadius: "7px",
+                      border: `1px solid ${borderColor}`,
+                      background: "transparent",
+                      color: textColor,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      position: "relative",
+                    }}
+                    title={t("নোটিফিকেশন সেন্টার", "Notifications")}
+                  >
+                    <Bell size={13} />
+                    {pendingDepositsCount > 0 && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: "-2px",
+                          right: "-2px",
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "50%",
+                          background: "#ef4444",
+                        }}
+                      />
+                    )}
+                  </button>
+
                   {setLang && (
                     <button
                       type="button"
@@ -951,10 +1163,10 @@ export const SamityDrawerNavigation = ({
                         setLang(activeLang === "bn" ? "en" : "bn");
                       }}
                       style={{
-                        padding: "2px 6px",
-                        fontSize: "0.64rem",
+                        padding: "3px 7px",
+                        fontSize: "0.7rem",
                         fontWeight: "800",
-                        borderRadius: "5px",
+                        borderRadius: "7px",
                         border: `1px solid ${borderColor}`,
                         background: "transparent",
                         color: textColor,
@@ -965,6 +1177,7 @@ export const SamityDrawerNavigation = ({
                       {activeLang === "bn" ? "EN" : "বাং"}
                     </button>
                   )}
+
                   {toggleTheme && (
                     <button
                       type="button"
@@ -973,9 +1186,9 @@ export const SamityDrawerNavigation = ({
                         toggleTheme();
                       }}
                       style={{
-                        width: "24px",
-                        height: "24px",
-                        borderRadius: "5px",
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "7px",
                         border: `1px solid ${borderColor}`,
                         background: "transparent",
                         color: textColor,
@@ -984,87 +1197,36 @@ export const SamityDrawerNavigation = ({
                         justifyContent: "center",
                         cursor: "pointer",
                       }}
-                      title={t("থিম পরিবর্তন", "Toggle Dark/Light Mode")}
+                      title={t("থিম পরিবর্তন", "Toggle Theme")}
                     >
-                      {isLight ? <Moon size={12} /> : <Sun size={12} />}
+                      {isLight ? <Moon size={13} /> : <Sun size={13} />}
                     </button>
                   )}
                 </div>
               </div>
-
-              {/* Samity Fund Balance Mini Pill */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  fontSize: "0.7rem",
-                  paddingTop: "4px",
-                  borderTop: `1px dashed ${borderColor}`,
-                }}
-              >
-                <span style={{ color: mutedTextColor, fontWeight: "600" }}>
-                  {t("মোট তহবিল স্থিতি:", "Fund Balance:")}
-                </span>
-                <span style={{ fontWeight: "900", color: "#10b981" }}>
-                  ৳ {(effectiveMetrics.availableFund || 0).toLocaleString("en-IN")}/-
-                </span>
-              </div>
             </div>
           )}
 
-          {/* Active Branch Selector (Expanded view) */}
-          {!isCollapsedDesktop && samities.length > 1 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <select
-                value={activeSamityId}
-                onChange={(e) => {
-                  playButtonClick?.();
-                  setActiveSamityId(e.target.value);
-                }}
-                style={{
-                  width: "100%",
-                  height: "30px",
-                  background: isLight ? "#ffffff" : "rgba(30, 41, 59, 0.9)",
-                  color: textColor,
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: "6px",
-                  padding: "0 8px",
-                  fontSize: "0.72rem",
-                  fontWeight: "700",
-                  outline: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {samities.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    🏛️ {s.nameBn}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* 2. INSTANT SEARCH BAR (Expanded view) */}
+          {/* Instant Large Search Bar (Expanded view) */}
           {!isCollapsedDesktop && (
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
-                background: isLight ? "#f1f5f9" : "rgba(15, 23, 42, 0.8)",
-                border: `1px solid ${borderColor}`,
-                borderRadius: "7px",
-                padding: "0 8px",
-                height: "32px",
+                gap: "8px",
+                background: isLight ? "#f1f5f9" : "rgba(15, 23, 42, 0.9)",
+                border: `1.5px solid ${borderColor}`,
+                borderRadius: "10px",
+                padding: "0 12px",
+                height: "42px",
               }}
             >
-              <Search size={14} color={mutedTextColor} />
+              <Search size={16} color={mutedTextColor} />
               <input
                 type="text"
                 placeholder={
                   activeLang === "en"
-                    ? "Search all A-Z modules..."
+                    ? "Search all 13 modules..."
                     : "মডিউল খুঁজুন (যেমন: জমা, রিসিট, অডিট)..."
                 }
                 value={searchQuery}
@@ -1075,7 +1237,7 @@ export const SamityDrawerNavigation = ({
                   border: "none",
                   outline: "none",
                   color: textColor,
-                  fontSize: "0.74rem",
+                  fontSize: "0.86rem",
                   fontWeight: "600",
                 }}
               />
@@ -1091,31 +1253,31 @@ export const SamityDrawerNavigation = ({
                     padding: 0,
                   }}
                 >
-                  <X size={12} />
+                  <X size={14} />
                 </button>
               )}
             </div>
           )}
         </div>
 
-        {/* 3. SCROLLABLE A-TO-Z MODULES TREE */}
+        {/* 2. SCROLLABLE MENU BODY: 13 ENTERPRISE SECTIONS */}
         <div
           className="custom-scrollbar"
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: isCollapsedDesktop ? "10px 4px" : "12px 10px",
+            padding: isCollapsedDesktop ? "12px 6px" : "14px 12px",
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
+            gap: "14px",
           }}
         >
-          {/* Quick Pinned / Favorite Modules (Expanded view) */}
+          {/* Quick Pinned Modules (Expanded view) */}
           {!isCollapsedDesktop && !searchQuery && pinnedModules.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <div
                 style={{
-                  fontSize: "0.64rem",
+                  fontSize: "0.72rem",
                   fontWeight: "800",
                   color: mutedTextColor,
                   textTransform: "uppercase",
@@ -1123,13 +1285,13 @@ export const SamityDrawerNavigation = ({
                   padding: "0 6px",
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
+                  gap: "5px",
                 }}
               >
-                <Star size={11} color="#f59e0b" fill="#f59e0b" />
-                <span>{t("দ্রুত অ্যাক্সেস (পিন্ড)", "Pinned / Favorites")}</span>
+                <Star size={13} color="#f59e0b" fill="#f59e0b" />
+                <span>{t("দ্রুত অ্যাক্সেস / ফেভারিট", "Quick Access / Pinned")}</span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
                 {pinnedModules.slice(0, 4).map((modId) => {
                   const item = allItems.find((i) => i.id === modId || i.targetTab === modId);
                   if (!item) return null;
@@ -1143,28 +1305,29 @@ export const SamityDrawerNavigation = ({
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "6px",
-                        padding: "6px 8px",
-                        borderRadius: "7px",
-                        border: `1px solid ${isCurrent ? "#10b981" : borderColor}`,
+                        gap: "8px",
+                        padding: "10px 10px",
+                        borderRadius: "10px",
+                        border: `1.5px solid ${isCurrent ? "#10b981" : borderColor}`,
                         background: isCurrent
                           ? isLight
                             ? "rgba(16, 185, 129, 0.12)"
                             : "rgba(16, 185, 129, 0.22)"
                           : isLight
-                          ? "#f8fafc"
-                          : "rgba(255, 255, 255, 0.03)",
+                          ? "#ffffff"
+                          : "rgba(255, 255, 255, 0.04)",
                         color: isCurrent ? "#10b981" : textColor,
-                        fontSize: "0.7rem",
-                        fontWeight: "700",
+                        fontSize: "0.8rem",
+                        fontWeight: "800",
                         cursor: "pointer",
                         textAlign: "left",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
+                        boxShadow: isLight ? "0 1px 4px rgba(0,0,0,0.03)" : "none",
                       }}
                     >
-                      <Icon size={12} color={isCurrent ? "#10b981" : mutedTextColor} />
+                      <Icon size={14} color={isCurrent ? "#10b981" : mutedTextColor} />
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
                         {activeLang === "en" ? item.titleEn : item.titleBn}
                       </span>
@@ -1175,29 +1338,29 @@ export const SamityDrawerNavigation = ({
             </div>
           )}
 
-          {/* 12 Business Domains Tree */}
-          {filteredDomains.map((domain) => {
-            const DomainIcon = domain.icon;
-            const isExpanded = searchQuery ? true : expandedDomains[domain.id] ?? true;
-            const hasActiveChild = domain.items.some((it) => it.targetTab === activeTab);
+          {/* 13 Enterprise Sections */}
+          {filteredSections.map((section) => {
+            const SectionIcon = section.icon;
+            const isExpanded = searchQuery ? true : expandedSections[section.id] ?? true;
+            const hasActiveChild = section.items.some((it) => it.targetTab === activeTab);
 
             return (
               <div
-                key={domain.id}
+                key={section.id}
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "2px",
+                  gap: "4px",
                 }}
               >
-                {/* Domain Category Header Button */}
+                {/* Section Header Button */}
                 <button
                   type="button"
                   onClick={() => {
                     if (isCollapsedDesktop && setIsCollapsedDesktop) {
                       setIsCollapsedDesktop(false);
                     } else {
-                      toggleDomain(domain.id);
+                      toggleSection(section.id);
                     }
                   }}
                   style={{
@@ -1205,72 +1368,73 @@ export const SamityDrawerNavigation = ({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: isCollapsedDesktop ? "center" : "space-between",
-                    padding: isCollapsedDesktop ? "8px 0" : "6px 8px",
-                    borderRadius: "6px",
+                    padding: isCollapsedDesktop ? "10px 0" : "8px 10px",
+                    borderRadius: "10px",
                     background: hasActiveChild
                       ? isLight
                         ? "rgba(16, 185, 129, 0.08)"
-                        : "rgba(16, 185, 129, 0.15)"
+                        : "rgba(16, 185, 129, 0.16)"
                       : "transparent",
                     border: "none",
                     cursor: "pointer",
                     textAlign: "left",
-                    color: hasActiveChild ? "#10b981" : mutedTextColor,
                   }}
-                  title={activeLang === "en" ? domain.titleEn : domain.titleBn}
+                  title={activeLang === "en" ? section.titleEn : section.titleBn}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <div
                       style={{
-                        width: "22px",
-                        height: "22px",
-                        borderRadius: "5px",
-                        background: `${domain.color}15`,
-                        color: domain.color,
+                        width: "30px",
+                        height: "30px",
+                        borderRadius: "8px",
+                        background: `${section.color}18`,
+                        color: section.color,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
                       }}
                     >
-                      <DomainIcon size={13} />
+                      <SectionIcon size={16} />
                     </div>
                     {!isCollapsedDesktop && (
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: "800",
-                          letterSpacing: "-0.01em",
-                          color: hasActiveChild ? "#10b981" : textColor,
-                        }}
-                      >
-                        {activeLang === "en" ? domain.titleEn : domain.titleBn}
-                      </span>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "0.86rem",
+                            fontWeight: "900",
+                            color: hasActiveChild ? "#10b981" : textColor,
+                            letterSpacing: "-0.01em",
+                          }}
+                        >
+                          {activeLang === "en" ? section.titleEn : section.titleBn}
+                        </div>
+                        <div style={{ fontSize: "0.68rem", color: mutedTextColor, fontWeight: "600" }}>
+                          {activeLang === "en" ? section.descEn : section.descBn}
+                        </div>
+                      </div>
                     )}
                   </div>
 
                   {!isCollapsedDesktop && (
-                    <span style={{ color: mutedTextColor, opacity: 0.7 }}>
-                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    <span style={{ color: mutedTextColor, opacity: 0.8 }}>
+                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </span>
                   )}
                 </button>
 
-                {/* Sub-items list under Domain */}
+                {/* Sub-items in Section: 56dp to 64dp Touch-friendly Card-Style */}
                 {(!isCollapsedDesktop || searchQuery) && isExpanded && (
                   <div
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      gap: "2px",
-                      paddingLeft: isCollapsedDesktop ? "0" : "12px",
+                      gap: "6px",
                       marginTop: "2px",
-                      borderLeft: isCollapsedDesktop
-                        ? "none"
-                        : `1.5px solid ${hasActiveChild ? "rgba(16, 185, 129, 0.4)" : borderColor}`,
+                      paddingLeft: isCollapsedDesktop ? "0" : "4px",
                     }}
                   >
-                    {domain.items.map((item) => {
+                    {section.items.map((item) => {
                       const ItemIcon = item.icon || Layers;
                       const isCurrent = activeTab === item.targetTab;
                       const isPinned = pinnedModules.includes(item.id) || pinnedModules.includes(item.targetTab);
@@ -1278,85 +1442,117 @@ export const SamityDrawerNavigation = ({
                       return (
                         <div
                           key={item.id}
+                          className="menu-card-item"
                           onClick={() => handleItemClick(item)}
                           style={{
+                            minHeight: "58px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            gap: "8px",
-                            padding: "6px 8px",
-                            borderRadius: "6px",
+                            gap: "10px",
+                            padding: "10px 12px",
+                            borderRadius: "12px",
                             background: isCurrent
                               ? isLight
                                 ? "rgba(16, 185, 129, 0.15)"
                                 : "rgba(16, 185, 129, 0.25)"
-                              : "transparent",
-                            border: `1px solid ${isCurrent ? "#10b981" : "transparent"}`,
+                              : isLight
+                              ? "#ffffff"
+                              : "rgba(30, 41, 59, 0.6)",
+                            border: `1.5px solid ${isCurrent ? "#10b981" : borderColor}`,
                             cursor: "pointer",
-                            transition: "background 0.12s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isCurrent) {
-                              e.currentTarget.style.background = isLight
-                                ? "rgba(0,0,0,0.03)"
-                                : "rgba(255,255,255,0.04)";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isCurrent) {
-                              e.currentTarget.style.background = "transparent";
-                            }
+                            boxShadow: isCurrent
+                              ? "0 4px 12px rgba(16, 185, 129, 0.2)"
+                              : isLight
+                              ? "0 2px 6px rgba(0,0,0,0.02)"
+                              : "none",
                           }}
                         >
+                          {/* Left: Icon & Large Typography with Description */}
                           <div
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: "8px",
+                              gap: "12px",
                               minWidth: 0,
                               flex: 1,
                             }}
                           >
-                            <ItemIcon
-                              size={14}
-                              color={isCurrent ? "#10b981" : mutedTextColor}
-                              style={{ flexShrink: 0 }}
-                            />
-                            <span
+                            <div
                               style={{
-                                fontSize: "0.73rem",
-                                fontWeight: isCurrent ? "800" : "600",
-                                color: isCurrent ? "#10b981" : textColor,
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
+                                width: "36px",
+                                height: "36px",
+                                borderRadius: "10px",
+                                background: isCurrent
+                                  ? "rgba(16, 185, 129, 0.25)"
+                                  : isLight
+                                  ? "#f1f5f9"
+                                  : "rgba(255, 255, 255, 0.06)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
                               }}
                             >
-                              {activeLang === "en" ? item.titleEn : item.titleBn}
-                            </span>
+                              <ItemIcon
+                                size={18}
+                                color={isCurrent ? "#10b981" : isLight ? "#334155" : "#cbd5e1"}
+                              />
+                            </div>
+
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.88rem",
+                                  fontWeight: isCurrent ? "900" : "750",
+                                  color: isCurrent ? "#10b981" : textColor,
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  lineHeight: 1.25,
+                                }}
+                              >
+                                {activeLang === "en" ? item.titleEn : item.titleBn}
+                              </div>
+                              {item.descBn && (
+                                <div
+                                  style={{
+                                    fontSize: "0.72rem",
+                                    color: mutedTextColor,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    marginTop: "2px",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  {activeLang === "en" ? item.descEn : item.descBn}
+                                </div>
+                              )}
+                            </div>
                           </div>
 
-                          {/* Right Badges & Pin Star */}
+                          {/* Right: Status Badges, Counts & Pin Star */}
                           <div
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: "4px",
+                              gap: "6px",
                               flexShrink: 0,
                             }}
                           >
                             {item.badge && (
                               <span
                                 style={{
-                                  fontSize: "0.6rem",
+                                  fontSize: "0.68rem",
                                   fontWeight: "800",
-                                  padding: "1px 5px",
-                                  borderRadius: "10px",
+                                  padding: "3px 8px",
+                                  borderRadius: "12px",
                                   background: item.badgeColor
-                                    ? `${item.badgeColor}20`
+                                    ? `${item.badgeColor}22`
                                     : "rgba(16, 185, 129, 0.15)",
                                   color: item.badgeColor || "#10b981",
-                                  border: `1px solid ${item.badgeColor || "#10b981"}40`,
+                                  border: `1px solid ${item.badgeColor || "#10b981"}45`,
                                 }}
                               >
                                 {item.badge}
@@ -1365,9 +1561,12 @@ export const SamityDrawerNavigation = ({
                             {item.count !== undefined && item.count > 0 && (
                               <span
                                 style={{
-                                  fontSize: "0.62rem",
-                                  fontWeight: "700",
+                                  fontSize: "0.74rem",
+                                  fontWeight: "800",
                                   color: mutedTextColor,
+                                  background: isLight ? "#f1f5f9" : "rgba(255, 255, 255, 0.08)",
+                                  padding: "2px 7px",
+                                  borderRadius: "8px",
                                 }}
                               >
                                 {item.count}
@@ -1380,14 +1579,14 @@ export const SamityDrawerNavigation = ({
                               style={{
                                 background: "none",
                                 border: "none",
-                                padding: 0,
+                                padding: "4px",
                                 cursor: "pointer",
-                                opacity: isPinned ? 1 : 0.25,
+                                opacity: isPinned ? 1 : 0.3,
                                 color: isPinned ? "#f59e0b" : mutedTextColor,
                               }}
-                              title={isPinned ? t("আনপিন করুন", "Unpin") : t("পিন করুন", "Pin to Quick Access")}
+                              title={isPinned ? t("আনপিন করুন", "Unpin") : t("পিন করুন", "Pin")}
                             >
-                              <Star size={11} fill={isPinned ? "#f59e0b" : "none"} />
+                              <Star size={13} fill={isPinned ? "#f59e0b" : "none"} />
                             </button>
                           </div>
                         </div>
@@ -1400,43 +1599,47 @@ export const SamityDrawerNavigation = ({
           })}
         </div>
 
-        {/* 4. DRAWER FOOTER: CLOUD SYNC & APP PARITY */}
+        {/* 3. STICKY FOOTER: CLOUD SYNC & APP VERSION */}
         <div
           style={{
-            padding: isCollapsedDesktop ? "10px 4px" : "10px 14px",
+            padding: isCollapsedDesktop ? "12px 6px" : "12px 16px",
             borderTop: `1px solid ${borderColor}`,
-            background: isLight ? "#f8fafc" : "rgba(15, 23, 42, 0.75)",
+            background: isLight ? "#f8fafc" : "rgba(15, 23, 42, 0.9)",
             display: "flex",
             alignItems: "center",
             justifyContent: isCollapsedDesktop ? "center" : "space-between",
             flexShrink: 0,
+            position: "sticky",
+            bottom: 0,
+            zIndex: 10,
           }}
         >
           {!isCollapsedDesktop ? (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span
                   style={{
                     display: "inline-block",
-                    width: "7px",
-                    height: "7px",
+                    width: "8px",
+                    height: "8px",
                     borderRadius: "50%",
                     background: "#10b981",
-                    boxShadow: "0 0 6px #10b981",
+                    boxShadow: "0 0 8px #10b981",
                   }}
                 />
-                <span style={{ fontSize: "0.66rem", color: mutedTextColor, fontWeight: "700" }}>
-                  {t("সেন্ট্রাল ক্লাউড সিঙ্ক: সক্রিয়", "Central Cloud: Synced")}
+                <span style={{ fontSize: "0.74rem", color: mutedTextColor, fontWeight: "700" }}>
+                  {t("সেন্ট্রাল ক্লাউড: সিঙ্কড", "Central Cloud: Synced")}
                 </span>
               </div>
               <span
                 style={{
-                  fontSize: "0.62rem",
+                  fontSize: "0.7rem",
                   fontWeight: "800",
-                  color: mutedTextColor,
-                  background: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
+                  color: "#10b981",
+                  background: isLight ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.15)",
+                  border: "1px solid rgba(16, 185, 129, 0.3)",
+                  padding: "2px 8px",
+                  borderRadius: "6px",
                 }}
               >
                 v1.8.0
@@ -1446,11 +1649,11 @@ export const SamityDrawerNavigation = ({
             <span
               style={{
                 display: "inline-block",
-                width: "8px",
-                height: "8px",
+                width: "10px",
+                height: "10px",
                 borderRadius: "50%",
                 background: "#10b981",
-                boxShadow: "0 0 8px #10b981",
+                boxShadow: "0 0 10px #10b981",
               }}
               title="Cloud Connected (v1.8.0)"
             />

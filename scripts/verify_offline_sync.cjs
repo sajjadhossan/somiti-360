@@ -93,6 +93,12 @@ function runTests() {
   assert(appJsx.includes('SystemDiagnosticModal'), 'App.jsx renders SystemDiagnosticModal');
   assert(appJsx.includes('somiti_trigger_diagnostic'), 'App.jsx listens to somiti_trigger_diagnostic event');
 
+  // 9. Enterprise SaaS Subscription & Expiration Guards
+  assert(tenantService.includes('checkTenantSubscriptionStatus'), 'tenantManagerService exports checkTenantSubscriptionStatus');
+  assert(tenantService.includes('extendTenantSubscription'), 'tenantManagerService exports extendTenantSubscription');
+  assert(fs.existsSync('src/components/superadmin/TenantSubscriptionLockModal.jsx'), 'TenantSubscriptionLockModal component exists');
+  assert(appJsx.includes('TenantSubscriptionLockModal'), 'App.jsx renders TenantSubscriptionLockModal');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

@@ -369,6 +369,62 @@ export const checkIsSuperAdmin = (user) => {
   const email = (user.email || '').toLowerCase().trim();
   return email === 'hossansajjad1994@gmail.com' || user.isSuperAdmin === true || user.role === 'super_admin';
 };
+
+/**
+ * Check a tenant's subscription status, expiration, and remaining days
+ */
+export const checkTenantSubscriptionStatus = (tenantId = null) => {
+  const targetId = tenantId || getActiveWorkspaceId();
+  const tenant = getTenantById(targetId);
+  if (!tenant) return { isValid: true, status: 'active', daysLeft: 999 };
+  if (tenant.isOwnSamity) return { isValid: true, status: 'active', daysLeft: 99999, isOwn: true };
+
+  const today = new Date().toISOString().split('T')[0];
+  const validUntil = tenant.validUntil || '2099-12-31';
+  const isSuspended = tenant.status === 'suspended';
+  const isExpired = validUntil < today;
+
+  const diffTime = new Date(validUntil).getTime() - new Date(today).getTime();
+  const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return {
+    isValid: !isSuspended && !isExpired,
+    status: isSuspended ? 'suspended' : isExpired ? 'expired' : 'active',
+    isSuspended,
+    isExpired,
+    daysLeft,
+    isExpiringSoon: daysLeft <= 15 && daysLeft >= 0,
+    validUntil,
+    tenant
+  };
+};
+
+/**
+ * Extend tenant subscription validity (Super Admin 1-Click Action)
+ */
+export const extendTenantSubscription = (tenantId, daysToAdd = 365) => {
+  const tenants = getTenantsList();
+  const idx = tenants.findIndex(t => t.id === tenantId);
+  if (idx === -1) return null;
+
+  const currentValid = tenants[idx].validUntil ? new Date(tenants[idx].validUntil) : new Date();
+  const baseDate = currentValid.getTime() > Date.now() ? currentValid : new Date();
+  baseDate.setDate(baseDate.getDate() + daysToAdd);
+
+  tenants[idx].validUntil = baseDate.toISOString().split('T')[0];
+  tenants[idx].status = 'active';
+  tenants[idx].updatedAt = new Date().toISOString();
+
+  saveTenantsList(tenants);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('somiti_subscription_renewed', {
+      detail: { tenantId, validUntil: tenants[idx].validUntil }
+    }));
+  }
+
+  return tenants[idx];
+};
 // ============================================================================
 // 8-CATEGORY A-TO-Z GRANULAR FEATURE SWITCHBOARD (43 SUB-FEATURES)
 // Master Control for Super Admin & Cascading Sub-Control for Samity Admin

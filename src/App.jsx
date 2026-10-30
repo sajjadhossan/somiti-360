@@ -13,12 +13,13 @@ import { TenantModuleToggleManager } from './components/superadmin/TenantModuleT
 import { SuperAdminDualModeBar } from './components/superadmin/SuperAdminDualModeBar';
 import { AppUpdateModal } from './components/common/AppUpdateModal';
 import { checkForAppUpdate } from './services/appUpdateService';
-import { getTenantsList, getActiveWorkspaceId, getTenantById } from './services/tenantManagerService';
+import { getTenantsList, getActiveWorkspaceId, getTenantById, checkTenantSubscriptionStatus } from './services/tenantManagerService';
 
 // Lazy-loaded heavy modal views for optimal bundle splitting
 const SamityDocVerificationView = lazy(() => import('./components/samity/SamityDocVerificationView').then(m => ({ default: m.SamityDocVerificationView })));
 const DeviceMeshStatusModal = lazy(() => import('./components/samity/DeviceMeshStatusModal').then(m => ({ default: m.DeviceMeshStatusModal })));
 const SyncConflictResolutionModal = lazy(() => import('./components/samity/SyncConflictResolutionModal').then(m => ({ default: m.SyncConflictResolutionModal })));
+const TenantSubscriptionLockModal = lazy(() => import('./components/superadmin/TenantSubscriptionLockModal').then(m => ({ default: m.TenantSubscriptionLockModal })));
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -654,6 +655,7 @@ function MainView() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveWorkspaceId());
+  const [subscriptionStatus, setSubscriptionStatus] = useState(() => checkTenantSubscriptionStatus());
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
   const [onlineDevices, setOnlineDevices] = useState(() => getOnlineDevicesList());
@@ -700,9 +702,15 @@ function MainView() {
     const handleWorkspaceChanged = (e) => {
       if (e?.detail?.tenantId) {
         setActiveWorkspaceIdState(e.detail.tenantId);
+        setSubscriptionStatus(checkTenantSubscriptionStatus(e.detail.tenantId));
       }
     };
     window.addEventListener('somiti_workspace_switched', handleWorkspaceChanged);
+
+    const handleSubscriptionRenewed = (e) => {
+      setSubscriptionStatus(checkTenantSubscriptionStatus(e?.detail?.tenantId));
+    };
+    window.addEventListener('somiti_subscription_renewed', handleSubscriptionRenewed);
 
     // Automatic Background OTA Update Check (runs 2.5s after launch)
     const updateTimer = setTimeout(() => {
@@ -751,6 +759,7 @@ function MainView() {
       window.removeEventListener('somiti_offline_queue_changed', handleQueueChange);
       window.removeEventListener('hk360_samity_updated', handleDataUpdate);
       window.removeEventListener('somiti_workspace_switched', handleWorkspaceChanged);
+      window.removeEventListener('somiti_subscription_renewed', handleSubscriptionRenewed);
       window.removeEventListener('somiti_trigger_update_check', handleManualUpdateCheck);
       window.removeEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
       window.removeEventListener('keydown', handleGlobalKeyDown);
@@ -1099,6 +1108,20 @@ function MainView() {
             onClose={() => setIsDiagnosticOpen(false)}
             isLight={isLight}
             lang={lang}
+          />
+        </Suspense>
+      )}
+
+      {/* Enterprise SaaS Subscription & License Expiration Guard */}
+      {subscriptionStatus && !subscriptionStatus.isValid && (
+        <Suspense fallback={null}>
+          <TenantSubscriptionLockModal
+            isOpen={!subscriptionStatus.isValid}
+            subscriptionStatus={subscriptionStatus}
+            user={user}
+            isLight={isLight}
+            lang={lang}
+            onRenewed={() => setSubscriptionStatus(checkTenantSubscriptionStatus())}
           />
         </Suspense>
       )}

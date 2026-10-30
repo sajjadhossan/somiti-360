@@ -1,14 +1,16 @@
-import React, { useState, useEffect, Component } from 'react';
+import React, { useState, useEffect, Component, lazy, Suspense } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { SamityManagementHub } from './components/samity/SamityManagementHub';
-import { SamityDocVerificationView } from './components/samity/SamityDocVerificationView';
 import { SomitiAuthView } from './components/auth/SomitiAuthView';
-import { DeviceMeshStatusModal } from './components/samity/DeviceMeshStatusModal';
 import { EnterpriseOfflineBanner } from './components/samity/EnterpriseOfflineBanner';
-import { SyncConflictResolutionModal } from './components/samity/SyncConflictResolutionModal';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { getPendingQueueCount } from './services/somitiOfflineStore';
 import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare } from 'lucide-react';
+
+// Lazy-loaded heavy modal views for optimal bundle splitting
+const SamityDocVerificationView = lazy(() => import('./components/samity/SamityDocVerificationView').then(m => ({ default: m.SamityDocVerificationView })));
+const DeviceMeshStatusModal = lazy(() => import('./components/samity/DeviceMeshStatusModal').then(m => ({ default: m.DeviceMeshStatusModal })));
+const SyncConflictResolutionModal = lazy(() => import('./components/samity/SyncConflictResolutionModal').then(m => ({ default: m.SyncConflictResolutionModal })));
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -642,16 +644,22 @@ function MainView() {
   // 1. PUBLIC QR DOCUMENT VERIFICATION VIEW (Instant, Universal, Zero-Login Gate)
   if (viewMode === 'verify' && verifyData) {
     return (
-      <SamityDocVerificationView 
-        verifyData={verifyData} 
-        onBackToApp={() => {
-          setViewMode('hub');
-          setVerifyData(null);
-          if (typeof window !== 'undefined' && window.history.pushState) {
-            window.history.pushState({}, '', window.location.pathname);
-          }
-        }} 
-      />
+      <Suspense fallback={
+        <div style={{ minHeight: '100vh', background: '#070b12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <RefreshCw size={24} color="#10b981" className="animate-spin" />
+        </div>
+      }>
+        <SamityDocVerificationView 
+          verifyData={verifyData} 
+          onBackToApp={() => {
+            setViewMode('hub');
+            setVerifyData(null);
+            if (typeof window !== 'undefined' && window.history.pushState) {
+              window.history.pushState({}, '', window.location.pathname);
+            }
+          }} 
+        />
+      </Suspense>
     );
   }
 
@@ -792,20 +800,28 @@ function MainView() {
       </main>
 
       {/* Cross-Platform Device Mesh Status & Telegram Timestamp Modal */}
-      <DeviceMeshStatusModal
-        isOpen={isDeviceMeshModalOpen}
-        onClose={() => setIsDeviceMeshModalOpen(false)}
-        isLight={isLight}
-        t={(bn, en) => (lang === 'en' && en ? en : bn)}
-      />
+      {isDeviceMeshModalOpen && (
+        <Suspense fallback={null}>
+          <DeviceMeshStatusModal
+            isOpen={isDeviceMeshModalOpen}
+            onClose={() => setIsDeviceMeshModalOpen(false)}
+            isLight={isLight}
+            t={(bn, en) => (lang === 'en' && en ? en : bn)}
+          />
+        </Suspense>
+      )}
 
       {/* Enterprise Sync Conflict Resolution Dialog */}
-      <SyncConflictResolutionModal
-        isOpen={isConflictModalOpen}
-        onClose={() => setIsConflictModalOpen(false)}
-        isLight={isLight}
-        lang={lang}
-      />
+      {isConflictModalOpen && (
+        <Suspense fallback={null}>
+          <SyncConflictResolutionModal
+            isOpen={isConflictModalOpen}
+            onClose={() => setIsConflictModalOpen(false)}
+            isLight={isLight}
+            lang={lang}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -42370,6 +42370,17 @@ ${samityTitle}
                             {formattedReceiptNo}
                           </strong>
                         </div>
+                        <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "3px", wordBreak: "break-all" }}>
+                          ভেরিফিকেশন লিংক:{" "}
+                          <span style={{ color: "#0284c7", textDecoration: "underline" }}>
+                            {createSamityReceiptVerificationUrl(dep, currentSamity)}
+                          </span>
+                        </div>
+                        {(dep.ai_scan_id || dep.ai_draft_id) && (
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "4px", padding: "2px 6px", borderRadius: "4px", background: "rgba(139, 92, 246, 0.1)", border: "1px solid rgba(139, 92, 246, 0.3)", color: "#7c3aed", fontSize: "0.62rem", fontWeight: "800" }}>
+                            <span>✨ AI Scanned & Verified</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 

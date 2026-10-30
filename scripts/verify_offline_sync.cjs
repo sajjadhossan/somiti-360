@@ -28,14 +28,14 @@ function runTests() {
 
   // 1. Version Parity Check
   const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-  assert(pkg.version === '2.1.0', 'package.json version is 2.1.0');
+  assert(pkg.version === '2.2.0', 'package.json version is 2.2.0');
 
   const gradle = fs.readFileSync('android/app/build.gradle', 'utf8');
-  assert(gradle.includes('versionCode 21'), 'android/app/build.gradle versionCode is 21');
-  assert(gradle.includes('versionName "2.1.0"'), 'android/app/build.gradle versionName is "2.1.0"');
+  assert(gradle.includes('versionCode 22'), 'android/app/build.gradle versionCode is 22');
+  assert(gradle.includes('versionName "2.2.0"'), 'android/app/build.gradle versionName is "2.2.0"');
 
   const versionApi = fs.readFileSync('api/app/version.js', 'utf8');
-  assert(versionApi.includes('"2.1.0"') && versionApi.includes('buildNumber: 21'), 'api/app/version.js specifies v2.1.0 Build 21');
+  assert(versionApi.includes('"2.2.0"') && versionApi.includes('buildNumber: 22'), 'api/app/version.js specifies v2.2.0 Build 22');
 
   // 2. PWA & Service Worker
   assert(fs.existsSync('public/manifest.json'), 'PWA manifest.json exists');

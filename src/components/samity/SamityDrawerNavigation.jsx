@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { isModuleEnabled } from "../../services/tenantManagerService";
 import {
   Users,
   Building2,
@@ -81,6 +82,20 @@ export const SamityDrawerNavigation = ({
     s2_dashboard: true,
     s3_finance: true,
   });
+
+  const [moduleVersion, setModuleVersion] = useState(0);
+
+  useEffect(() => {
+    const handleModuleToggle = () => setModuleVersion((v) => v + 1);
+    window.addEventListener("somiti_module_toggled", handleModuleToggle);
+    window.addEventListener("somiti_workspace_switched", handleModuleToggle);
+    window.addEventListener("somiti_tenants_changed", handleModuleToggle);
+    return () => {
+      window.removeEventListener("somiti_module_toggled", handleModuleToggle);
+      window.removeEventListener("somiti_workspace_switched", handleModuleToggle);
+      window.removeEventListener("somiti_tenants_changed", handleModuleToggle);
+    };
+  }, []);
 
   const [pinnedModules, setPinnedModules] = useState(() => {
     try {
@@ -745,22 +760,69 @@ export const SamityDrawerNavigation = ({
     dueMembersCount,
   ]);
 
+  // Section & Item SaaS Module Requirements Mapping
+  const availableSections = useMemo(() => {
+    const SECTION_MODULE_REQ = {
+      s4_members: "members",
+      s5_dues: "microloan",
+      s6_reminders: "sms_gateway",
+      s7_documents: "secretariat",
+      s10_approvals: "qr_verification",
+      s11_reports: "audit_reports",
+      s13_settings: "staff_rbac",
+    };
+
+    const ITEM_MODULE_REQ = {
+      deposits_list: "savings",
+      deposit_entry_action: "savings",
+      bulk_deposit_entry: "savings",
+      expenses_management: "expenses",
+      fund_balance_sheet: "bank_funds",
+      new_member_action: "members",
+      members_roster: "members",
+      dues_collection_list: "microloan",
+      smart_reminder_center: "sms_gateway",
+      official_letterhead: "secretariat",
+      official_documents: "secretariat",
+      qr_instant_verify: "qr_verification",
+      audit_balance_sheet: "audit_reports",
+      role_permission_matrix: "staff_rbac",
+    };
+
+    return menuSections
+      .filter((sec) => {
+        const req = SECTION_MODULE_REQ[sec.id];
+        return !req || isModuleEnabled(req);
+      })
+      .map((sec) => {
+        const filteredItems = sec.items.filter((it) => {
+          const itReq = ITEM_MODULE_REQ[it.id] || ITEM_MODULE_REQ[it.targetTab];
+          return !itReq || isModuleEnabled(itReq);
+        });
+        return {
+          ...sec,
+          items: filteredItems,
+        };
+      })
+      .filter((sec) => sec.items.length > 0);
+  }, [menuSections, moduleVersion]);
+
   // Flatten all items for search & pinned lookup
   const allItems = useMemo(() => {
     const list = [];
-    menuSections.forEach((s) => {
+    availableSections.forEach((s) => {
       s.items.forEach((item) => {
         list.push({ ...item, sectionTitleBn: s.titleBn, sectionTitleEn: s.titleEn });
       });
     });
     return list;
-  }, [menuSections]);
+  }, [availableSections]);
 
   // Filter items by search query
   const filteredSections = useMemo(() => {
-    if (!searchQuery.trim()) return menuSections;
+    if (!searchQuery.trim()) return availableSections;
     const q = searchQuery.toLowerCase().trim();
-    return menuSections
+    return availableSections
       .map((section) => {
         const matchingItems = section.items.filter(
           (item) =>
@@ -782,7 +844,7 @@ export const SamityDrawerNavigation = ({
         return null;
       })
       .filter(Boolean);
-  }, [menuSections, searchQuery]);
+  }, [availableSections, searchQuery]);
 
   // Handle item click
   const handleItemClick = (item) => {

@@ -7,7 +7,9 @@ import { PublicVerificationPortal } from './components/samity/PublicVerification
 import { EnterpriseOfflineBanner } from './components/samity/EnterpriseOfflineBanner';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { getPendingQueueCount } from './services/somitiOfflineStore';
-import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare } from 'lucide-react';
+import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare, Crown } from 'lucide-react';
+import { TenantModuleToggleManager } from './components/superadmin/TenantModuleToggleManager';
+import { getTenantsList, getActiveWorkspaceId, getTenantById } from './services/tenantManagerService';
 
 // Lazy-loaded heavy modal views for optimal bundle splitting
 const SamityDocVerificationView = lazy(() => import('./components/samity/SamityDocVerificationView').then(m => ({ default: m.SamityDocVerificationView })));
@@ -124,7 +126,7 @@ function getVerifyButtonBg(isVerifyActive, isLight) {
 }
 
 // Subcomponent: Executive Header Brand & User Profile
-function ExecutiveHeaderBrand({ isLight, lang, user, onLogout }) {
+function ExecutiveHeaderBrand({ isLight, lang, user, onLogout, onOpenSaaSControl }) {
   const isEn = lang === 'en';
   return (
     <div className="somiti-brand-profile-row">
@@ -182,6 +184,28 @@ function ExecutiveHeaderBrand({ isLight, lang, user, onLogout }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button
+          onClick={onOpenSaaSControl}
+          title={isEn ? 'SaaS Control Tower (Clients & Feature Toggles)' : 'সুপার এডমিন: ক্লায়েন্ট ও মডিউল ম্যানেজার'}
+          style={{
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.25))',
+            color: '#f59e0b',
+            border: '1.5px solid rgba(245, 158, 11, 0.5)',
+            borderRadius: '8px',
+            padding: '5px 9px',
+            fontSize: '0.72rem',
+            fontWeight: '900',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)'
+          }}
+        >
+          <Crown size={13} color="#f59e0b" />
+          <span>{isEn ? 'SaaS Hub' : 'ক্লায়েন্ট ও মডিউল'}</span>
+        </button>
+
         <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: '900', color: isLight ? '#0f172a' : '#f8fafc', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
             <span style={{ fontSize: '11px' }}>👑</span>
@@ -252,7 +276,9 @@ function ExecutiveControlsTrack({
   setViewMode,
   chatCount,
   isThemeDropdownOpen,
-  setIsThemeDropdownOpen
+  setIsThemeDropdownOpen,
+  onOpenSaaSControl,
+  activeWorkspaceName
 }) {
   const isEn = lang === 'en';
   const meshBg = getMeshButtonBg(isOnline, pendingQueueCount, onlineDevices.length, isLight);
@@ -264,6 +290,31 @@ function ExecutiveControlsTrack({
 
   return (
     <div className="somiti-controls-track">
+      {/* SaaS Active Workspace Switcher Button */}
+      <button
+        onClick={onOpenSaaSControl}
+        title={isEn ? 'Current Active Workspace & Samity' : 'বর্তমান সক্রিয় সমিতি / ওয়ার্কস্পেস'}
+        style={{
+          background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)',
+          color: isLight ? '#b45309' : '#fbbf24',
+          border: isLight ? '1.5px solid #fde68a' : '1px solid rgba(245, 158, 11, 0.35)',
+          borderRadius: '9px',
+          padding: '6px 11px',
+          fontSize: '0.74rem',
+          fontWeight: '800',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'pointer',
+          flexShrink: 0
+        }}
+      >
+        <Crown size={13} color="#f59e0b" />
+        <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {activeWorkspaceName || (isEn ? 'Workspace' : 'ওয়ার্কস্পেস')}
+        </span>
+      </button>
+
       {/* 0. Live Cross-Platform Device Mesh Status Button */}
       <button
         onClick={() => setIsDeviceMeshModalOpen(true)}
@@ -561,6 +612,8 @@ function MainView() {
 
   const [viewMode, setViewMode] = useState(() => (verifyData ? 'verify' : 'hub'));
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
+  const [isSaaSControlOpen, setIsSaaSControlOpen] = useState(false);
+  const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveWorkspaceId());
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
   const [onlineDevices, setOnlineDevices] = useState(() => getOnlineDevicesList());
@@ -604,16 +657,26 @@ function MainView() {
     };
     window.addEventListener('hk360_samity_updated', handleDataUpdate);
 
+    const handleWorkspaceChanged = (e) => {
+      if (e?.detail?.tenantId) {
+        setActiveWorkspaceIdState(e.detail.tenantId);
+      }
+    };
+    window.addEventListener('somiti_workspace_switched', handleWorkspaceChanged);
+
     return () => {
       unsub();
       window.removeEventListener('online', updateNetwork);
       window.removeEventListener('offline', updateNetwork);
       window.removeEventListener('somiti_offline_queue_changed', handleQueueChange);
       window.removeEventListener('hk360_samity_updated', handleDataUpdate);
+      window.removeEventListener('somiti_workspace_switched', handleWorkspaceChanged);
     };
   }, []);
 
   const isLight = theme === 'light' || theme === 'nordic_clean';
+  const activeTenant = getTenantById(activeWorkspaceId);
+  const activeWorkspaceName = activeTenant?.name || (lang === 'en' ? 'Main Headquarters' : 'মূল হেড অফিস');
 
   // Listen to popstate or navigation changes & initial route check
   useEffect(() => {
@@ -848,6 +911,8 @@ function MainView() {
           lang={lang}
           user={user}
           onLogout={logout}
+          onOpenSaaSControl={() => setIsSaaSControlOpen(true)}
+          activeWorkspaceName={activeWorkspaceName}
         />
 
         <ExecutiveControlsTrack
@@ -866,6 +931,8 @@ function MainView() {
           chatCount={chatCount}
           isThemeDropdownOpen={isThemeDropdownOpen}
           setIsThemeDropdownOpen={setIsThemeDropdownOpen}
+          onOpenSaaSControl={() => setIsSaaSControlOpen(true)}
+          activeWorkspaceName={activeWorkspaceName}
         />
       </header>
 
@@ -904,6 +971,20 @@ function MainView() {
             lang={lang}
           />
         </Suspense>
+      )}
+
+      {/* Super Admin: Multi-Tenant SaaS & Module Toggle Manager */}
+      {isSaaSControlOpen && (
+        <TenantModuleToggleManager
+          isOpen={isSaaSControlOpen}
+          onClose={() => setIsSaaSControlOpen(false)}
+          isLight={isLight}
+          lang={lang}
+          onWorkspaceSwitched={(tId) => {
+            setActiveWorkspaceIdState(tId);
+            setIsSaaSControlOpen(false);
+          }}
+        />
       )}
     </div>
   );

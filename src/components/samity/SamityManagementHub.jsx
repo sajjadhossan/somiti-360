@@ -38906,6 +38906,94 @@ ${samityTitle}
                       }}
                     />
                   </div>
+                  {/* Quick Inline Bank Receipt Image Upload with Auto-Compression */}
+                  <div style={{ gridColumn: "span 2", background: "rgba(15, 23, 42, 0.75)", padding: "14px", borderRadius: "10px", border: "1.5px dashed #10b981" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: "800", color: "#34d399", margin: 0 }}>
+                        📷 ব্যাংক রসিদের ছবি আপলোড (Bank Receipt Slip Upload & Compression) *
+                      </label>
+                      <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>
+                        ৩০০-৫০০ KB টার্গেট • সিল ও সই স্পষ্ট থাকবে
+                      </span>
+                    </div>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleDepositImageUpload("bankReceiptImage", e)}
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        borderRadius: "8px",
+                        background: "#0f172a",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        fontSize: "0.78rem",
+                        color: "#94a3b8",
+                      }}
+                    />
+
+                    {depositForm.bankReceiptImage && (
+                      <div style={{ marginTop: "10px", position: "relative", display: "inline-block", maxWidth: "260px" }}>
+                        <img
+                          src={depositForm.bankReceiptImage}
+                          alt="Bank Receipt Preview"
+                          style={{
+                            width: "100%",
+                            maxHeight: "140px",
+                            objectFit: "cover",
+                            borderRadius: "8px",
+                            border: "1.5px solid #10b981",
+                            display: "block"
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setDepositForm({ ...depositForm, bankReceiptImage: "", bankReceiptOriginalSizeKb: 0, bankReceiptCompressedSizeKb: 0 })}
+                          style={{
+                            position: "absolute",
+                            top: "4px",
+                            right: "4px",
+                            background: "rgba(0,0,0,0.8)",
+                            color: "#ef4444",
+                            border: "none",
+                            borderRadius: "50%",
+                            width: "22px",
+                            height: "22px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: "900"
+                          }}
+                        >
+                          ✕
+                        </button>
+                        {depositForm.bankReceiptCompressedSizeKb > 0 && (
+                          <div
+                            style={{
+                              marginTop: "6px",
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              background: "rgba(16, 185, 129, 0.2)",
+                              border: "1px solid rgba(16, 185, 129, 0.4)",
+                              color: "#34d399",
+                              fontSize: "0.68rem",
+                              fontWeight: "700",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <span>⚡ অপ্টিমাইজড: {depositForm.bankReceiptCompressedSizeKb} KB</span>
+                            <span style={{ color: "#94a3b8", textDecoration: "line-through" }}>
+                              {depositForm.bankReceiptOriginalSizeKb} KB
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
 
                   {/* Transaction ID */}
                   <div>

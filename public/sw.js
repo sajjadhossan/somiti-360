@@ -1,5 +1,5 @@
 /**
- * Somiti 360 - Enterprise Service Worker (v2.0.0)
+ * Somiti 360 - Enterprise Service Worker (v2.1.0)
  * ------------------------------------------------
  * Offline-first hybrid app shell caching, assets persistence,
  * and background sync management.
@@ -10,7 +10,7 @@
  * 3. Automatic old cache cleanup on activation
  */
 
-const CACHE_NAME = 'somiti360-shell-v2.0.0';
+const CACHE_NAME = 'somiti360-shell-v2.1.0';
 
 const PRECACHE_ASSETS = [
   '/',

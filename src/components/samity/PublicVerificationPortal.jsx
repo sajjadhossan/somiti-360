@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { APP_VERSION_NAME } from '../../config/version';
 import {
   CheckCircle2,
   ShieldCheck,
@@ -574,9 +575,9 @@ export const PublicVerificationPortal = ({ initialParams = {}, onBackToApp = nul
         </div>
       </div>
 
-      {/* Footer Branding */}
+      {/* Footer Branding with Live Version Display */}
       <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.70rem', color: '#94a3b8' }}>
-        <span>সমিতি ৩৬০ • ডিজিটাল ক্লাউড সমবায় প্ল্যাটফর্ম • somiti-360.vercel.app</span>
+        <span>সমিতি ৩৬০ • ডিজিটাল ক্লাউড সমবায় প্ল্যাটফর্ম • somiti-360.vercel.app ({APP_VERSION_NAME})</span>
       </div>
     </div>
   );

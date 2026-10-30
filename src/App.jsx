@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Component, lazy, Suspense } from 'react';
+import { APP_VERSION_NAME, APP_BUILD_NUMBER } from './config/version';
 import { AppProvider, useApp } from './context/AppContext';
 import { SamityManagementHub } from './components/samity/SamityManagementHub';
 import { SomitiAuthView } from './components/auth/SomitiAuthView';
@@ -171,7 +172,7 @@ function ExecutiveHeaderBrand({ isLight, lang, user, onLogout }) {
                 letterSpacing: '0.4px'
               }}
             >
-              PRO v1.0.15
+              {APP_VERSION_NAME}
             </span>
           </div>
           <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isLight ? '#475569' : '#94a3b8', fontWeight: '700' }}>

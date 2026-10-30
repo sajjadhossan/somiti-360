@@ -28,14 +28,14 @@ function runTests() {
 
   // 1. Version Parity Check
   const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-  assert(pkg.version === '2.0.0', 'package.json version is 2.0.0');
+  assert(pkg.version === '2.1.0', 'package.json version is 2.1.0');
 
   const gradle = fs.readFileSync('android/app/build.gradle', 'utf8');
-  assert(gradle.includes('versionCode 20'), 'android/app/build.gradle versionCode is 20');
-  assert(gradle.includes('versionName "2.0.0"'), 'android/app/build.gradle versionName is "2.0.0"');
+  assert(gradle.includes('versionCode 21'), 'android/app/build.gradle versionCode is 21');
+  assert(gradle.includes('versionName "2.1.0"'), 'android/app/build.gradle versionName is "2.1.0"');
 
   const versionApi = fs.readFileSync('api/app/version.js', 'utf8');
-  assert(versionApi.includes('"2.0.0"') && versionApi.includes('buildNumber: 20'), 'api/app/version.js specifies v2.0.0 Build 20');
+  assert(versionApi.includes('"2.1.0"') && versionApi.includes('buildNumber: 21'), 'api/app/version.js specifies v2.1.0 Build 21');
 
   // 2. PWA & Service Worker
   assert(fs.existsSync('public/manifest.json'), 'PWA manifest.json exists');
@@ -45,7 +45,7 @@ function runTests() {
 
   assert(fs.existsSync('public/sw.js'), 'PWA sw.js exists');
   const sw = fs.readFileSync('public/sw.js', 'utf8');
-  assert(sw.includes('somiti360-shell-v2.0.0'), 'Service worker has correct cache version');
+  assert(sw.includes('somiti360-shell-v2.1.0'), 'Service worker has correct cache version');
   assert(sw.includes('/api/'), 'Service worker explicitly skips /api/ routes to prevent leaking private cache');
 
   // 3. Local Database & Offline Stores (IndexedDB v2)

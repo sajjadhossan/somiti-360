@@ -163,7 +163,7 @@ import { SupervisorLiveRadarModal } from "./SupervisorLiveRadarModal";
 import { SamityAIAssistantModal } from "./SamityAIAssistantModal";
 import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
 import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
-import { optimizeImage } from "../../utils/imageOptimizer";
+import { optimizeImage, optimizeImageWithStats } from "../../utils/imageOptimizer";
 import { parseBioDataFile } from "../../services/bioDataDocumentParser";
 import {
   downloadDocumentPdf,
@@ -3118,14 +3118,52 @@ export const SamityManagementHub = ({ onClose }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      showToast?.("স্লিপের ছবি অপ্টিমাইজ করা হচ্ছে...", "info");
-      const optimized = await optimizeImage(file, {
-        maxWidth: 1200,
-        maxHeight: 1200,
-        quality: 0.8,
+      showToast?.("রসিদের ছবি অপ্টিমাইজ ও কম্প্রেস করা হচ্ছে (৩০০-৫০০ KB টার্গেট)...", "info");
+      const result = await optimizeImageWithStats(file, {
+        maxWidth: 1800,
+        maxHeight: 1800,
+        targetMinKb: 300,
+        targetMaxKb: 500,
+        initialQuality: 0.85,
+        mimeType: "image/jpeg",
       });
-      setDepositForm((prev) => ({ ...prev, [field]: optimized }));
-      showToast?.("স্লিপ সফলভাবে অপ্টিমাইজ করে আপলোড হয়েছে", "success");
+
+      setDepositForm((prev) => ({
+        ...prev,
+        [field]: result.dataUrl,
+        bankReceiptOriginalSizeKb: result.originalSizeKb,
+        bankReceiptCompressedSizeKb: result.compressedSizeKb,
+      }));
+
+      // Background cloud upload attempt
+      try {
+        fetch("/api/receipts/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantId: activeSamityId,
+            depositId: depositForm.voucherNo || ("DEP-" + Date.now()),
+            imageDataUrl: result.dataUrl,
+            originalSizeKb: result.originalSizeKb,
+            compressedSizeKb: result.compressedSizeKb,
+          }),
+        })
+          .then((r) => r.json())
+          .then((res) => {
+            if (res.success && res.data?.imageUrl) {
+              setDepositForm((prev) => ({
+                ...prev,
+                bankReceiptImageUrl: res.data.imageUrl,
+              }));
+            }
+          })
+          .catch(() => {});
+      } catch (_) {}
+
+      showToast?.(
+        "সফলভাবে কম্প্রেসড! মূল: " + result.originalSizeKb + " KB ➔ বর্তমান: " + result.compressedSizeKb + " KB (" + result.savedRatio + " সাশ্রয়)",
+        "success"
+      );
     } catch {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -3154,12 +3192,27 @@ export const SamityManagementHub = ({ onClose }) => {
       : depositForm.depositorName || "সাধারণ আমানতকারী";
     const depositorName = depositForm.depositorName || memberName;
 
+        const shortCode = depositForm.shortVerificationCode || ("S360-" + Math.floor(100000 + Math.random() * 900000));
     const formattedDeposit = {
       ...depositForm,
       amount: Number(depositForm.amount),
       memberName,
+      depositorType: depositForm.depositorType || "self",
       depositorName,
-      depositorRelation: depositForm.depositorRelation || "নিজে (Self)",
+      depositorRelation: depositForm.depositorRelation || "সদস্য নিজে",
+      depositorPhone: depositForm.depositorPhone || "",
+      depositorWhatsApp: depositForm.depositorWhatsApp || "",
+      depositorNid: depositForm.depositorNid || "",
+      bankName: depositForm.bankName || "",
+      bankBranch: depositForm.bankBranch || "",
+      bankAccountNo: depositForm.bankAccountNo || "",
+      bankAccountName: depositForm.bankAccountName || "",
+      bankReceiptNo: depositForm.bankReceiptNo || "",
+      bankReceiptDate: depositForm.bankReceiptDate || depositForm.depositDate,
+      bankReceiptImage: depositForm.bankReceiptImage || "",
+      bankReceiptOriginalSizeKb: depositForm.bankReceiptOriginalSizeKb || 0,
+      bankReceiptCompressedSizeKb: depositForm.bankReceiptCompressedSizeKb || 0,
+      shortVerificationCode: shortCode,
       samityId: activeSamityId,
       samityName: currentSamity?.nameBn || depositForm.samityName,
       month: depositForm.paymentMonth, // backward compat for calculateMemberPaymentStatus
@@ -4200,22 +4253,34 @@ export const SamityManagementHub = ({ onClose }) => {
     const shortCode = getReceiptShortVerificationCode(deposit);
     const verifyUrl = createSamityReceiptVerificationUrl(deposit, samity);
     const samityTitle = samity.nameBn || "সমিতি ৩৬০";
+    const memberName = deposit.memberName || "সম্মানিত সদস্য";
+    const depositorInfo = deposit.depositorName && deposit.depositorName !== memberName
+      ? `${deposit.depositorName} (${deposit.depositorRelation || 'প্রতিনিধি'})`
+      : 'সদস্য নিজে';
+    const amountVal = Number(deposit.amount || 0).toLocaleString('en-IN');
+    const paymentPeriod = `${deposit.paymentMonth || ''} ${deposit.paymentYear || ''}`.trim();
+    const bankDetails = deposit.bankReceiptNo 
+      ? `${deposit.bankName || 'ব্যাংক'} (রসিদ নং: ${deposit.bankReceiptNo})`
+      : (deposit.depositMethod || 'নগদ');
 
     return `আসসালামু আলাইকুম,
+সম্মানিত ${memberName},
+${samityTitle}-এ আপনার মেম্বার ডিপোজিট সফলভাবে গৃহীত হয়েছে।
 
-আপনার মানি রিসিট তৈরি হয়েছে।
+📋 রসিদ নং: ${rcptNo}
+👤 জমাকারী: ${depositorInfo}
+💰 জমার পরিমাণ: ৳ ${amountVal}/-
+🏷️ জমার খাত: ${deposit.depositType || 'মাসিক সঞ্চয়/চাঁদা'} (${paymentPeriod})
+🏦 মাধ্যম/ব্যাংক: ${bankDetails}
+📅 তারিখ: ${deposit.depositDate || new Date().toISOString().split('T')[0]}
+🔑 ভেরিফিকেশন কোড: ${shortCode}
 
-রিসিট নম্বর: ${rcptNo}
-ভেরিফিকেশন কোড: ${shortCode}
-
-QR কোড স্ক্যান করে অথবা ভেরিফিকেশন কোড দিয়ে রিসিটটি যাচাই করতে পারবেন।
-
-ভেরিফিকেশন লিংক:
-${verifyUrl}
+আপনার ডিজিটাল রসিদটি অনলাইনে যাচাই ও ডাউনলোড করতে নিচের লিংকে ক্লিক করুন:
+🔗 ${verifyUrl}
 
 ধন্যবাদ,
 ${samityTitle}
-সমিতি ৩৬০`;
+হিসাবকিতাব ৩৬০ • ডিজিটাল সমবায়`;
   };
 
   // Handler: Cancel Receipt with Authorized Permission
@@ -38126,7 +38191,7 @@ ${samityTitle}
                         marginBottom: "4px",
                       }}
                     >
-                      সদস্য নির্বাচন করুন (যদি সদস্যের জমা হয়)
+                      সদস্য নির্বাচন করুন (মেম্বার অ্যাকাউন্ট) *
                     </label>
                     <select
                       value={depositForm.memberId}
@@ -38134,15 +38199,16 @@ ${samityTitle}
                         const mId = e.target.value;
                         const m = data.members.find((mem) => mem.id === mId);
                         if (m) {
+                          const isSelf = (depositForm.depositorType || 'self') === 'self';
                           setDepositForm({
                             ...depositForm,
                             memberId: m.id,
                             memberName: m.nameBn || m.nameEn,
-                            depositorName: m.nameBn || m.nameEn,
-                            depositorRelation: "নিজে (Self)",
-                            depositorPhone: m.mobile || "",
-                            depositorWhatsApp:
-                              m.whatsappNumber || m.mobile || "",
+                            depositorName: isSelf ? (m.nameBn || m.nameEn) : depositForm.depositorName,
+                            depositorRelation: isSelf ? "সদস্য নিজে" : depositForm.depositorRelation,
+                            depositorPhone: isSelf ? (m.mobile || "") : depositForm.depositorPhone,
+                            depositorWhatsApp: isSelf ? (m.whatsappNumber || m.mobile || "") : depositForm.depositorWhatsApp,
+                            depositorNid: isSelf ? (m.nidNumber || "") : depositForm.depositorNid,
                             amount:
                               m.customSubscription ||
                               currentSamity?.monthlySubscription ||
@@ -38155,7 +38221,6 @@ ${samityTitle}
                             ...depositForm,
                             memberId: "",
                             memberName: "",
-                            depositorRelation: "নিজে (Self)",
                           });
                         }
                       }}
@@ -38182,6 +38247,73 @@ ${samityTitle}
                     </select>
                   </div>
 
+                  {/* Depositor Type Segmented Pill (সদস্য নিজে বনাম পরিবারের সদস্য বনাম অন্যান্য) */}
+                  <div style={{ gridColumn: "span 2", background: "rgba(30, 41, 59, 0.6)", padding: "10px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "0.74rem",
+                        fontWeight: "800",
+                        color: "#38bdf8",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      👤 টাকা জমাদানকারী কে? (Depositor Type Selection) *
+                    </label>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      {[
+                        { id: "self", label: "১. সদস্য নিজে (Self)" },
+                        { id: "family_member", label: "২. পরিবারের সদস্য (Family Member)" },
+                        { id: "authorized_person", label: "৩. অন্যান্য প্রতিনিধি (Authorized Person)" }
+                      ].map((t) => {
+                        const isSelected = (depositForm.depositorType || 'self') === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              const targetMember = data.members.find((m) => m.id === depositForm.memberId);
+                              if (t.id === "self" && targetMember) {
+                                setDepositForm({
+                                  ...depositForm,
+                                  depositorType: "self",
+                                  depositorName: targetMember.nameBn || targetMember.nameEn,
+                                  depositorRelation: "সদস্য নিজে",
+                                  depositorPhone: targetMember.mobile || "",
+                                  depositorWhatsApp: targetMember.whatsappNumber || targetMember.mobile || "",
+                                  depositorNid: targetMember.nidNumber || "",
+                                });
+                              } else {
+                                setDepositForm({
+                                  ...depositForm,
+                                  depositorType: t.id,
+                                  depositorRelation: t.id === "family_member" ? "পিতা" : "প্রতিনিধি",
+                                  depositorName: t.id === "self" ? depositForm.depositorName : "",
+                                  depositorPhone: t.id === "self" ? depositForm.depositorPhone : "",
+                                  depositorNid: "",
+                                });
+                              }
+                            }}
+                            style={{
+                              flex: "1 1 180px",
+                              padding: "8px 12px",
+                              borderRadius: "8px",
+                              fontSize: "0.76rem",
+                              fontWeight: isSelected ? "800" : "600",
+                              cursor: "pointer",
+                              border: isSelected ? "1.5px solid #10b981" : "1px solid rgba(255,255,255,0.12)",
+                              background: isSelected ? "rgba(16, 185, 129, 0.2)" : "rgba(15, 23, 42, 0.6)",
+                              color: isSelected ? "#34d399" : "#cbd5e1",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Depositor Name */}
                   <div>
                     <label
@@ -38193,13 +38325,14 @@ ${samityTitle}
                         marginBottom: "4px",
                       }}
                     >
-                      টাকা জমা দিয়েছেন / জমাদানকারী (Depositor Name) *
+                      জমাদানকারীর নাম (Depositor Name) *
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="যিনি টাকা জমা দিয়েছেন (সদস্য নিজে বা প্রতিনিধি)"
+                      placeholder="যিনি টাকা জমা দিয়েছেন"
                       value={depositForm.depositorName}
+                      disabled={depositForm.depositorType === "self" && !!depositForm.memberId}
                       onChange={(e) =>
                         setDepositForm({
                           ...depositForm,
@@ -38210,10 +38343,11 @@ ${samityTitle}
                         width: "100%",
                         padding: "8px 12px",
                         borderRadius: "8px",
-                        background: "#0f172a",
+                        background: depositForm.depositorType === "self" && !!depositForm.memberId ? "#1e293b" : "#0f172a",
                         border: "1px solid rgba(255,255,255,0.15)",
-                        color: "#fff",
+                        color: depositForm.depositorType === "self" && !!depositForm.memberId ? "#94a3b8" : "#fff",
                         fontSize: "0.84rem",
+                        cursor: depositForm.depositorType === "self" && !!depositForm.memberId ? "not-allowed" : "text",
                       }}
                     />
                   </div>
@@ -38229,10 +38363,11 @@ ${samityTitle}
                         marginBottom: "4px",
                       }}
                     >
-                      জমাদানকারীর সম্পর্ক / পদবি (Relation / Role)
+                      সদস্যের সাথে সম্পর্ক (Relationship with Member) *
                     </label>
                     <select
-                      value={depositForm.depositorRelation || "নিজে (Self)"}
+                      value={depositForm.depositorRelation || "সদস্য নিজে"}
+                      disabled={depositForm.depositorType === "self"}
                       onChange={(e) =>
                         setDepositForm({
                           ...depositForm,
@@ -38243,29 +38378,26 @@ ${samityTitle}
                         width: "100%",
                         padding: "8px 12px",
                         borderRadius: "8px",
-                        background: "#0f172a",
+                        background: depositForm.depositorType === "self" ? "#1e293b" : "#0f172a",
                         border: "1.5px solid #38bdf8",
                         color: "#38bdf8",
                         fontSize: "0.84rem",
                         fontWeight: "700",
+                        cursor: depositForm.depositorType === "self" ? "not-allowed" : "pointer",
                       }}
                     >
-                      <option value="নিজে (Self)">নিজে (সদস্য স্বয়ং)</option>
-                      <option value="পরিবারের সদস্য (Family Member)">
-                        পরিবারের সদস্য (Family Member)
-                      </option>
-                      <option value="ভাই (Brother)">ভাই (Brother)</option>
-                      <option value="বোন (Sister)">বোন (Sister)</option>
-                      <option value="স্ত্রী (Wife)">স্ত্রী (Wife)</option>
-                      <option value="স্বামী (Husband)">স্বামী (Husband)</option>
-                      <option value="পিতা (Father)">পিতা (Father)</option>
-                      <option value="মাতা (Mother)">মাতা (Mother)</option>
-                      <option value="ছেলে (Son)">ছেলে (Son)</option>
-                      <option value="মেয়ে (Daughter)">মেয়ে (Daughter)</option>
-                      <option value="প্রতিনিধি (Representative)">
-                        প্রতিনিধি (Representative)
-                      </option>
-                      <option value="অন্যান্য (Other)">অন্যান্য</option>
+                      <option value="সদস্য নিজে">সদস্য নিজে (Self)</option>
+                      <option value="পিতা">পিতা (Father)</option>
+                      <option value="মাতা">মাতা (Mother)</option>
+                      <option value="স্বামী">স্বামী (Husband)</option>
+                      <option value="স্ত্রী">স্ত্রী (Wife)</option>
+                      <option value="ছেলে">ছেলে (Son)</option>
+                      <option value="মেয়ে">মেয়ে (Daughter)</option>
+                      <option value="ভাই">ভাই (Brother)</option>
+                      <option value="বোন">বোন (Sister)</option>
+                      <option value="নমিনী">নমিনী (Nominee)</option>
+                      <option value="প্রতিনিধি">প্রতিনিধি (Authorized Representative)</option>
+                      <option value="অন্যান্য">অন্যান্য (Other)</option>
                     </select>
                   </div>
 
@@ -38280,7 +38412,7 @@ ${samityTitle}
                         marginBottom: "4px",
                       }}
                     >
-                      জমাদানকারীর মোবাইল নম্বর (ঐচ্ছিক)
+                      জমাদানকারীর মোবাইল নম্বর (Phone) *
                     </label>
                     <input
                       type="tel"
@@ -38325,6 +38457,41 @@ ${samityTitle}
                         setDepositForm({
                           ...depositForm,
                           depositorWhatsApp: e.target.value,
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        background: "#0f172a",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        color: "#fff",
+                        fontSize: "0.84rem",
+                      }}
+                    />
+                  </div>
+
+                  {/* Depositor NID / National ID (New Field) */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "0.74rem",
+                        fontWeight: "700",
+                        color: "#94a3b8",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      জমাদানকারীর জাতীয় পরিচয়পত্র / NID (ঐচ্ছিক)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="যেমন: 1990123456789"
+                      value={depositForm.depositorNid || ""}
+                      onChange={(e) =>
+                        setDepositForm({
+                          ...depositForm,
+                          depositorNid: e.target.value,
                         })
                       }
                       style={{
@@ -39084,12 +39251,14 @@ ${samityTitle}
                               border: "1px solid rgba(255,255,255,0.2)",
                             }}
                           />
-                          <button
+                                                    <button
                             type="button"
                             onClick={() =>
                               setDepositForm({
                                 ...depositForm,
                                 bankReceiptImage: "",
+                                bankReceiptOriginalSizeKb: 0,
+                                bankReceiptCompressedSizeKb: 0,
                               })
                             }
                             style={{
@@ -39110,7 +39279,29 @@ ${samityTitle}
                           >
                             ✕
                           </button>
-                        </div>
+                          {/* Live Image Optimization Stats Pill */}
+                          {depositForm.bankReceiptCompressedSizeKb > 0 && (
+                            <div
+                              style={{
+                                marginTop: "6px",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                background: "rgba(16, 185, 129, 0.2)",
+                                border: "1px solid rgba(16, 185, 129, 0.4)",
+                                color: "#34d399",
+                                fontSize: "0.68rem",
+                                fontWeight: "700",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <span>⚡ অপ্টিমাইজড: {depositForm.bankReceiptCompressedSizeKb} KB</span>
+                              <span style={{ color: "#94a3b8", textDecoration: "line-through" }}>
+                                {depositForm.bankReceiptOriginalSizeKb} KB
+                              </span>
+                            </div>
+                          )}</div>
                       )}
                     </div>
 
@@ -41653,9 +41844,9 @@ ${samityTitle}
                         টাকা জমা দিয়েছেন:{" "}
                         <strong style={{ color: "#0284c7" }}>
                           {dep.depositorName || memberName}{" "}
-                          {dep.depositorRelation
-                            ? `[${dep.depositorRelation}]`
-                            : ""}
+                          <span style={{ fontSize: "0.74rem", background: "rgba(2, 132, 199, 0.1)", padding: "1px 6px", borderRadius: "4px", color: "#0369a1" }}>
+                            ({dep.depositorRelation || "সদস্য নিজে"})
+                          </span>
                         </strong>
                       </div>
                       <div>
@@ -41664,6 +41855,14 @@ ${samityTitle}
                           {dep.depositorPhone || memberMobile}
                         </strong>
                       </div>
+                      {dep.depositorNid && (
+                        <div>
+                          জমাদানকারীর এনআইডি (NID):{" "}
+                          <strong style={{ color: "#0f172a", fontFamily: "monospace" }}>
+                            {dep.depositorNid}
+                          </strong>
+                        </div>
+                      )}
                       <div>
                         জমার খাত:{" "}
                         <strong style={{ color: "#0f172a" }}>{depType}</strong>

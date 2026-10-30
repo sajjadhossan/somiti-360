@@ -63,7 +63,7 @@ export default async function handler(req, res) {
             document_number: dep.receipt_no || dep.voucher_no || `RCPT-${dep.id}`,
             document_type: 'receipt',
             title: 'জমার রসিদ (Money Receipt)',
-            samity_id: dep.samity_id,
+            samity_id: dep.samity_id || dep.tenant_id,
             recipient_name: dep.member_name || dep.depositor_name || 'সদস্য',
             amount: dep.amount,
             status: dep.approval_status === 'cancelled' ? 'cancelled' : 'valid',
@@ -75,7 +75,17 @@ export default async function handler(req, res) {
               paymentMonth: dep.payment_month || '',
               paymentYear: dep.payment_year || '',
               depositType: dep.deposit_type || 'মাসিক সঞ্চয়/চাঁদা',
-              depositMethod: dep.deposit_method || 'নগদ'
+              depositMethod: dep.deposit_method || 'ব্যাংক কাউন্টার',
+              depositorType: dep.depositor_type || 'self',
+              depositorName: dep.depositor_name || dep.member_name || '',
+              depositorRelation: dep.depositor_relation || 'সদস্য নিজে',
+              depositorPhone: dep.depositor_phone || '',
+              depositorNid: dep.depositor_nid || '',
+              bankName: dep.bank_name || '',
+              bankBranch: dep.bank_branch || '',
+              bankAccountNo: dep.bank_account_no || '',
+              bankReceiptNo: dep.bank_receipt_no || '',
+              bankReceiptDate: dep.bank_receipt_date || dep.deposit_date || ''
             }
           };
         }
@@ -103,7 +113,7 @@ export default async function handler(req, res) {
             document_number: dep.receipt_no || dep.voucher_no || `RCPT-${dep.id}`,
             document_type: 'receipt',
             title: 'জমার রসিদ (Money Receipt)',
-            samity_id: dep.samity_id,
+            samity_id: dep.samity_id || dep.tenant_id,
             recipient_name: dep.member_name || dep.depositor_name || 'সদস্য',
             amount: dep.amount,
             status: dep.approval_status === 'cancelled' ? 'cancelled' : 'valid',
@@ -115,7 +125,17 @@ export default async function handler(req, res) {
               paymentMonth: dep.payment_month || '',
               paymentYear: dep.payment_year || '',
               depositType: dep.deposit_type || 'মাসিক সঞ্চয়/চাঁদা',
-              depositMethod: dep.deposit_method || 'নগদ'
+              depositMethod: dep.deposit_method || 'ব্যাংক কাউন্টার',
+              depositorType: dep.depositor_type || 'self',
+              depositorName: dep.depositor_name || dep.member_name || '',
+              depositorRelation: dep.depositor_relation || 'সদস্য নিজে',
+              depositorPhone: dep.depositor_phone || '',
+              depositorNid: dep.depositor_nid || '',
+              bankName: dep.bank_name || '',
+              bankBranch: dep.bank_branch || '',
+              bankAccountNo: dep.bank_account_no || '',
+              bankReceiptNo: dep.bank_receipt_no || '',
+              bankReceiptDate: dep.bank_receipt_date || dep.deposit_date || ''
             }
           };
         }

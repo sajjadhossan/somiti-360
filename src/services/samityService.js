@@ -198,10 +198,16 @@ export const createDefaultDepositObject = (samity = {}, nextCount = 1, custom = 
     transactionId: '',
     chequeNo: '',
     chequeDate: '',
+    depositorType: 'self', // 'self' (সদস্য নিজে) | 'family_member' (পরিবারের সদস্য) | 'authorized_person' (অন্যান্য প্রতিনিধি)
     depositorName: '',
     depositorPhone: '',
     depositorWhatsApp: '',
-    depositorRelation: 'সদস্য নিজে', // 'সদস্য নিজে' | 'নমিনী' | 'পিতা/মাতা' | 'প্রতিনিধি' | 'অন্যান্য'
+    depositorRelation: 'সদস্য নিজে', // 'সদস্য নিজে' | 'পিতা' | 'মাতা' | 'স্বামী' | 'স্ত্রী' | 'ছেলে' | 'মেয়ে' | 'ভাই' | 'বোন' | 'নমিনী' | 'প্রতিনিধি' | 'অন্যান্য'
+    depositorNid: '',
+    depositorAddress: '',
+    bankReceiptOriginalSizeKb: 0,
+    bankReceiptCompressedSizeKb: 0,
+    shortVerificationCode: `S360-${Math.floor(100000 + Math.random() * 900000)}`,
     memberId: '',
     memberName: '',
     paymentMonth: monthName,

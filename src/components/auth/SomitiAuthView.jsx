@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import {
   Users,
+  Search,
+  QrCode,
   Lock,
   Mail,
   User,
@@ -28,7 +30,7 @@ import { isSupabaseReady } from '../../services/supabaseClient';
 import { useApp } from '../../context/AppContext';
 import { useSamityTranslator } from '../../utils/samityDictionary';
 
-export const SomitiAuthView = ({ onAuthSuccess }) => {
+export const SomitiAuthView = ({ onAuthSuccess, onOpenPublicVerification }) => {
   const { lang = 'bn', setLang } = useApp() || {};
   const authContainerRef = useRef(null);
   const { t } = useSamityTranslator(authContainerRef, lang);
@@ -61,6 +63,8 @@ export const SomitiAuthView = ({ onAuthSuccess }) => {
 
   // Forgot password form states
   const [forgotEmail, setForgotEmail] = useState('');
+  const [showPublicVerifyModal, setShowPublicVerifyModal] = useState(false);
+  const [publicVerifyInput, setPublicVerifyInput] = useState('');
 
   const isSupabaseActive = isSupabaseReady();
 
@@ -750,6 +754,39 @@ export const SomitiAuthView = ({ onAuthSuccess }) => {
               )}
               <span>গুগল দিয়ে সাইন ইন (Google Sign-In)</span>
             </button>
+
+            {/* Rule 4: Public Verify Document Button (No Login Required) */}
+            <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed var(--border-color, rgba(255, 255, 255, 0.12))' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenPublicVerification) {
+                    onOpenPublicVerification();
+                  } else {
+                    setShowPublicVerifyModal(true);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '9px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1.5px solid #10b981',
+                  color: '#34d399',
+                  fontSize: '0.84rem',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)'
+                }}
+              >
+                <Search size={16} />
+                <span>🔍 লগইন ছাড়াই রসিদ/ডকুমেন্ট যাচাই করুন (Verify Document)</span>
+              </button>
+            </div>
           </form>
         )}
 
@@ -1014,6 +1051,139 @@ export const SomitiAuthView = ({ onAuthSuccess }) => {
             >
               ← লগইন পেজে ফিরে যান
             </button>
+          </div>
+        )}
+
+        {/* Public Document Verification Modal */}
+        {showPublicVerifyModal && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px'
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: '460px',
+                background: '#ffffff',
+                color: '#0f172a',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                position: 'relative'
+              }}
+            >
+              <button
+                onClick={() => setShowPublicVerifyModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={20} />
+              </button>
+
+              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px',
+                    border: '1.5px solid #10b981'
+                  }}
+                >
+                  <Search size={24} />
+                </div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: '900', color: '#064e3b' }}>
+                  পাবলিক ডকুমেন্ট যাচাইকরণ
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
+                  যেকোনো রসিদ নম্বর বা ভেরিফিকেশন কোড লিখুন (যেমন: S360-XXXXXX)
+                </p>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const clean = publicVerifyInput.trim();
+                  if (!clean) return;
+                  window.location.href = `/?v=1&c=${encodeURIComponent(clean)}&r=${encodeURIComponent(clean)}`;
+                }}
+              >
+                <input
+                  type="text"
+                  required
+                  placeholder="রসিদ নং (RCPT-XXXX) বা কোড (S360-XXXX)"
+                  value={publicVerifyInput}
+                  onChange={(e) => setPublicVerifyInput(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: '9px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.88rem',
+                    fontWeight: '700',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    marginBottom: '14px'
+                  }}
+                />
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="submit"
+                    style={{
+                      flex: 1,
+                      padding: '11px',
+                      borderRadius: '8px',
+                      background: '#10b981',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: '800',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    যাচাই সম্পন্ন করুন
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPublicVerifyModal(false)}
+                    style={{
+                      padding: '11px 16px',
+                      borderRadius: '8px',
+                      background: '#f1f5f9',
+                      color: '#475569',
+                      border: '1px solid #cbd5e1',
+                      fontWeight: '700',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    বন্ধ করুন
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 

@@ -1,20 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
-import { PublicVerificationView } from './components/samity/PublicVerificationView';
+import { PublicVerificationPortal } from './components/samity/PublicVerificationPortal';
 import './index.css';
 
 // -------------------------------------------------------------
-// Top-Level Immediate Verification Intercept (Rule 2)
-// Never waits for Router, AuthProvider, or Cloud Database checks!
-// Renders <PublicVerificationView /> instantly if query contains v=1 or c= or path is /verify
+// Top-Level Immediate Verification Intercept (Rule 1 & Rule 3)
+// Intercepts immediately BEFORE ANY AuthProvider, Login, or Routing logic!
+// If query contains v=1, c=, code=, verify=, r= or path is /verify,
+// immediately render <PublicVerificationPortal /> so zero login is required!
 // -------------------------------------------------------------
 const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
 const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
 
-const isVerificationRequest = searchParams.get('v') === '1' ||
+const isVerificationRequest =
+  searchParams.get('v') === '1' ||
   Boolean(searchParams.get('c')) ||
   Boolean(searchParams.get('code')) ||
+  Boolean(searchParams.get('verify')) ||
+  Boolean(searchParams.get('r')) ||
   pathname === '/verify' ||
   pathname.startsWith('/verify/');
 
@@ -24,7 +28,7 @@ if (isVerificationRequest && rootElement) {
   const initialParams = Object.fromEntries(searchParams.entries());
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <PublicVerificationView initialParams={initialParams} />
+      <PublicVerificationPortal initialParams={initialParams} />
     </React.StrictMode>
   );
 } else if (rootElement) {

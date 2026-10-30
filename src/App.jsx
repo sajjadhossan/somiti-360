@@ -2,6 +2,7 @@ import React, { useState, useEffect, Component, lazy, Suspense } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { SamityManagementHub } from './components/samity/SamityManagementHub';
 import { SomitiAuthView } from './components/auth/SomitiAuthView';
+import { PublicVerificationPortal } from './components/samity/PublicVerificationPortal';
 import { EnterpriseOfflineBanner } from './components/samity/EnterpriseOfflineBanner';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { getPendingQueueCount } from './services/somitiOfflineStore';
@@ -707,6 +708,38 @@ function MainView() {
     );
   }
 
+  // ====================================================================
+  // 0. ABSOLUTE ZERO-AUTH VERIFICATION BYPASS (Rule 1 & Rule 3)
+  // MUST RUN BEFORE authLoading, isAuthenticated, or Login checks!
+  // ====================================================================
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isDirectVerifyScan =
+    viewMode === 'verify' ||
+    searchParams.get('v') === '1' ||
+    Boolean(searchParams.get('c')) ||
+    Boolean(searchParams.get('code')) ||
+    Boolean(searchParams.get('verify')) ||
+    Boolean(searchParams.get('r')) ||
+    currentPath === '/verify' ||
+    currentPath.startsWith('/verify/');
+
+  if (isDirectVerifyScan) {
+    const activeParams = verifyData || Object.fromEntries(searchParams.entries());
+    return (
+      <PublicVerificationPortal
+        initialParams={activeParams}
+        onBackToApp={() => {
+          setViewMode('hub');
+          setVerifyData(null);
+          if (typeof window !== 'undefined' && window.history.pushState) {
+            window.history.pushState({}, '', '/');
+          }
+        }}
+      />
+    );
+  }
+
   // Loading Session State
   if (authLoading) {
     return (
@@ -722,7 +755,12 @@ function MainView() {
 
   // Strict Authentication Gate (Rule 7)
   if (!isAuthenticated) {
-    return <SomitiAuthView onAuthSuccess={() => {}} />;
+    return (
+      <SomitiAuthView
+        onAuthSuccess={() => {}}
+        onOpenPublicVerification={() => setViewMode('verify')}
+      />
+    );
   }
 
   return (

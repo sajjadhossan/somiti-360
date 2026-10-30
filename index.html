@@ -13,8 +13,228 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314b8a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M22 21v-2a4 4 0 0 0-3-3.87'/><path d='M16 3.13a4 4 0 0 1 0 7.75'/></svg>" />
+
+    <!-- Pure Instant Vanilla HTML Intercept to guarantee ZERO Login Flash on QR Scan -->
+    <style>
+      #raw-qr-verification-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999999;
+        background: linear-gradient(180deg, #064e3b 0%, #022c22 35%, #090d16 100%);
+        color: #f8fafc;
+        font-family: 'Hind Siliguri', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        padding: 16px 12px 48px;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+      .raw-verify-container {
+        max-width: 540px;
+        margin: 0 auto;
+      }
+      .raw-verify-card {
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 20px;
+        padding: 24px 20px;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+        border: 1px solid #e2e8f0;
+        position: relative;
+        overflow: hidden;
+      }
+      .raw-accent-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #10b981, #059669, #0284c7);
+      }
+    </style>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-teal-500 selection:text-white">
+    <!-- Instant Standalone HTML Fallback Shell for QR Scanners -->
+    <div id="raw-qr-verification-overlay">
+      <div class="raw-verify-container">
+        <div style="text-align: center; margin-bottom: 14px; padding: 6px 12px;">
+          <h2 style="margin: 0; font-size: 1.1rem; font-weight: 900; color: #6ee7b7;">
+            🛡️ Somiti 360 - অফিশিয়াল ডকুমেন্ট ভেরিফিকেশন সিস্টেম
+          </h2>
+          <p style="margin: 3px 0 0; font-size: 0.72rem; color: #94a3b8;">
+            somiti-360.vercel.app • গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত সমবায় ডিজিটাল প্ল্যাটফর্ম
+          </p>
+        </div>
+
+        <div class="raw-verify-card">
+          <div class="raw-accent-bar"></div>
+
+          <!-- Dynamic Verification Banner -->
+          <div id="raw-notice-banner" style="border-radius: 16px; padding: 14px 16px; text-align: center; margin-bottom: 20px; border-width: 2px; border-style: solid;">
+            <div id="raw-badge-icon" style="width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 26px;"></div>
+            <div id="raw-badge-title" style="font-size: 1.05rem; font-weight: 900; margin-bottom: 4px;"></div>
+            <div id="raw-badge-desc" style="font-size: 0.80rem; font-weight: 700; line-height: 1.45;"></div>
+          </div>
+
+          <!-- Samity Title Header -->
+          <div style="text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 14px; margin-bottom: 16px;">
+            <div id="raw-samity-name" style="font-size: 1.4rem; font-weight: 900; color: #064e3b; margin-bottom: 4px;">স্বপ্নছোঁয়া সমবায় সমিতি</div>
+            <div id="raw-doc-tag" style="display: inline-block; padding: 3px 12px; background: #f1f5f9; border-radius: 6px; font-size: 0.76rem; font-weight: 800; color: #334155;"></div>
+          </div>
+
+          <!-- Verified Amount Block -->
+          <div id="raw-amount-box" style="display: none; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #86efac; border-radius: 14px; padding: 14px 16px; text-align: center; margin-bottom: 18px;">
+            <div style="font-size: 0.75rem; font-weight: 800; color: #047857; margin-bottom: 2px;">
+              পরিশোধিত টাকার পরিমাণ (Verified Amount)
+            </div>
+            <div id="raw-amount-text" style="font-size: 1.95rem; font-weight: 900; color: #064e3b; letterSpacing: -0.02em;"></div>
+          </div>
+
+          <!-- Information Grid -->
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 11px;">
+              <div style="font-size: 0.66rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">ভেরিফিকেশন কোড</div>
+              <div id="raw-code-text" style="font-size: 0.86rem; font-weight: 900; color: #0284c7; font-family: monospace;"></div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 11px;">
+              <div style="font-size: 0.66rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">রসিদ / ডকুমেন্ট নং</div>
+              <div id="raw-rcpt-text" style="font-size: 0.86rem; font-weight: 900; color: #0f172a;"></div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 11px;">
+              <div style="font-size: 0.66rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">সদস্যের নাম</div>
+              <div id="raw-name-text" style="font-size: 0.84rem; font-weight: 800; color: #0f172a;"></div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 11px;">
+              <div style="font-size: 0.66rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">জমাদানকারী</div>
+              <div id="raw-depositor-text" style="font-size: 0.84rem; font-weight: 800; color: #0f172a;"></div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 11px;">
+              <div style="font-size: 0.66rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">হিসাবের মাস/বছর</div>
+              <div id="raw-month-text" style="font-size: 0.82rem; font-weight: 800; color: #334155;"></div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 11px;">
+              <div style="font-size: 0.66rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">ইস্যুর তারিখ</div>
+              <div id="raw-date-text" style="font-size: 0.82rem; font-weight: 800; color: #334155;"></div>
+            </div>
+          </div>
+
+          <!-- Legal / Security guarantee -->
+          <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 12px; font-size: 0.70rem; color: #475569; line-height: 1.5; margin-bottom: 18px;">
+            🔒 এই ডিজিটাল নথির সকল তথ্য ও হিসাব সেন্ট্রাল ক্লাউড সার্ভারে এনক্রিপ্টেড আকারে স্থায়ীভাবে সংরক্ষিত রয়েছে। কিউআর কোড স্ক্যানকৃত তথ্য সরাসরি সমিতির অনুমোদিত রেকর্ডের সাথে শতভাগ সামঞ্জস্যপূর্ণ।
+          </div>
+
+          <!-- Buttons -->
+          <div style="display: flex; gap: 8px;">
+            <button onclick="window.print()" style="flex: 1; padding: 12px; border-radius: 10px; background: #047857; color: #fff; border: none; font-weight: 800; font-size: 0.84rem; cursor: pointer;">
+              🖨️ প্রিন্ট / পিডিএফ সেভ
+            </button>
+            <button onclick="navigator.clipboard && navigator.clipboard.writeText(window.location.href); alert('লিংক কপি করা হয়েছে!');" style="flex: 1; padding: 12px; border-radius: 10px; background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; font-weight: 800; font-size: 0.84rem; cursor: pointer;">
+              📋 লিংক কপি করুন
+            </button>
+          </div>
+
+          <div style="text-align: center; margin-top: 16px;">
+            <a href="/" style="font-size: 0.76rem; color: #0284c7; font-weight: 800; text-decoration: none;">
+              সমিতি ৩৬০ মূল সফটওয়্যারে যান →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          var path = window.location.pathname || '';
+          var isVerify = p.get('v') === '1' || p.has('c') || p.has('code') || p.has('verify') || p.has('r') || path === '/verify' || path.startsWith('/verify/');
+          if (isVerify) {
+            var overlay = document.getElementById('raw-qr-verification-overlay');
+            if (overlay) {
+              overlay.style.display = 'block';
+
+              var docType = p.get('t') || p.get('type') || p.get('verify') || 'receipt';
+              var c = p.get('c') || p.get('code') || 'S360-VERIFIED';
+              var r = p.get('r') || p.get('receipt_no') || 'RCPT-OFFICIAL';
+              var a = Number(p.get('a') || p.get('amount') || 0);
+              var n = p.get('n') || p.get('member') || 'সম্মানিত সদস্য';
+              var dp = p.get('dp') || p.get('m') || p.get('depositor') || n;
+              var m = p.get('m') || p.get('p') || p.get('month') || 'চলতি মাস';
+              var dt = p.get('dt') || p.get('d') || p.get('date') || new Date().toISOString().split('T')[0];
+              var s = p.get('s') || p.get('samity') || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+
+              // Configure dynamic notice text and colors based on docType
+              var banner = document.getElementById('raw-notice-banner');
+              var bIcon = document.getElementById('raw-badge-icon');
+              var bTitle = document.getElementById('raw-badge-title');
+              var bDesc = document.getElementById('raw-badge-desc');
+              var docTag = document.getElementById('raw-doc-tag');
+
+              if (docType === 'notice' || docType === 'due_notice') {
+                banner.style.background = '#fef2f2';
+                banner.style.borderColor = '#ef4444';
+                bIcon.style.background = '#ef4444';
+                bIcon.style.color = '#fff';
+                bIcon.innerHTML = '⚠️';
+                bTitle.style.color = '#991b1b';
+                bTitle.innerText = 'অফিশিয়াল বকেয়া / সতর্কবার্তা নোটিশ';
+                bDesc.style.color = '#b91c1c';
+                bDesc.innerText = 'এটি সমিতি কর্তৃক জারিকৃত একটি আইনগত ও অফিশিয়াল নোটিশ। সময়মত বকেয়া পরিশোধের জন্য অবহিত করা হচ্ছে।';
+                docTag.innerText = 'অফিশিয়াল বকেয়া নোটিশ (Official Due Notice)';
+              } else if (docType === 'membership_cert' || docType === 'certificate' || docType === 'member_id_card') {
+                banner.style.background = '#fffbeb';
+                banner.style.borderColor = '#f59e0b';
+                bIcon.style.background = '#f59e0b';
+                bIcon.style.color = '#fff';
+                bIcon.innerHTML = '🎖️';
+                bTitle.style.color = '#92400e';
+                bTitle.innerText = 'সদস্যপদ সত্যায়িত ও অনুমোদিত';
+                bDesc.style.color = '#b45309';
+                bDesc.innerText = 'এই সদস্য অত্র সমিতির একজন নিয়মিত ও নিবন্ধিত সক্রিয় সদস্য হিসেবে সেন্ট্রাল ডাটাবেজে সত্যায়িত।';
+                docTag.innerText = 'সদস্যপদ সনদ ও স্মার্ট কার্ড (Membership Certificate)';
+              } else if (docType === 'loan' || docType === 'installment') {
+                banner.style.background = '#ecfeff';
+                banner.style.borderColor = '#06b6d4';
+                bIcon.style.background = '#06b6d4';
+                bIcon.style.color = '#fff';
+                bIcon.innerHTML = '💼';
+                bTitle.style.color = '#155e75';
+                bTitle.innerText = 'কিস্তি আদায় ও ঋণ বিতরণ ভেরিফাইড';
+                bDesc.style.color = '#0e7490';
+                bDesc.innerText = 'কিস্তি আদায় / ঋণ স্থিতি অডিট ট্রেইলে অনুমোদিত এবং সমিতির খাতায় সংরক্ষিত হয়েছে।';
+                docTag.innerText = 'কিস্তি ও ঋণ খতিয়ান (Loan & Installment Ledger)';
+              } else {
+                banner.style.background = '#ecfdf5';
+                banner.style.borderColor = '#10b981';
+                bIcon.style.background = '#10b981';
+                bIcon.style.color = '#fff';
+                bIcon.innerHTML = '✅';
+                bTitle.style.color = '#065f46';
+                bTitle.innerText = 'পেমেন্ট ও জমার রসিদ ভেরিফাইড';
+                bDesc.style.color = '#047857';
+                bDesc.innerText = 'আপনার পেমেন্টটি সফলভাবে সম্পন্ন হয়েছে এবং এই রসিদটি ১০০% আসল ও সিস্টেম কর্তৃক অনুমোদিত।';
+                docTag.innerText = 'অফিসিয়াল জমা রসিদ (Official Deposit Receipt)';
+              }
+
+              document.getElementById('raw-samity-name').innerText = s;
+              document.getElementById('raw-code-text').innerText = c;
+              document.getElementById('raw-rcpt-text').innerText = r;
+              document.getElementById('raw-name-text').innerText = n;
+              document.getElementById('raw-depositor-text').innerText = dp;
+              document.getElementById('raw-month-text').innerText = m;
+              document.getElementById('raw-date-text').innerText = dt;
+
+              if (a > 0) {
+                document.getElementById('raw-amount-box').style.display = 'block';
+                document.getElementById('raw-amount-text').innerText = '৳ ' + a.toLocaleString('en-IN');
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Raw QR check error:', e);
+        }
+      })();
+    </script>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

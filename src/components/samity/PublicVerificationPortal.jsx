@@ -200,41 +200,79 @@ export const PublicVerificationPortal = ({ initialParams = {}, onBackToApp = nul
           }}
         />
 
-        {/* 2. Large Animated Green Verified Banner */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-            border: '2px solid #10b981',
-            borderRadius: '16px',
-            padding: '14px 16px',
-            textAlign: 'center',
-            marginBottom: '20px',
-            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.2)'
-          }}
-        >
-          <div
-            style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '50%',
-              background: '#10b981',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px',
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
-            }}
-          >
-            <CheckCircle2 size={34} strokeWidth={2.6} />
-          </div>
-          <div style={{ fontSize: '1rem', fontWeight: '900', color: '#065f46', marginBottom: '3px' }}>
-            ✅ ভেরিফাইড (Verified by Somiti 360)
-          </div>
-          <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#047857' }}>
-            এই ডকুমেন্টটি ১০০% আসল এবং সিস্টেম কর্তৃক যাচাইকৃত।
-          </div>
-        </div>
+        {/* 2. Dynamic Context-Aware Verification Banner per document type */}
+        {(() => {
+          let bannerBg = 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)';
+          let borderColor = '#10b981';
+          let iconBg = '#10b981';
+          let titleColor = '#065f46';
+          let descColor = '#047857';
+          let titleText = '✅ আপনার পেমেন্টটি সফলভাবে সম্পন্ন হয়েছে ও সিস্টেম কর্তৃক যাচাইকৃত';
+          let descText = 'অত্র জমার টাকাটি সমিতির কেন্দ্রীয় লেজারে সংরক্ষিত হয়েছে এবং এই রসিদটি শতভাগ আসল ও বৈধ।';
+
+          if (docType === 'notice' || docType === 'due_notice') {
+            bannerBg = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+            borderColor = '#ef4444';
+            iconBg = '#ef4444';
+            titleColor = '#991b1b';
+            descColor = '#b91c1c';
+            titleText = '⚠️ আপনার নোটিশটি সম্পূর্ণ হয়েছে — এটি একটি লিগ্যাল ও অনুমোদিত নোটিশ';
+            descText = 'এটি সমিতি কার্যনির্বাহী কমিটি কর্তৃক অনুমোদিত অফিশিয়াল বকেয়া/সাধারণ নোটিশ। নির্ধারিত সময়ের মধ্যে প্রয়োজনীয় পদক্ষেপ নিন।';
+          } else if (docType === 'membership_cert' || docType === 'certificate' || docType === 'member_id_card') {
+            bannerBg = 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)';
+            borderColor = '#f59e0b';
+            iconBg = '#f59e0b';
+            titleColor = '#92400e';
+            descColor = '#b45309';
+            titleText = '🎖️ সদস্যপদ সত্যায়িত — এটি গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত';
+            descText = 'এই সদস্য অত্র সমবায় সমিতির একজন বৈধ, নিয়মিত ও সক্রিয় নিবন্ধিত সদস্য হিসেবে সেন্ট্রাল ক্লাউডে সত্যায়িত।';
+          } else if (docType === 'loan' || docType === 'installment') {
+            bannerBg = 'linear-gradient(135deg, #ecfeff 0%, #cffafe 100%)';
+            borderColor = '#06b6d4';
+            iconBg = '#06b6d4';
+            titleColor = '#155e75';
+            descColor = '#0e7490';
+            titleText = '💼 কিস্তি আদায় ও ঋণ খতিয়ান সম্পূর্ণ হয়েছে ও ভেরিফাইড';
+            descText = 'ঋণ বিতরণ ও কিস্তি আদায়ের সম্পূর্ণ হিসাব সেন্ট্রাল অডিট ট্রেইলে অনুমোদিত ও হালনাগাদ করা হয়েছে।';
+          }
+
+          return (
+            <div
+              style={{
+                background: bannerBg,
+                border: `2px solid ${borderColor}`,
+                borderRadius: '16px',
+                padding: '14px 16px',
+                textAlign: 'center',
+                marginBottom: '20px',
+                boxShadow: `0 8px 24px ${borderColor}33`
+              }}
+            >
+              <div
+                style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '50%',
+                  background: iconBg,
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px',
+                  boxShadow: `0 4px 12px ${iconBg}66`
+                }}
+              >
+                <CheckCircle2 size={34} strokeWidth={2.6} />
+              </div>
+              <div style={{ fontSize: '0.98rem', fontWeight: '900', color: titleColor, marginBottom: '4px', lineHeight: 1.35 }}>
+                {titleText}
+              </div>
+              <div style={{ fontSize: '0.78rem', fontWeight: '700', color: descColor, lineHeight: 1.45 }}>
+                {descText}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 3. Samity Header */}
         <div

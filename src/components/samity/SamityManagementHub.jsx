@@ -162,6 +162,7 @@ import { DeviceMeshStatusModal } from "./DeviceMeshStatusModal";
 import { SupervisorLiveRadarModal } from "./SupervisorLiveRadarModal";
 import { SamityAIAssistantModal } from "./SamityAIAssistantModal";
 import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
+import { AiDepositScannerModal } from "./AiDepositScannerModal";
 import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
 import { optimizeImage, optimizeImageWithStats } from "../../utils/imageOptimizer";
 import { parseBioDataFile } from "../../services/bioDataDocumentParser";
@@ -2087,6 +2088,8 @@ export const SamityManagementHub = ({ onClose }) => {
 
   // Universal QR Verifier Hub State
   const [isUniversalVerifierOpen, setIsUniversalVerifierOpen] = useState(false);
+  const [isAiDepositScannerOpen, setIsAiDepositScannerOpen] = useState(false);
+  const [aiScannerTargetMember, setAiScannerTargetMember] = useState(null);
 
   // Real QR Verification Data URL for Membership Certificate
   const [certQrDataUrl, setCertQrDataUrl] = useState("");
@@ -34373,6 +34376,32 @@ ${samityTitle}
                   )}
 
                   <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileModalOpen(false);
+                      setAiScannerTargetMember(selectedMemberProfile);
+                      setIsAiDepositScannerOpen(true);
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                      color: "#fff",
+                      border: "none",
+                      padding: "5px 12px",
+                      borderRadius: "6px",
+                      fontSize: "0.75rem",
+                      fontWeight: "900",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      boxShadow: "0 2px 8px rgba(139, 92, 246, 0.4)",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    <Sparkles size={13} />
+                    <span>AI দিয়ে জমা স্ক্যান</span>
+                  </button>
+                  <button
                     onClick={() => {
                       setIsProfileModalOpen(false);
                       handleOpenDepositModal(selectedMemberProfile.id);
@@ -37963,6 +37992,32 @@ ${samityTitle}
                   </p>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const m = data.members.find((mem) => mem.id === depositForm.memberId);
+                  setAiScannerTargetMember(m || null);
+                  setIsAiDepositScannerOpen(true);
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                  border: "none",
+                  color: "#fff",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.76rem",
+                  fontWeight: "800",
+                  boxShadow: "0 2px 10px rgba(139, 92, 246, 0.4)",
+                  marginRight: "6px",
+                }}
+              >
+                <Sparkles size={14} />
+                <span>AI ডিপোজিট স্ক্যানার</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -49502,6 +49557,23 @@ ${samityTitle}
             }),
             { action: "UPDATE_SAMITY_VERIFY_DOMAIN", module: "SETTINGS" },
           );
+        }}
+        showToast={showToast}
+      />
+
+      {/* AI Deposit Scanner & One-Command Pre-filler Modal */}
+      <AiDepositScannerModal
+        isOpen={isAiDepositScannerOpen}
+        onClose={() => {
+          setIsAiDepositScannerOpen(false);
+          setAiScannerTargetMember(null);
+        }}
+        targetMember={aiScannerTargetMember}
+        members={data.members || []}
+        currentSamity={currentSamity}
+        onConfirmDeposit={(aiDep) => {
+          handleOpenDepositModal(aiDep);
+          showToast?.("AI রসিদ যাচাই সম্পন্ন! জমা রিভিউ করে সেভ করুন।", "success");
         }}
         showToast={showToast}
       />

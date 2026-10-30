@@ -130,25 +130,25 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   }
 
   // Determine document type
-  const docType = decodedToken?.t || verifyData?.type || query.get('verify') || 'samity_doc';
+  const docType = searchedDoc?.document_type || decodedToken?.t || (verifyData?.docType === 'code' ? 'receipt' : verifyData?.type) || query.get('verify') || 'samity_doc';
 
   // Common parameters
   const samityName = decodedToken?.sam || verifyData?.samity || query.get('samity') || 'স্বপ্নছোঁয়া সমবায় সমিতি';
   const regNo = decodedToken?.reg || verifyData?.reg || query.get('reg') || 'সছস-২০২৪/০৯';
-  const date = decodedToken?.dt || verifyData?.date || query.get('date') || new Date().toISOString().split('T')[0];
+  const date = searchedDoc?.issue_date || decodedToken?.dt || verifyData?.date || query.get('date') || new Date().toISOString().split('T')[0];
   const hash = decodedToken?.h || verifyData?.hash || query.get('hash') || 'HK360-SEC-VERIFIED';
 
   // Receipt specific parameters
-  const receiptNo = decodedToken?.rn || verifyData?.receiptNo || query.get('receipt_no') || 'RCPT-2026-0001';
-  const memberName = decodedToken?.m || verifyData?.memberName || query.get('member') || 'সম্মানিত সদস্য';
-  const memberId = decodedToken?.mid || verifyData?.memberId || query.get('memberId') || 'SM-001';
-  const depositorName = decodedToken?.d || verifyData?.depositorName || query.get('depositor') || memberName;
-  const depositorRelation = decodedToken?.rel || verifyData?.depositorRelation || query.get('relation') || 'নিজে (Self)';
-  const amount = Number(decodedToken?.a !== undefined ? decodedToken.a : (verifyData?.amount || query.get('amount') || 0));
-  const depositType = decodedToken?.type || verifyData?.depositType || query.get('type') || 'মাসিক সঞ্চয় / চাঁদা';
-  const paymentMonth = decodedToken?.month || verifyData?.month || query.get('month') || '';
-  const paymentYear = decodedToken?.year || verifyData?.year || query.get('year') || '';
-  const paymentMethod = decodedToken?.method || verifyData?.paymentMethod || query.get('method') || 'নগদ (Cash)';
+  const receiptNo = searchedDoc?.document_number || decodedToken?.rn || verifyData?.receiptNo || query.get('receipt_no') || 'RCPT-2026-0001';
+  const memberName = searchedDoc?.recipient_name || decodedToken?.m || verifyData?.memberName || query.get('member') || 'সম্মানিত সদস্য';
+  const memberId = searchedDoc?.metadata?.memberId || decodedToken?.mid || verifyData?.memberId || query.get('memberId') || 'SM-001';
+  const depositorName = searchedDoc?.metadata?.depositorName || decodedToken?.d || verifyData?.depositorName || query.get('depositor') || memberName;
+  const depositorRelation = searchedDoc?.metadata?.depositorRelation || decodedToken?.rel || verifyData?.depositorRelation || query.get('relation') || 'নিজে (Self)';
+  const amount = Number(searchedDoc?.amount !== undefined ? searchedDoc.amount : (decodedToken?.a !== undefined ? decodedToken.a : (verifyData?.amount || query.get('amount') || 0)));
+  const depositType = searchedDoc?.metadata?.depositType || decodedToken?.type || verifyData?.depositType || query.get('type') || 'মাসিক সঞ্চয় / চাঁদা';
+  const paymentMonth = searchedDoc?.metadata?.paymentMonth || decodedToken?.month || verifyData?.month || query.get('month') || '';
+  const paymentYear = searchedDoc?.metadata?.paymentYear || decodedToken?.year || verifyData?.year || query.get('year') || '';
+  const paymentMethod = searchedDoc?.metadata?.depositMethod || decodedToken?.method || verifyData?.paymentMethod || query.get('method') || 'নগদ (Cash)';
 
   // Document / Notice specific parameters
   const refNo = verifyData?.ref || query.get('ref') || 'সছস/২০২৬/০১';
@@ -175,12 +175,13 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   const passbookSavings = Number(decodedToken?.savings !== undefined ? decodedToken.savings : (query.get('savings') || 0));
 
   useEffect(() => {
-    const docId = query.get('doc_id') || verifyData?.doc_id || query.get('receipt_no') || query.get('ref') || verifyData?.receiptNo;
+    const docId = query.get('doc_id') || verifyData?.doc_id || query.get('receipt_no') || query.get('ref') || verifyData?.receiptNo || verifyData?.docId || verifyData?.documentId;
     const token = query.get('token') || verifyData?.token;
     const codeParam = query.get('code') || verifyData?.code;
+    const isCodeLookup = docType === 'code' || verifyData?.docType === 'code' || (typeof docId === 'string' && docId.startsWith('S360-'));
 
-    if (codeParam && !docId && !token) {
-      handleManualVerify(codeParam);
+    if (isCodeLookup || (codeParam && !token)) {
+      handleManualVerify(codeParam || docId);
       return;
     }
 

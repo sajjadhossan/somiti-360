@@ -599,7 +599,7 @@ function MainView() {
           if (path.includes('/verify/')) {
             const parts = path.split('/verify/')[1]?.split('?')[0]?.split('/') || [];
             const docType = parts[0] || params.get('verify') || 'receipt';
-            const docId = parts[1] ? decodeURIComponent(parts[1]) : (params.get('doc_id') || params.get('receipt_no') || '');
+            const docId = parts[1] ? decodeURIComponent(parts[1]) : (params.get('doc_id') || params.get('receipt_no') || params.get('code') || '');
             const allParams = Object.fromEntries(params.entries());
             setVerifyData({
               ...allParams,

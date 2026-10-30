@@ -7,7 +7,8 @@ import { PublicVerificationPortal } from './components/samity/PublicVerification
 import { EnterpriseOfflineBanner } from './components/samity/EnterpriseOfflineBanner';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { getPendingQueueCount } from './services/somitiOfflineStore';
-import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare, Crown } from 'lucide-react';
+import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare, Crown, Activity } from 'lucide-react';
+const SystemDiagnosticModal = lazy(() => import('./components/common/SystemDiagnosticModal').then(m => ({ default: m.SystemDiagnosticModal })));
 import { TenantModuleToggleManager } from './components/superadmin/TenantModuleToggleManager';
 import { SuperAdminDualModeBar } from './components/superadmin/SuperAdminDualModeBar';
 import { AppUpdateModal } from './components/common/AppUpdateModal';
@@ -215,6 +216,31 @@ function ExecutiveHeaderBrand({ isLight, lang, user, onLogout, onOpenSaaSControl
         >
           <Crown size={13} color="#f59e0b" />
           <span>{isEn ? 'SaaS Hub' : 'ক্লায়েন্ট ও মডিউল'}</span>
+        </button>
+
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('somiti_trigger_diagnostic'));
+            }
+          }}
+          title={isEn ? 'System Health & Performance Hub (Ctrl+Shift+D)' : 'সিস্টেম হেলথ ও ডায়াগনস্টিক হাব (Ctrl+Shift+D)'}
+          style={{
+            background: 'rgba(16, 185, 129, 0.12)',
+            color: '#10b981',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            borderRadius: '8px',
+            padding: '5px 8px',
+            fontSize: '0.72rem',
+            fontWeight: '900',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          <Activity size={12} color="#10b981" />
+          <span>১০০% হেলথ</span>
         </button>
 
         <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
@@ -626,6 +652,7 @@ function MainView() {
   const [isSaaSControlOpen, setIsSaaSControlOpen] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveWorkspaceId());
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
@@ -699,6 +726,23 @@ function MainView() {
     };
     window.addEventListener('somiti_trigger_update_check', handleManualUpdateCheck);
 
+    const handleTriggerDiagnostic = () => setIsDiagnosticOpen(true);
+    window.addEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
+
+    // Global Power Keyboard Shortcuts (Ctrl+Shift+D for Diagnostics, Escape to close modals)
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        setIsDiagnosticOpen(prev => !prev);
+      }
+      if (e.key === 'Escape') {
+        setIsDiagnosticOpen(false);
+        setIsUpdateModalOpen(false);
+        setIsSaaSControlOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+
     return () => {
       unsub();
       clearTimeout(updateTimer);
@@ -708,6 +752,8 @@ function MainView() {
       window.removeEventListener('hk360_samity_updated', handleDataUpdate);
       window.removeEventListener('somiti_workspace_switched', handleWorkspaceChanged);
       window.removeEventListener('somiti_trigger_update_check', handleManualUpdateCheck);
+      window.removeEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
+      window.removeEventListener('keydown', handleGlobalKeyDown);
     };
   }, []);
 
@@ -1043,6 +1089,18 @@ function MainView() {
           isLight={isLight}
           lang={lang}
         />
+      )}
+
+      {/* 50-Point System Health, Performance & Diagnostics Hub */}
+      {isDiagnosticOpen && (
+        <Suspense fallback={null}>
+          <SystemDiagnosticModal
+            isOpen={isDiagnosticOpen}
+            onClose={() => setIsDiagnosticOpen(false)}
+            isLight={isLight}
+            lang={lang}
+          />
+        </Suspense>
       )}
     </div>
   );

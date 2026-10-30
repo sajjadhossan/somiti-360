@@ -1,7 +1,7 @@
 /**
- * Enterprise Client-Side Image Optimizer for Somiti 360
+ * Enterprise Client-Side Image Optimizer for Somiti 360 (Phase 6 Certified)
  * Compresses large mobile camera photos, bank deposit slips, receipts and documents
- * into lightweight, crystal-clear WebP/JPEG data URLs (typically reducing 5-10MB down to 300-500KB)
+ * into lightweight, crystal-clear WebP/JPEG data URLs (typically reducing 5-20MB down to 300-500KB)
  * while preserving receipt numbers, stamps, signatures, and essential text readability.
  */
 
@@ -13,23 +13,35 @@ export const optimizeImageWithStats = (fileOrDataUrl, options = {}) => {
       targetMinKb = 300,
       targetMaxKb = 500,
       initialQuality = 0.85,
-      mimeType = 'image/jpeg'
+      mimeType = 'image/jpeg',
+      generateThumbnail = true,
+      thumbnailSize = 200
     } = options;
 
     if (!fileOrDataUrl) {
       resolve({
         dataUrl: '',
+        thumbnailUrl: '',
         originalSizeKb: 0,
         compressedSizeKb: 0,
         savedRatio: '0%',
+        mimeType: 'image/jpeg',
         dimensions: { width: 0, height: 0 }
       });
       return;
     }
 
     let originalSizeKb = 0;
+    let originalMime = 'image/jpeg';
     if (fileOrDataUrl instanceof Blob || fileOrDataUrl instanceof File) {
       originalSizeKb = Math.round(fileOrDataUrl.size / 1024);
+      originalMime = fileOrDataUrl.type || 'image/jpeg';
+
+      // Validate 20MB maximum safety rule
+      if (fileOrDataUrl.size > 20 * 1024 * 1024) {
+        reject(new Error('ফাইলের আকার সর্বোচ্চ ২০ মেগাবাইট অতিক্রম করেছে।'));
+        return;
+      }
     }
 
     const processImageSource = (src) => {
@@ -43,7 +55,7 @@ export const optimizeImageWithStats = (fileOrDataUrl, options = {}) => {
       img.onload = () => {
         let { width, height } = img;
 
-        // Calculate aspect-ratio preserving dimensions
+        // Calculate aspect-ratio preserving dimensions (max 1800x1800)
         if (width > maxWidth || height > maxHeight) {
           const ratio = Math.min(maxWidth / width, maxHeight / height);
           width = Math.round(width * ratio);
@@ -58,9 +70,11 @@ export const optimizeImageWithStats = (fileOrDataUrl, options = {}) => {
         if (!ctx) {
           resolve({
             dataUrl: src,
+            thumbnailUrl: src,
             originalSizeKb,
             compressedSizeKb: originalSizeKb,
             savedRatio: '0%',
+            mimeType: originalMime,
             dimensions: { width: img.width, height: img.height }
           });
           return;
@@ -101,12 +115,30 @@ export const optimizeImageWithStats = (fileOrDataUrl, options = {}) => {
           ? Math.round(((originalSizeKb - curSizeKb) / originalSizeKb) * 100)
           : 0;
 
+        // Generate fast 200x200 thumbnail for list view
+        let thumbnailUrl = dataUrl;
+        if (generateThumbnail) {
+          try {
+            const thumbCanvas = document.createElement('canvas');
+            const thumbRatio = Math.min(thumbnailSize / width, thumbnailSize / height);
+            thumbCanvas.width = Math.round(width * thumbRatio);
+            thumbCanvas.height = Math.round(height * thumbRatio);
+            const thumbCtx = thumbCanvas.getContext('2d');
+            if (thumbCtx) {
+              thumbCtx.drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+              thumbnailUrl = thumbCanvas.toDataURL('image/jpeg', 0.65);
+            }
+          } catch (_) {}
+        }
+
         resolve({
           dataUrl,
+          thumbnailUrl,
           originalSizeKb: originalSizeKb || curSizeKb,
           compressedSizeKb: curSizeKb,
           savedRatio: `${savedPct}%`,
           qualityUsed: quality,
+          mimeType,
           dimensions: { width, height }
         });
       };
@@ -114,9 +146,11 @@ export const optimizeImageWithStats = (fileOrDataUrl, options = {}) => {
       img.onerror = () => {
         resolve({
           dataUrl: src,
+          thumbnailUrl: src,
           originalSizeKb,
           compressedSizeKb: originalSizeKb,
           savedRatio: '0%',
+          mimeType: originalMime,
           dimensions: { width: 0, height: 0 }
         });
       };
@@ -138,9 +172,11 @@ export const optimizeImageWithStats = (fileOrDataUrl, options = {}) => {
     } else {
       resolve({
         dataUrl: '',
+        thumbnailUrl: '',
         originalSizeKb: 0,
         compressedSizeKb: 0,
         savedRatio: '0%',
+        mimeType: 'image/jpeg',
         dimensions: { width: 0, height: 0 }
       });
     }

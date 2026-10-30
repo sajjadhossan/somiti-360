@@ -446,6 +446,7 @@ export const AiDepositScannerModal = ({
                 <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
                   {[
                     "এই সদস্যের জন্য ১০,০০০ টাকা ডিপোজিট করো এবং রিসিট তৈরি করো।",
+                    "রফিকের জন্য ৫,০০০ টাকা জমা করো এবং রিসিট তৈরি করো।",
                     "রিসিট থেকে তথ্য পড়ে ডিপোজিট ফর্ম পূরণ করো।",
                     "এই টাকাটি চলতি মাসের চাঁদা হিসেবে জমা করো।",
                     "Deposit 5000 taka for this member and create receipt.",

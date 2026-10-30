@@ -6,6 +6,14 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/verify",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/verify/(.*)",
+      "destination": "/index.html"
+    },
+    {
       "source": "/api/sync/conflicts/:conflictId/resolve",
       "destination": "/api/sync/conflicts/resolve?conflictId=:conflictId"
     },

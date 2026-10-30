@@ -42383,11 +42383,11 @@ ${samityTitle}
                             {formattedReceiptNo}
                           </strong>
                         </div>
-                        <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "3px", wordBreak: "break-all" }}>
-                          ভেরিফিকেশন লিংক:{" "}
-                          <span style={{ color: "#0284c7", textDecoration: "underline" }}>
-                            {createSamityReceiptVerificationUrl(dep, currentSamity)}
-                          </span>
+                        <div style={{ fontSize: "0.66rem", color: "#64748b", marginTop: "3px" }}>
+                          অনলাইন যাচাই:{" "}
+                          <a href={createSamityReceiptVerificationUrl(dep, currentSamity)} target="_blank" rel="noopener noreferrer" style={{ color: "#0284c7", fontWeight: "700", textDecoration: "none" }}>
+                            somiti-360.vercel.app/verify
+                          </a>
                         </div>
                         {(dep.ai_scan_id || dep.ai_draft_id) && (
                           <div style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "4px", padding: "2px 6px", borderRadius: "4px", background: "rgba(139, 92, 246, 0.1)", border: "1px solid rgba(139, 92, 246, 0.3)", color: "#7c3aed", fontSize: "0.62rem", fontWeight: "800" }}>
@@ -44313,10 +44313,7 @@ ${samityTitle}
                             textDecoration: "none",
                           }}
                         >
-                          {createSamityReceiptVerificationUrl(
-                            dep,
-                            currentSamity,
-                          )}
+                          somiti-360.vercel.app/verify
                         </a>
                         মোবাইল ক্যামেরা দিয়ে স্ক্যান করলেই
                         <br />

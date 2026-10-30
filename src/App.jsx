@@ -506,6 +506,27 @@ function MainView() {
         const path = window.location.pathname || '';
         const params = new URLSearchParams(window.location.search);
 
+        // 0. New standard ultra-short URL: /verify?c=... or ?verify=... or /verify
+        if (path === '/verify' || path === '/verify/' || params.get('c') || params.get('r') || params.get('code')) {
+          const allParams = Object.fromEntries(params.entries());
+          const codeParam = params.get('c') || params.get('code') || '';
+          const receiptParam = params.get('r') || params.get('receipt_no') || '';
+          const typeParam = params.get('t') || params.get('verify') || 'receipt';
+          return {
+            ...allParams,
+            type: typeParam,
+            code: codeParam,
+            receipt_no: receiptParam,
+            doc_id: codeParam || receiptParam,
+            memberName: params.get('n') || '',
+            depositorName: params.get('m') || '',
+            amount: params.get('a') || '0',
+            date: params.get('d') || '',
+            monthYear: params.get('p') || '',
+            samity: params.get('s') || ''
+          };
+        }
+
         // 1. Direct path load: /verify/:type/:id or /verify/code/:code
         if (path.includes('/verify/')) {
           const parts = path.split('/verify/')[1]?.split('?')[0]?.split('/') || [];
@@ -599,6 +620,29 @@ function MainView() {
         if (typeof window !== 'undefined') {
           const path = window.location.pathname || '';
           const params = new URLSearchParams(window.location.search);
+
+          // 0. New standard ultra-short URL: /verify?c=... or ?verify=... or /verify
+          if (path === '/verify' || path === '/verify/' || params.get('c') || params.get('r') || params.get('code')) {
+            const allParams = Object.fromEntries(params.entries());
+            const codeParam = params.get('c') || params.get('code') || '';
+            const receiptParam = params.get('r') || params.get('receipt_no') || '';
+            const typeParam = params.get('t') || params.get('verify') || 'receipt';
+            setVerifyData({
+              ...allParams,
+              type: typeParam,
+              code: codeParam,
+              receipt_no: receiptParam,
+              doc_id: codeParam || receiptParam,
+              memberName: params.get('n') || '',
+              depositorName: params.get('m') || '',
+              amount: params.get('a') || '0',
+              date: params.get('d') || '',
+              monthYear: params.get('p') || '',
+              samity: params.get('s') || ''
+            });
+            setViewMode('verify');
+            return;
+          }
 
           // 1. RESTful Path Format: /verify/:documentType/:documentId?token=...
           if (path.includes('/verify/')) {

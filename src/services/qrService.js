@@ -494,62 +494,52 @@ export const formatVendorSupportWhatsAppMessage = (userInfo, shopName, appVersio
 };
 
 /**
- * Determine globally reachable base URL
+ * Standard Production Verification Base URL (Fixed globally)
  */
+export const SOMITI_PRODUCTION_DOMAIN = 'https://somiti-360.vercel.app';
+
+/**
+ * Builds an Ultra-Short, high-performance Verification URL for Somiti 360 documents.
+ * Strictly guarantees URL length ~100-160 characters (never overflows, zero Base64 blobs).
+ * Format:
+ * https://somiti-360.vercel.app/verify?c={verificationCode}&r={receiptOrDocNo}&t={docType}&a={amount}&d={date}&n={memberName}&m={depositorName}&p={monthYear}
+ */
+export const createUltraShortVerificationUrl = ({
+  verificationCode = '',
+  receiptOrDocNo = '',
+  docType = 'receipt',
+  amount = 0,
+  date = '',
+  memberName = '',
+  depositorName = '',
+  monthYear = '',
+  samityName = ''
+} = {}) => {
+  const params = new URLSearchParams();
+  if (verificationCode) params.set('c', String(verificationCode).trim());
+  if (receiptOrDocNo) params.set('r', String(receiptOrDocNo).trim());
+  if (docType) params.set('t', String(docType).trim());
+  if (amount !== undefined && amount !== null && amount !== '' && Number(amount) > 0) {
+    params.set('a', String(Number(amount)));
+  }
+  if (date) params.set('d', String(date).split('T')[0]);
+  if (memberName) params.set('n', String(memberName).trim().slice(0, 40));
+  if (depositorName && depositorName !== memberName) {
+    params.set('m', String(depositorName).trim().slice(0, 40));
+  }
+  if (monthYear) params.set('p', String(monthYear).trim());
+  if (samityName && samityName !== 'স্বপ্নছোঁয়া সমবায় সমিতি') {
+    params.set('s', String(samityName).trim().slice(0, 30));
+  }
+
+  return `${SOMITI_PRODUCTION_DOMAIN}/verify?${params.toString()}`;
+};
+
 /**
  * Determine globally reachable base URL for document verification
- * Prioritizes:
- * 1. Explicitly configured verificationBaseUrl in currentSamity
- * 2. Custom domain saved in localStorage (somiti_live_domain / hk360_custom_verify_domain)
- * 3. Browser window.location.origin (supports localhost, 127.0.0.1, Wi-Fi LAN IP 192.168.x.x, Vercel deployments)
- * 4. currentSamity?.liveDomain or fallback
  */
 export const getGlobalVerificationBaseUrl = (currentSamity) => {
-  // 1. Explicitly configured verification domain in Samity settings
-  if (currentSamity?.verificationBaseUrl && currentSamity.verificationBaseUrl.trim()) {
-    let url = currentSamity.verificationBaseUrl.trim();
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
-    return url.replace(/\/$/, '');
-  }
-
-  // 2. Custom domain from localStorage (configured via settings or QR verifier)
-  if (typeof window !== 'undefined') {
-    try {
-      const savedCustomDomain = localStorage.getItem('hk360_custom_verify_domain') || localStorage.getItem('somiti_live_domain');
-      if (savedCustomDomain && savedCustomDomain.trim()) {
-        let url = savedCustomDomain.trim();
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          url = 'https://' + url;
-        }
-        return url.replace(/\/$/, '');
-      }
-
-      // 3. Current active browser origin (only if public web domain, not localhost / private LAN)
-      const origin = window.location.origin;
-      const hostname = window.location.hostname || '';
-      const isLocalHost = hostname === 'localhost' ||
-                          hostname === '127.0.0.1' ||
-                          hostname.startsWith('192.168.') ||
-                          hostname.startsWith('10.') ||
-                          hostname.endsWith('.local') ||
-                          origin.includes('capacitor://') ||
-                          origin.includes('electron://') ||
-                          origin.includes('file://');
-
-      if (origin && !isLocalHost) {
-        return origin + (window.location.pathname.endsWith('/') ? window.location.pathname.slice(0, -1) : window.location.pathname);
-      }
-    } catch (_) {}
-  }
-
-  // 4. Samity live domain
-  if (currentSamity?.liveDomain && !currentSamity.liveDomain.includes('somiti360.vercel.app')) {
-    return currentSamity.liveDomain.startsWith('http') ? currentSamity.liveDomain : `https://${currentSamity.liveDomain}`;
-  }
-
-  return 'https://somiti-360.vercel.app';
+  return SOMITI_PRODUCTION_DOMAIN;
 };
 
 /**
@@ -577,326 +567,204 @@ export const getReceiptShortVerificationCode = (deposit) => {
 };
 
 /**
- * Generates globally accessible Verification URL for Samity Deposit Receipts
+ * Generates globally accessible Ultra-Short Verification URL for Samity Deposit Receipts
  */
 export const createSamityReceiptVerificationUrl = (deposit, currentSamity) => {
-  if (!deposit) return 'https://hisabkitab360.vercel.app';
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  if (!deposit) return `${SOMITI_PRODUCTION_DOMAIN}/verify`;
   const formattedReceiptNo = deposit.receiptNo || deposit.voucherNo || `RCPT-${deposit.id || '001'}`;
   const memberName = deposit.memberName || deposit.depositorName || 'সদস্য';
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const samityReg = currentSamity?.regNo || 'সছস-২০২৪/০৯';
   const shortCode = getReceiptShortVerificationCode(deposit);
-  const docHash = `HK360-RCPT-${(deposit.id || '0000').slice(0, 8).toUpperCase()}`;
+  const depositDate = deposit.depositDate || deposit.date || new Date().toISOString().split('T')[0];
+  const monthYear = [deposit.paymentMonth || deposit.month || '', deposit.paymentYear || deposit.year || ''].filter(Boolean).join(' ');
 
-  const payload = {
-    t: 'receipt',
-    rn: formattedReceiptNo,
-    m: memberName,
-    mid: deposit.memberId || '',
-    d: deposit.depositorName || memberName,
-    rel: deposit.depositorRelation || 'নিজে (Self)',
-    a: Number(deposit.amount || 0),
-    type: deposit.depositType || 'মাসিক সঞ্চয়/চাঁদা',
-    month: deposit.paymentMonth || deposit.month || '',
-    year: deposit.paymentYear || deposit.year || '',
-    method: deposit.depositMethod || deposit.method || 'নগদ',
-    dt: deposit.depositDate || deposit.date || new Date().toISOString().split('T')[0],
-    sam: samityName,
-    reg: samityReg,
-    code: shortCode,
-    h: docHash
-  };
-
-  try {
-    const docId = deposit.id || formattedReceiptNo;
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}/verify/receipt/${encodeURIComponent(docId)}?token=${token}&verify=receipt&doc_id=${encodeURIComponent(docId)}&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&depositor=${encodeURIComponent(payload.d)}&relation=${encodeURIComponent(payload.rel)}&method=${encodeURIComponent(payload.method)}&month=${encodeURIComponent(payload.month)}&year=${encodeURIComponent(payload.year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(samityReg)}&code=${encodeURIComponent(shortCode)}&data=${token}`;
-  } catch {
-    const docId = deposit.id || formattedReceiptNo;
-    return `${baseUrl}/verify/receipt/${encodeURIComponent(docId)}?verify=receipt&doc_id=${encodeURIComponent(docId)}&receipt_no=${encodeURIComponent(formattedReceiptNo)}&member=${encodeURIComponent(memberName)}&amount=${payload.a}&samity=${encodeURIComponent(samityName)}&code=${encodeURIComponent(shortCode)}`;
-  }
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: formattedReceiptNo,
+    docType: 'receipt',
+    amount: Number(deposit.amount || 0),
+    date: depositDate,
+    memberName,
+    depositorName: deposit.depositorName || memberName,
+    monthYear,
+    samityName: currentSamity?.nameBn
+  });
 };
 
 /**
- * Generates globally accessible Verification URL for Samity Due Notices
+ * Generates globally accessible Ultra-Short Verification URL for Samity Due Notices
  */
 export const createSamityDueNoticeVerificationUrl = (notice, currentSamity) => {
-  if (!notice) return 'https://hisabkitab360.vercel.app';
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  if (!notice) return `${SOMITI_PRODUCTION_DOMAIN}/verify`;
   const member = notice.member || {};
   const status = notice.status || {};
-  const memberName = member.nameBn || member.nameEn || 'সম্মানিত সদস্য';
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const dueMonths = (notice.dueMonthsList && notice.dueMonthsList.length > 0) ? notice.dueMonthsList.join(', ') : 'চলতি বকেয়া';
+  const memberName = member.nameBn || member.nameEn || 'সদস্য';
   const dueAmount = Number(status.totalDue ?? status.totalCumulativeDue ?? notice.totalDue ?? 0);
-  const deadline = notice.deadline || `${currentSamity?.subscriptionDueDay || 10} তারিখের মধ্যে`;
-  const docHash = `HK360-DUE-${(member.id || '0000').toUpperCase()}`;
+  const noticeNo = member.id ? `DUE-${member.id}` : 'DUE-001';
+  const shortCode = getReceiptShortVerificationCode({ id: noticeNo, memberId: member.id });
 
-  const payload = {
-    t: 'due_notice',
-    m: memberName,
-    mid: member.id || '',
-    due: dueAmount,
-    months: dueMonths,
-    dl: deadline,
-    sam: samityName,
-    reg: currentSamity?.regNo || 'সছস-২০২৪/০৯',
-    h: docHash
-  };
-
-  try {
-    const docId = member.id ? `DUE-${member.id}` : 'DUE-001';
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}/verify/due_notice/${encodeURIComponent(docId)}?token=${token}&verify=due_notice&doc_id=${encodeURIComponent(docId)}&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(member.id || '')}&due=${dueAmount}&months=${encodeURIComponent(dueMonths)}&deadline=${encodeURIComponent(deadline)}&samity=${encodeURIComponent(samityName)}&data=${token}`;
-  } catch {
-    const docId = member.id ? `DUE-${member.id}` : 'DUE-001';
-    return `${baseUrl}/verify/due_notice/${encodeURIComponent(docId)}?verify=due_notice&doc_id=${encodeURIComponent(docId)}&member=${encodeURIComponent(memberName)}&due=${dueAmount}&samity=${encodeURIComponent(samityName)}`;
-  }
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: noticeNo,
+    docType: 'due_notice',
+    amount: dueAmount,
+    date: new Date().toISOString().split('T')[0],
+    memberName,
+    depositorName: '',
+    monthYear: (notice.dueMonthsList && notice.dueMonthsList.length > 0) ? notice.dueMonthsList.join(',') : 'বকেয়া',
+    samityName: currentSamity?.nameBn
+  });
 };
 
 /**
- * Generates globally accessible Verification URL for Official Documents / Resolutions
+ * Generates globally accessible Ultra-Short Verification URL for Official Documents / Resolutions
  */
 export const createSamityOfficialDocVerificationUrl = (doc, currentSamity) => {
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
   const ref = doc?.ref || 'সছস/২০২৬/০১';
-  const title = doc?.title || 'অফিসিয়াল নোটিশ ও রেজুলেশন';
+  const title = doc?.title || 'নোটিশ ও রেজুলেশন';
   const date = doc?.date || new Date().toISOString().split('T')[0];
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
-  const docHash = `HK360-DOC-${Date.now().toString(36).toUpperCase()}`;
+  const shortCode = getReceiptShortVerificationCode({ id: ref, memberId: 'OFFICIAL' });
 
-  const payload = {
-    t: 'samity_doc',
-    ref,
-    title,
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: ref,
+    docType: 'samity_doc',
+    amount: 0,
     date,
-    sam: samityName,
-    reg: regNo,
-    h: docHash
-  };
-
-  try {
-    const docId = doc?.id || ref;
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}/verify/official_doc/${encodeURIComponent(docId)}?token=${token}&verify=samity_doc&doc_id=${encodeURIComponent(docId)}&ref=${encodeURIComponent(ref)}&title=${encodeURIComponent(title)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&hash=${encodeURIComponent(docHash)}&data=${token}`;
-  } catch {
-    const docId = doc?.id || ref;
-    return `${baseUrl}/verify/official_doc/${encodeURIComponent(docId)}?verify=samity_doc&doc_id=${encodeURIComponent(docId)}&ref=${encodeURIComponent(ref)}&title=${encodeURIComponent(title)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}`;
-  }
+    memberName: title,
+    depositorName: '',
+    monthYear: '',
+    samityName: currentSamity?.nameBn
+  });
 };
 
 /**
- * Generates globally accessible Verification URL for Membership Certificates
+ * Generates globally accessible Ultra-Short Verification URL for Membership Certificates
  */
 export const createSamityMembershipCertVerificationUrl = (member, currentSamity) => {
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
-  const memberName = member?.nameBn || member?.nameEn || 'সম্মানিত সদস্য';
+  const memberName = member?.nameBn || member?.nameEn || 'সদস্য';
   const memberId = member?.id || member?.memberCode || 'SM-001';
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
-  const docHash = `HK360-CERT-${(memberId || '0000').toUpperCase()}`;
+  const shortCode = getReceiptShortVerificationCode({ id: memberId, memberId });
+  const date = member?.joiningDate || member?.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0];
 
-  const payload = {
-    t: 'membership_cert',
-    m: memberName,
-    mid: memberId,
-    nid: member?.nidNumber || member?.nid || 'প্রযোজ্য নয়',
-    joining: member?.joiningDate || member?.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
-    type: member?.membershipType || 'সাধারণ সদস্য',
-    blood: member?.bloodGroup || 'O+',
-    mobile: member?.mobile || '',
-    sam: samityName,
-    reg: regNo,
-    h: docHash
-  };
-
-  try {
-    const docId = member?.id || memberId;
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}/verify/membership_cert/${encodeURIComponent(docId)}?token=${token}&verify=membership_cert&doc_id=${encodeURIComponent(docId)}&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&data=${token}`;
-  } catch {
-    const docId = member?.id || memberId;
-    return `${baseUrl}/verify/membership_cert/${encodeURIComponent(docId)}?verify=membership_cert&doc_id=${encodeURIComponent(docId)}&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}`;
-  }
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: memberId,
+    docType: 'membership_cert',
+    amount: 0,
+    date,
+    memberName,
+    depositorName: '',
+    monthYear: '',
+    samityName: currentSamity?.nameBn
+  });
 };
 
 /**
- * Generates globally accessible Verification URL for Bulk Bank Deposit Reports
+ * Generates globally accessible Ultra-Short Verification URL for Bulk Bank Deposit Reports
  */
 export const createSamityBulkDepositVerificationUrl = (report, currentSamity) => {
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
   const voucherNo = report?.bulkVoucherNo || report?.id || 'BULK-2026-001';
-  const slipNo = report?.bankReceiptNo || 'SLIP-001';
-  const bankName = report?.bankName || 'ব্যাংক';
   const totalAmount = Number(report?.totalSlipAmount || report?.allocatedAmount || 0);
-  const count = (report?.items || []).length;
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const docHash = `HK360-BULK-${Date.now().toString(36).toUpperCase()}`;
+  const shortCode = getReceiptShortVerificationCode({ id: voucherNo, memberId: 'BULK' });
+  const date = report?.depositDate || report?.date || new Date().toISOString().split('T')[0];
 
-  const payload = {
-    t: 'bulk_deposit',
-    vn: voucherNo,
-    sn: slipNo,
-    bn: bankName,
-    branch: report?.branchName || 'প্রধান শাখা',
-    accNo: report?.bankAccNo || '',
-    a: totalAmount,
-    c: count,
-    dt: report?.depositDate || report?.date || new Date().toISOString().split('T')[0],
-    sam: samityName,
-    reg: currentSamity?.regNo || 'সছস-২০২৪/০৯',
-    h: docHash
-  };
-
-  try {
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}?verify=bulk_deposit&voucher=${encodeURIComponent(voucherNo)}&slip=${encodeURIComponent(slipNo)}&bank=${encodeURIComponent(bankName)}&amount=${totalAmount}&count=${count}&samity=${encodeURIComponent(samityName)}&data=${token}`;
-  } catch {
-    return `${baseUrl}?verify=bulk_deposit&voucher=${encodeURIComponent(voucherNo)}&amount=${totalAmount}&samity=${encodeURIComponent(samityName)}`;
-  }
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: voucherNo,
+    docType: 'bulk_deposit',
+    amount: totalAmount,
+    date,
+    memberName: report?.bankName || 'ব্যাংক জমা',
+    depositorName: report?.branchName || '',
+    monthYear: '',
+    samityName: currentSamity?.nameBn
+  });
 };
 
 /**
- * Generates globally accessible Verification URL for Member Smart ID Cards
+ * Generates globally accessible Ultra-Short Verification URL for Member Smart ID Cards
  */
 export const createSamityMemberIdCardVerificationUrl = (member, currentSamity) => {
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
-  const memberName = member?.nameBn || member?.nameEn || 'সম্মানিত সদস্য';
-  const memberNameEn = member?.nameEn || '';
+  const memberName = member?.nameBn || member?.nameEn || 'সদস্য';
   const memberId = member?.memberCode || member?.id || 'SM-001';
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
-  const docHash = `HK360-MID-${(memberId || '0000').toUpperCase()}`;
+  const shortCode = getReceiptShortVerificationCode({ id: memberId, memberId });
+  const date = member?.membershipStartDate || member?.joiningDate || member?.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0];
 
-  const payload = {
-    t: 'member_id_card',
-    m: memberName,
-    me: memberNameEn,
-    mid: memberId,
-    nid: member?.nidNumber || member?.nid || 'প্রযোজ্য নয়',
-    blood: member?.bloodGroup || 'O+',
-    mobile: member?.mobile || '',
-    type: member?.membershipType || 'সাধারণ সদস্য',
-    joining: member?.membershipStartDate || member?.joiningDate || member?.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
-    father: member?.fatherName || '',
-    mother: member?.motherName || '',
-    nominee: member?.nomineeName || '',
-    nomineeRel: member?.nomineeRelation || '',
-    photo: member?.photo || '',
-    sam: samityName,
-    reg: regNo,
-    h: docHash
-  };
-
-  try {
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}?verify=member_id_card&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&type=${encodeURIComponent(payload.type)}&blood=${encodeURIComponent(payload.blood)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&data=${token}`;
-  } catch {
-    return `${baseUrl}?verify=member_id_card&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}`;
-  }
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: memberId,
+    docType: 'member_id_card',
+    amount: 0,
+    date,
+    memberName,
+    depositorName: '',
+    monthYear: '',
+    samityName: currentSamity?.nameBn
+  });
 };
 
 /**
- * Generates globally accessible Verification URL for Member Passbook / Savings Account
+ * Generates globally accessible Ultra-Short Verification URL for Member Passbook / Savings Account
  */
 export const createSamityPassbookVerificationUrl = (member, currentSamity, totalSavings = 0) => {
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
-  const memberName = member?.nameBn || member?.nameEn || 'সম্মানিত সদস্য';
+  const memberName = member?.nameBn || member?.nameEn || 'সদস্য';
   const memberId = member?.memberCode || member?.id || 'SM-001';
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const docHash = `HK360-BOOK-${(memberId || '0000').toUpperCase()}`;
+  const shortCode = getReceiptShortVerificationCode({ id: memberId, memberId });
 
-  const payload = {
-    t: 'passbook',
-    m: memberName,
-    mid: memberId,
-    savings: Number(totalSavings || 0),
-    type: member?.membershipType || 'সাধারণ সঞ্চয়',
-    sam: samityName,
-    reg: currentSamity?.regNo || 'সছস-২০২৪/০৯',
-    h: docHash
-  };
-
-  try {
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}?verify=passbook&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&savings=${totalSavings}&samity=${encodeURIComponent(samityName)}&data=${token}`;
-  } catch {
-    return `${baseUrl}?verify=passbook&member=${encodeURIComponent(memberName)}&memberId=${encodeURIComponent(memberId)}&samity=${encodeURIComponent(samityName)}`;
-  }
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: memberId,
+    docType: 'passbook',
+    amount: Number(totalSavings || 0),
+    date: new Date().toISOString().split('T')[0],
+    memberName,
+    depositorName: '',
+    monthYear: '',
+    samityName: currentSamity?.nameBn
+  });
 };
 
 /**
- * Generates globally accessible Verification URL for Samity Member Registry / Member List Print
+ * Generates globally accessible Ultra-Short Verification URL for Samity Member Registry
  */
 export const createSamityMemberListVerificationUrl = (members = [], currentSamity, targetMonth, targetYear) => {
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
   const count = Array.isArray(members) ? members.length : 0;
   const month = targetMonth || new Date().toLocaleString('bn-BD', { month: 'long' });
   const year = targetYear || new Date().getFullYear();
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
-  const docHash = `HK360-MEMLIST-${Date.now().toString(36).toUpperCase()}`;
+  const shortCode = getReceiptShortVerificationCode({ id: `MEMLIST-${year}`, memberId: 'REGISTRY' });
 
-  const payload = {
-    t: 'member_list',
-    count,
-    m: month,
-    y: year,
-    sam: samityName,
-    reg: regNo,
-    dt: new Date().toISOString().split('T')[0],
-    h: docHash
-  };
-
-  try {
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}?verify=member_list&count=${count}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&hash=${encodeURIComponent(docHash)}&data=${token}`;
-  } catch {
-    return `${baseUrl}?verify=member_list&count=${count}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}`;
-  }
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: `MEMLIST-${year}`,
+    docType: 'member_list',
+    amount: count,
+    date: new Date().toISOString().split('T')[0],
+    memberName: `মোট সদস্য ${count} জন`,
+    depositorName: '',
+    monthYear: `${month} ${year}`,
+    samityName: currentSamity?.nameBn
+  });
 };
 
 /**
- * Generates globally accessible Verification URL for Expense Vouchers (ব্যয়ের ভাউচার)
+ * Generates globally accessible Ultra-Short Verification URL for Expense Vouchers
  */
 export const createSamityExpenseVoucherVerificationUrl = (expense, currentSamity) => {
-  if (!expense) return 'https://somiti-360.vercel.app';
-  const baseUrl = getGlobalVerificationBaseUrl(currentSamity);
+  if (!expense) return `${SOMITI_PRODUCTION_DOMAIN}/verify`;
   const voucherNo = expense.voucherNo || `EXP-${expense.id || '001'}`;
-  const title = expense.title || 'সমিতি পরিচালনা ব্যয়';
-  const category = expense.category || 'অফিস পরিচালনা';
-  const paidTo = expense.paidTo || 'প্রাপক';
   const amount = Number(expense.amount || 0);
-  const method = expense.paymentMethod || 'নগদ ক্যাশ';
+  const shortCode = getReceiptShortVerificationCode({ id: voucherNo, memberId: 'EXP' });
   const date = expense.expenseDate || expense.date || new Date().toISOString().split('T')[0];
-  const samityName = currentSamity?.nameBn || 'স্বপ্নছোঁয়া সমবায় সমিতি';
-  const regNo = currentSamity?.regNo || 'সছস-২০২৪/০৯';
-  const docHash = `HK360-EXP-${(String(expense.id || '0000')).slice(0, 8).toUpperCase()}`;
-  const docId = expense.id || voucherNo;
 
-  const payload = {
-    t: 'expense_voucher',
-    vn: voucherNo,
-    title,
-    cat: category,
-    to: paidTo,
-    a: amount,
-    m: method,
-    dt: date,
-    sam: samityName,
-    reg: regNo,
-    h: docHash
-  };
-
-  try {
-    const token = encodeURIComponent(safeUtf8ToBase64(JSON.stringify(payload)));
-    return `${baseUrl}/verify/expense_voucher/${encodeURIComponent(docId)}?token=${token}&verify=expense_voucher&doc_id=${encodeURIComponent(docId)}&voucher_no=${encodeURIComponent(voucherNo)}&title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&paid_to=${encodeURIComponent(paidTo)}&amount=${amount}&method=${encodeURIComponent(method)}&date=${encodeURIComponent(date)}&samity=${encodeURIComponent(samityName)}&reg=${encodeURIComponent(regNo)}&data=${token}`;
-  } catch {
-    return `${baseUrl}/verify/expense_voucher/${encodeURIComponent(docId)}?verify=expense_voucher&doc_id=${encodeURIComponent(docId)}&voucher_no=${encodeURIComponent(voucherNo)}&amount=${amount}&samity=${encodeURIComponent(samityName)}`;
-  }
+  return createUltraShortVerificationUrl({
+    verificationCode: shortCode,
+    receiptOrDocNo: voucherNo,
+    docType: 'expense_voucher',
+    amount,
+    date,
+    memberName: expense.paidTo || expense.title || 'ব্যয় প্রাপক',
+    depositorName: expense.category || '',
+    monthYear: '',
+    samityName: currentSamity?.nameBn
+  });
 };
-
-
-

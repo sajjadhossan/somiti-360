@@ -115,7 +115,7 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   // Parse parameters from props or window URL
   const query = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
 
-  // Try decoding base64 data token if available
+  // Try decoding base64 data token if available (backward compatibility)
   let decodedToken = null;
   const rawToken = verifyData?.data || query.get('data');
   if (rawToken) {
@@ -129,25 +129,43 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
     }
   }
 
+  // 1. Ultra-Short URL Parameters support (c, r, t, a, d, n, m, p, s)
+  const codeParam = query.get('c') || query.get('code') || verifyData?.c || verifyData?.code || '';
+  const receiptParam = query.get('r') || query.get('receipt_no') || verifyData?.r || verifyData?.receiptNo || '';
+  const typeParam = query.get('t') || query.get('verify') || verifyData?.t || verifyData?.type || '';
+  const amountParam = query.get('a') || query.get('amount') || verifyData?.a || verifyData?.amount || '';
+  const dateParam = query.get('d') || query.get('date') || verifyData?.d || verifyData?.date || '';
+  const memberParam = query.get('n') || query.get('member') || verifyData?.n || verifyData?.memberName || '';
+  const depositorParam = query.get('m') || query.get('depositor') || verifyData?.m || verifyData?.depositorName || '';
+  const periodParam = query.get('p') || query.get('month') || verifyData?.p || verifyData?.monthYear || '';
+  const samityParam = query.get('s') || query.get('samity') || verifyData?.s || verifyData?.samity || '';
+
   // Determine document type
-  const docType = searchedDoc?.document_type || decodedToken?.t || (verifyData?.docType === 'code' ? 'receipt' : verifyData?.type) || query.get('verify') || 'samity_doc';
+  const docType = searchedDoc?.document_type || decodedToken?.t || typeParam || (verifyData?.docType === 'code' ? 'receipt' : verifyData?.type) || 'receipt';
 
   // Common parameters
-  const samityName = decodedToken?.sam || verifyData?.samity || query.get('samity') || 'স্বপ্নছোঁয়া সমবায় সমিতি';
+  const samityName = decodedToken?.sam || samityParam || verifyData?.samity || 'স্বপ্নছোঁয়া সমবায় সমিতি';
   const regNo = decodedToken?.reg || verifyData?.reg || query.get('reg') || 'সছস-২০২৪/০৯';
-  const date = searchedDoc?.issue_date || decodedToken?.dt || verifyData?.date || query.get('date') || new Date().toISOString().split('T')[0];
+  const date = searchedDoc?.issue_date || decodedToken?.dt || dateParam || new Date().toISOString().split('T')[0];
   const hash = decodedToken?.h || verifyData?.hash || query.get('hash') || 'HK360-SEC-VERIFIED';
 
   // Receipt specific parameters
-  const receiptNo = searchedDoc?.document_number || decodedToken?.rn || verifyData?.receiptNo || query.get('receipt_no') || 'RCPT-2026-0001';
-  const memberName = searchedDoc?.recipient_name || decodedToken?.m || verifyData?.memberName || query.get('member') || 'সম্মানিত সদস্য';
+  const receiptNo = searchedDoc?.document_number || decodedToken?.rn || receiptParam || 'RCPT-2026-0001';
+  const memberName = searchedDoc?.recipient_name || decodedToken?.m || memberParam || 'সম্মানিত সদস্য';
   const memberId = searchedDoc?.metadata?.memberId || decodedToken?.mid || verifyData?.memberId || query.get('memberId') || 'SM-001';
-  const depositorName = searchedDoc?.metadata?.depositorName || decodedToken?.d || verifyData?.depositorName || query.get('depositor') || memberName;
+  const depositorName = searchedDoc?.metadata?.depositorName || decodedToken?.d || depositorParam || memberName;
   const depositorRelation = searchedDoc?.metadata?.depositorRelation || decodedToken?.rel || verifyData?.depositorRelation || query.get('relation') || 'নিজে (Self)';
-  const amount = Number(searchedDoc?.amount !== undefined ? searchedDoc.amount : (decodedToken?.a !== undefined ? decodedToken.a : (verifyData?.amount || query.get('amount') || 0)));
+  const amount = Number(searchedDoc?.amount !== undefined ? searchedDoc.amount : (decodedToken?.a !== undefined ? decodedToken.a : (amountParam || 0)));
   const depositType = searchedDoc?.metadata?.depositType || decodedToken?.type || verifyData?.depositType || query.get('type') || 'মাসিক সঞ্চয় / চাঁদা';
-  const paymentMonth = searchedDoc?.metadata?.paymentMonth || decodedToken?.month || verifyData?.month || query.get('month') || '';
-  const paymentYear = searchedDoc?.metadata?.paymentYear || decodedToken?.year || verifyData?.year || query.get('year') || '';
+  
+  // Extract month and year from periodParam if needed
+  let paymentMonth = searchedDoc?.metadata?.paymentMonth || decodedToken?.month || verifyData?.month || '';
+  let paymentYear = searchedDoc?.metadata?.paymentYear || decodedToken?.year || verifyData?.year || '';
+  if (periodParam && (!paymentMonth || !paymentYear)) {
+    const parts = periodParam.split(' ');
+    paymentMonth = parts[0] || periodParam;
+    paymentYear = parts[1] || '';
+  }
   const paymentMethod = searchedDoc?.metadata?.depositMethod || decodedToken?.method || verifyData?.paymentMethod || query.get('method') || 'নগদ (Cash)';
 
   // Document / Notice specific parameters
@@ -175,10 +193,12 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
   const passbookSavings = Number(decodedToken?.savings !== undefined ? decodedToken.savings : (query.get('savings') || 0));
 
   useEffect(() => {
-    const docId = query.get('doc_id') || verifyData?.doc_id || query.get('receipt_no') || query.get('ref') || verifyData?.receiptNo || verifyData?.docId || verifyData?.documentId;
+    const activeCode = query.get('c') || query.get('code') || verifyData?.c || verifyData?.code;
+    const activeReceipt = query.get('r') || query.get('receipt_no') || verifyData?.r || verifyData?.receiptNo;
+    const docId = activeCode || activeReceipt || query.get('doc_id') || verifyData?.doc_id || query.get('ref') || verifyData?.docId || verifyData?.documentId;
     const token = query.get('token') || verifyData?.token;
-    const codeParam = query.get('code') || verifyData?.code;
-    const isCodeLookup = docType === 'code' || verifyData?.docType === 'code' || (typeof docId === 'string' && docId.startsWith('S360-'));
+    const codeParam = activeCode || (typeof docId === 'string' && docId.startsWith('S360-') ? docId : null);
+    const isCodeLookup = docType === 'code' || verifyData?.docType === 'code' || Boolean(codeParam);
 
     if (isCodeLookup || (codeParam && !token)) {
       handleManualVerify(codeParam || docId);
@@ -636,23 +656,28 @@ export const SamityDocVerificationView = ({ verifyData, onBackToApp }) => {
             }}
           >
             <ShieldCheck size={18} color="#059669" />
-            <span>
-              {docType === 'receipt'
-                ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল জমা রসিদ (Digitally Verified Official Receipt)'
-                : docType === 'member_list'
-                ? '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল সদস্য তালিকা (Digitally Verified Official Member Registry)'
-                : docType === 'due_notice'
-                ? '✓ ডিজিটালভাবে সত্যায়িত বকেয়া নোটিশ (Digitally Verified Official Due Notice)'
-                : docType === 'membership_cert'
-                ? '✓ ডিজিটালভাবে সত্যায়িত সদস্যপদ সনদপত্র (Digitally Verified Membership Certificate)'
-                : docType === 'member_id_card' || docType === 'member_card'
-                ? '✓ ডিজিটালভাবে সত্যায়িত সদস্য স্মার্ট আইডি কার্ড (Digitally Verified Member Smart ID Card)'
-                : docType === 'passbook'
-                ? '✓ ডিজিটালভাবে সত্যায়িত সদস্য সঞ্চয় পাসবুক ও লেজার (Digitally Verified Member Passbook)'
-                : docType === 'bulk_deposit'
-                ? '✓ ডিজিটালভাবে সত্যায়িত ব্যাংক ডিপোজিট রিপোর্ট (Digitally Verified Bank Deposit Report)'
-                : '✓ ডিজিটালভাবে সত্যায়িত অফিসিয়াল নথি (Digitally Verified Official Document)'}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: '900', color: '#065f46' }}>
+                ✓ ভেরিফাইড ও আসল ডকুমেন্ট (Verified Authentic Document)
+              </span>
+              <span style={{ fontSize: '0.74rem', fontWeight: '600', color: '#047857' }}>
+                {docType === 'receipt'
+                  ? 'অফিসিয়াল জমা রসিদ (Official Receipt)'
+                  : docType === 'member_list'
+                  ? 'অফিসিয়াল সদস্য তালিকা (Official Member Registry)'
+                  : docType === 'due_notice'
+                  ? 'অফিসিয়াল বকেয়া নোটিশ (Official Due Notice)'
+                  : docType === 'membership_cert'
+                  ? 'অফিসিয়াল সদস্যপদ সনদপত্র (Membership Certificate)'
+                  : docType === 'member_id_card' || docType === 'member_card'
+                  ? 'অফিসিয়াল সদস্য স্মার্ট আইডি কার্ড (Member Smart ID Card)'
+                  : docType === 'passbook'
+                  ? 'অফিসিয়াল সদস্য সঞ্চয় পাসবুক ও লেজার (Member Passbook)'
+                  : docType === 'bulk_deposit'
+                  ? 'অফিসিয়াল ব্যাংক ডিপোজিট রিপোর্ট (Bank Deposit Report)'
+                  : 'অফিসিয়াল নথি (Official Document)'}
+              </span>
+            </div>
             {cloudVerification.verifiedAt && (
               <span style={{ fontSize: '0.7rem', color: '#059669', opacity: 0.85 }}>
                 • লাইভ ক্লাউড ভেরিফাইড

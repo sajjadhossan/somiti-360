@@ -38,8 +38,10 @@ import {
   Calendar,
   Phone,
   Mail,
-  Sparkles
+  Sparkles,
+  Zap
 } from 'lucide-react';
+import { GranularMasterSwitchboardModal } from './GranularMasterSwitchboardModal';
 
 const MODULE_ICON_MAP = {
   Wallet: Wallet,
@@ -64,6 +66,7 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
   const [expandedTenantId, setExpandedTenantId] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState(null);
+  const [granularTenant, setGranularTenant] = useState(null);
   const [notification, setNotification] = useState(null);
 
   // Form State for New / Edit Tenant
@@ -709,6 +712,27 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
                             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
 
+                          <button
+                            onClick={() => setGranularTenant(tenant)}
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.2))',
+                              color: '#f59e0b',
+                              border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                              borderRadius: '10px',
+                              padding: '6px 12px',
+                              fontSize: '0.76rem',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                            title={isEn ? 'A-to-Z Master Switchboard (Field to Member - 43 Options)' : 'মাঠকর্মী থেকে সদস্য পর্যন্ত এ-টু-জেড ৪৩টি অপশন মাস্টার সুইচবোর্ড'}
+                          >
+                            <Zap size={13} />
+                            <span>{isEn ? 'A-to-Z Options' : 'এ-টু-জেড অপশন'}</span>
+                          </button>
+
                           {!tenant.isOwnSamity && (
                             <>
                               <button
@@ -881,25 +905,48 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
                   </p>
                 </div>
 
-                <button
-                  onClick={() => handleSwitchWorkspace(mySamity.id)}
-                  style={{
-                    background: '#10b981',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '8px 16px',
-                    fontSize: '0.82rem',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <ExternalLink size={14} />
-                  <span>{isEn ? 'Open My Samity' : 'আমার সমিতিতে যান'}</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => setGranularTenant(mySamity)}
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.2))',
+                      color: '#f59e0b',
+                      border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                      borderRadius: '12px',
+                      padding: '8px 16px',
+                      fontSize: '0.82rem',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    title="আমার নিজস্ব সমিতির এ-টু-জেড সকল ৪৩টি অপশন কাস্টমাইজ করুন"
+                  >
+                    <Zap size={14} />
+                    <span>{isEn ? 'A-to-Z Granular Options' : 'নিজস্ব সমিতির এ-টু-জেড অপশন'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleSwitchWorkspace(mySamity.id)}
+                    style={{
+                      background: '#10b981',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '8px 16px',
+                      fontSize: '0.82rem',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <ExternalLink size={14} />
+                    <span>{isEn ? 'Open My Samity' : 'আমার সমিতিতে যান'}</span>
+                  </button>
+                </div>
               </div>
 
               <div style={{
@@ -1207,6 +1254,20 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
               </form>
             </div>
           </div>
+        )}
+
+        {/* A-to-Z Granular Master Switchboard Modal */}
+        {granularTenant && (
+          <GranularMasterSwitchboardModal
+            isOpen={Boolean(granularTenant)}
+            onClose={() => setGranularTenant(null)}
+            tenant={granularTenant}
+            isLight={isLight}
+            lang={lang}
+            onUpdated={() => {
+              setTenants(getTenantsList());
+            }}
+          />
         )}
       </div>
     </div>

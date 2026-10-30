@@ -9246,9 +9246,17 @@ ${samityTitle}
                                     fontWeight: "900",
                                     color: "#38bdf8",
                                     fontSize: "0.82rem",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px"
                                   }}
                                 >
-                                  {member.id}
+                                  <span>{member.id}</span>
+                                  {(member.syncStatus === "pending" || member.isSynced === false) && (
+                                    <span style={{ fontSize: "0.6rem", fontWeight: "800", background: "rgba(168, 85, 247, 0.2)", color: "#c084fc", border: "1px solid rgba(168, 85, 247, 0.4)", borderRadius: "4px", padding: "1px 5px" }}>
+                                      ⚡ পেন্ডিং
+                                    </span>
+                                  )}
                                 </div>
                                 {member.memberCode &&
                                   member.memberCode !== member.id && (
@@ -10273,9 +10281,14 @@ ${samityTitle}
                           {/* Voucher & Receipt */}
                           <td style={{ padding: "12px 14px" }}>
                             <div
-                              style={{ fontWeight: "800", color: "#38bdf8" }}
+                              style={{ fontWeight: "800", color: "#38bdf8", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              {dep.voucherNo}
+                              <span>{dep.voucherNo}</span>
+                              {(dep.syncStatus === "pending" || dep.isSynced === false) && (
+                                <span style={{ fontSize: "0.62rem", fontWeight: "800", background: "rgba(168, 85, 247, 0.2)", color: "#c084fc", border: "1px solid rgba(168, 85, 247, 0.4)", borderRadius: "4px", padding: "1px 5px" }}>
+                                  ⚡ পেন্ডিং সিঙ্ক
+                                </span>
+                              )}
                             </div>
                             {dep.receiptNo && (
                               <div

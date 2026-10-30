@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { APP_VERSION_NAME } from '../config/version.js';
 
 /**
  * QuickChart QR API Generator (Tier 1 Cloud CDN)
@@ -482,7 +483,7 @@ Best regards,
 /**
  * Formats a message for client contacting vendor support
  */
-export const formatVendorSupportWhatsAppMessage = (userInfo, shopName, appVersion = 'v2.0.0') => {
+export const formatVendorSupportWhatsAppMessage = (userInfo, shopName, appVersion = APP_VERSION_NAME) => {
   const userText = userInfo?.name || userInfo?.email || 'নতুন ব্যবহারকারী';
   const store = shopName || 'আমার প্রতিষ্ঠান';
   return `হ্যালো HisabKitab 360 সাপোর্ট টিম 👋

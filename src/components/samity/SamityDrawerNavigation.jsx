@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { isModuleEnabled } from "../../services/tenantManagerService";
+import { APP_VERSION_NAME } from "../../config/version";
 import {
   Users,
   Building2,
@@ -1700,19 +1701,46 @@ export const SamityDrawerNavigation = ({
                   {t("সেন্ট্রাল ক্লাউড: সিঙ্কড", "Central Cloud: Synced")}
                 </span>
               </div>
-              <span
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: "800",
-                  color: "#10b981",
-                  background: isLight ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.15)",
-                  border: "1px solid rgba(16, 185, 129, 0.3)",
-                  padding: "2px 8px",
-                  borderRadius: "6px",
-                }}
-              >
-                v1.8.0
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
+                  style={{
+                    fontSize: "0.7rem",
+                    fontWeight: "800",
+                    color: "#10b981",
+                    background: isLight ? "rgba(16, 185, 129, 0.1)" : "rgba(16, 185, 129, 0.15)",
+                    border: "1px solid rgba(16, 185, 129, 0.3)",
+                    padding: "2px 8px",
+                    borderRadius: "6px",
+                  }}
+                >
+                  {APP_VERSION_NAME}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playButtonClick?.();
+                    window.dispatchEvent(new CustomEvent('somiti_trigger_update_check'));
+                  }}
+                  title={t("নতুন আপডেট চেক করুন", "Check for Updates")}
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: '800',
+                    color: isLight ? '#0284c7' : '#38bdf8',
+                    background: isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.15)',
+                    border: isLight ? '1px solid #bae6fd' : '1px solid rgba(56, 189, 248, 0.3)',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <RefreshCw size={10} />
+                  <span>{t('আপডেট চেক', 'Update')}</span>
+                </button>
+              </div>
             </>
           ) : (
             <span

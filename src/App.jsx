@@ -10,6 +10,8 @@ import { getPendingQueueCount } from './services/somitiOfflineStore';
 import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare, Crown } from 'lucide-react';
 import { TenantModuleToggleManager } from './components/superadmin/TenantModuleToggleManager';
 import { SuperAdminDualModeBar } from './components/superadmin/SuperAdminDualModeBar';
+import { AppUpdateModal } from './components/common/AppUpdateModal';
+import { checkForAppUpdate } from './services/appUpdateService';
 import { getTenantsList, getActiveWorkspaceId, getTenantById } from './services/tenantManagerService';
 
 // Lazy-loaded heavy modal views for optimal bundle splitting
@@ -163,7 +165,14 @@ function ExecutiveHeaderBrand({ isLight, lang, user, onLogout, onOpenSaaSControl
               {isEn ? 'Somiti 360' : 'সমিতি ৩৬০'}
             </h1>
             <span
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('somiti_trigger_update_check'));
+                }
+              }}
+              title="ভার্সন আপডেট ও স্টেটাস চেক করতে ক্লিক করুন"
               style={{
+                cursor: 'pointer',
                 fontSize: '0.62rem',
                 fontWeight: '800',
                 background: isLight ? '#e0f2fe' : 'rgba(16, 185, 129, 0.15)',
@@ -172,7 +181,8 @@ function ExecutiveHeaderBrand({ isLight, lang, user, onLogout, onOpenSaaSControl
                 padding: '1px 6px',
                 borderRadius: '8px',
                 textTransform: 'uppercase',
-                letterSpacing: '0.4px'
+                letterSpacing: '0.4px',
+                transition: 'all 0.2s ease'
               }}
             >
               {APP_VERSION_NAME}
@@ -551,7 +561,7 @@ function ExecutiveControlsTrack({
 }
 
 function MainView() {
-  const { lang = 'bn', setLang, theme = 'dark', setTheme, toggleTheme, user, logout, authLoading, isAuthenticated } = useApp();
+  const { lang = 'bn', setLang, theme = 'dark', setTheme, toggleTheme, user, logout, authLoading, isAuthenticated, showToast } = useApp();
 
   // Synchronous URL verification parameter extraction (Public Instant Verification)
   const [verifyData, setVerifyData] = useState(() => {
@@ -614,6 +624,8 @@ function MainView() {
   const [viewMode, setViewMode] = useState(() => (verifyData ? 'verify' : 'hub'));
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isSaaSControlOpen, setIsSaaSControlOpen] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveWorkspaceId());
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
@@ -665,13 +677,37 @@ function MainView() {
     };
     window.addEventListener('somiti_workspace_switched', handleWorkspaceChanged);
 
+    // Automatic Background OTA Update Check (runs 2.5s after launch)
+    const updateTimer = setTimeout(() => {
+      checkForAppUpdate(false).then((info) => {
+        if (info?.hasUpdate) {
+          setUpdateInfo(info);
+          setIsUpdateModalOpen(true);
+        }
+      });
+    }, 2500);
+
+    const handleManualUpdateCheck = () => {
+      checkForAppUpdate(true).then((info) => {
+        setUpdateInfo(info);
+        if (info?.hasUpdate) {
+          setIsUpdateModalOpen(true);
+        } else {
+          showToast?.(info?.message || (lang === 'en' ? 'App is already up to date!' : 'অ্যাপটি আপ টু ডেট রয়েছে!'), 'success');
+        }
+      });
+    };
+    window.addEventListener('somiti_trigger_update_check', handleManualUpdateCheck);
+
     return () => {
       unsub();
+      clearTimeout(updateTimer);
       window.removeEventListener('online', updateNetwork);
       window.removeEventListener('offline', updateNetwork);
       window.removeEventListener('somiti_offline_queue_changed', handleQueueChange);
       window.removeEventListener('hk360_samity_updated', handleDataUpdate);
       window.removeEventListener('somiti_workspace_switched', handleWorkspaceChanged);
+      window.removeEventListener('somiti_trigger_update_check', handleManualUpdateCheck);
     };
   }, []);
 
@@ -995,6 +1031,17 @@ function MainView() {
             setActiveWorkspaceIdState(tId);
             setIsSaaSControlOpen(false);
           }}
+        />
+      )}
+
+      {/* Cross-Platform App Version Update Modal */}
+      {isUpdateModalOpen && (
+        <AppUpdateModal
+          isOpen={isUpdateModalOpen}
+          onClose={() => setIsUpdateModalOpen(false)}
+          updateInfo={updateInfo}
+          isLight={isLight}
+          lang={lang}
         />
       )}
     </div>

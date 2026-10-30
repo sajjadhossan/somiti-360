@@ -142,7 +142,7 @@ export const DocumentQRVerification = ({
         <div style={{ fontSize: compact ? '0.62rem' : '0.68rem', color: '#64748b', marginTop: '2px' }}>
           <span>অনলাইন যাচাই: </span>
           <a
-            href={verifyUrl || `${SOMITI_PRODUCTION_DOMAIN}/verify`}
+            href={verifyUrl || `${SOMITI_PRODUCTION_DOMAIN}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -154,7 +154,7 @@ export const DocumentQRVerification = ({
               gap: '2px'
             }}
           >
-            <span>somiti-360.vercel.app/verify</span>
+            <span>somiti-360.vercel.app</span>
             <ExternalLink size={10} />
           </a>
         </div>

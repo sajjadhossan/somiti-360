@@ -504,6 +504,11 @@ export const SOMITI_PRODUCTION_DOMAIN = 'https://somiti-360.vercel.app';
  * Format:
  * https://somiti-360.vercel.app/verify?c={verificationCode}&r={receiptOrDocNo}&t={docType}&a={amount}&d={date}&n={memberName}&m={depositorName}&p={monthYear}
  */
+/**
+ * Builds an Ultra-Short, 404-free Root Query Verification URL for Somiti 360 documents.
+ * Format per exact user specification:
+ * https://somiti-360.vercel.app/?v=1&c={verificationCode}&r={receiptNo}&t={docType}&a={amount}&n={memberName}&dp={depositor}&m={monthYear}&dt={date}&s={samityName}
+ */
 export const createUltraShortVerificationUrl = ({
   verificationCode = '',
   receiptOrDocNo = '',
@@ -516,23 +521,24 @@ export const createUltraShortVerificationUrl = ({
   samityName = ''
 } = {}) => {
   const params = new URLSearchParams();
+  params.set('v', '1');
   if (verificationCode) params.set('c', String(verificationCode).trim());
   if (receiptOrDocNo) params.set('r', String(receiptOrDocNo).trim());
   if (docType) params.set('t', String(docType).trim());
   if (amount !== undefined && amount !== null && amount !== '' && Number(amount) > 0) {
     params.set('a', String(Number(amount)));
   }
-  if (date) params.set('d', String(date).split('T')[0]);
   if (memberName) params.set('n', String(memberName).trim().slice(0, 40));
-  if (depositorName && depositorName !== memberName) {
-    params.set('m', String(depositorName).trim().slice(0, 40));
+  if (depositorName) {
+    params.set('dp', String(depositorName).trim().slice(0, 40));
   }
-  if (monthYear) params.set('p', String(monthYear).trim());
+  if (monthYear) params.set('m', String(monthYear).trim());
+  if (date) params.set('dt', String(date).split('T')[0]);
   if (samityName && samityName !== 'স্বপ্নছোঁয়া সমবায় সমিতি') {
     params.set('s', String(samityName).trim().slice(0, 30));
   }
 
-  return `${SOMITI_PRODUCTION_DOMAIN}/verify?${params.toString()}`;
+  return `${SOMITI_PRODUCTION_DOMAIN}/?${params.toString()}`;
 };
 
 /**

@@ -42386,7 +42386,7 @@ ${samityTitle}
                         <div style={{ fontSize: "0.66rem", color: "#64748b", marginTop: "3px" }}>
                           অনলাইন যাচাই:{" "}
                           <a href={createSamityReceiptVerificationUrl(dep, currentSamity)} target="_blank" rel="noopener noreferrer" style={{ color: "#0284c7", fontWeight: "700", textDecoration: "none" }}>
-                            somiti-360.vercel.app/verify
+                            somiti-360.vercel.app
                           </a>
                         </div>
                         {(dep.ai_scan_id || dep.ai_draft_id) && (
@@ -44313,7 +44313,7 @@ ${samityTitle}
                             textDecoration: "none",
                           }}
                         >
-                          somiti-360.vercel.app/verify
+                          somiti-360.vercel.app
                         </a>
                         মোবাইল ক্যামেরা দিয়ে স্ক্যান করলেই
                         <br />

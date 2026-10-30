@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import {
   Users,
   Building2,
@@ -158,7 +158,7 @@ import {
   format12HourTime,
 } from "../../services/somitiCloudSyncService";
 import { SamityInternalChatHub } from "./SamityInternalChatHub";
-import { DeviceMeshStatusModal } from "./DeviceMeshStatusModal";
+const DeviceMeshStatusModal = lazy(() => import("./DeviceMeshStatusModal").then(m => ({ default: m.DeviceMeshStatusModal })));
 import { SupervisorLiveRadarModal } from "./SupervisorLiveRadarModal";
 import { SamityAIAssistantModal } from "./SamityAIAssistantModal";
 import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";

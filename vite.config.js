@@ -30,6 +30,9 @@ export default defineConfig({
             if (id.includes('xlsx')) {
               return 'vendor-excel';
             }
+            if (id.includes('qrcode')) {
+              return 'vendor-qr';
+            }
             return 'vendor-core';
           }
         }

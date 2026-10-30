@@ -10,6 +10,19 @@ export { markRecordAsDeletedTombstone, generateIdempotencyKey, enqueueOfflineMut
 
 const STORAGE_KEY = 'hk360_samity_hub_data';
 
+export const getTenantStorageKey = (customTenantId = null) => {
+  try {
+    if (customTenantId && customTenantId !== 'tenant_master_headquarters') {
+      return `hk360_samity_hub_data_${customTenantId}`;
+    }
+    const wsId = typeof window !== 'undefined' ? localStorage.getItem('somiti360_active_workspace_id') : null;
+    if (wsId && wsId !== 'tenant_master_headquarters') {
+      return `hk360_samity_hub_data_${wsId}`;
+    }
+  } catch {}
+  return STORAGE_KEY;
+};
+
 // Helper to convert number to Bengali words
 export const numberToBanglaWords = (num) => {
   if (!num || isNaN(num)) return 'শূন্য টাকা মাত্র';
@@ -537,9 +550,10 @@ const DEFAULT_CLEAN_DATA = {
 };
 
 // Load saved data or initialize
-export const loadSamityData = () => {
+export const loadSamityData = (customTenantId = null) => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getTenantStorageKey(customTenantId);
+    const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
@@ -564,7 +578,7 @@ export const loadSamityData = () => {
 };
 
 // Persist data with dual localStorage + IndexedDB non-blocking durability
-export const saveSamityData = (data, actionMeta = {}) => {
+export const saveSamityData = (data, actionMeta = {}, customTenantId = null) => {
   const enrichedMeta = {
     ...actionMeta,
     idempotencyKey: actionMeta.idempotencyKey || generateIdempotencyKey(actionMeta.action || 'sync'),
@@ -572,7 +586,8 @@ export const saveSamityData = (data, actionMeta = {}) => {
   };
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const key = getTenantStorageKey(customTenantId);
+    localStorage.setItem(key, JSON.stringify(data));
   } catch (storageErr) {
     console.warn('[SamityService] localStorage quota exceeded, IndexedDB taking over:', storageErr);
   }

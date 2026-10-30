@@ -9,6 +9,7 @@ import { subscribeDevicePresence, getOnlineDevicesList } from './services/somiti
 import { getPendingQueueCount } from './services/somitiOfflineStore';
 import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare, Crown } from 'lucide-react';
 import { TenantModuleToggleManager } from './components/superadmin/TenantModuleToggleManager';
+import { SuperAdminDualModeBar } from './components/superadmin/SuperAdminDualModeBar';
 import { getTenantsList, getActiveWorkspaceId, getTenantById } from './services/tenantManagerService';
 
 // Lazy-loaded heavy modal views for optimal bundle splitting
@@ -894,6 +895,16 @@ function MainView() {
           }
         }
       `}</style>
+
+      {/* ==================================================================== */}
+      {/* 0. SUPER ADMIN DUAL-MODE QUICK TOGGLE & WORKSPACE SWITCHER BAR */}
+      {/* ==================================================================== */}
+      <SuperAdminDualModeBar
+        isLight={isLight}
+        lang={lang}
+        onOpenSaaSManager={() => setIsSaaSControlOpen(true)}
+        user={user}
+      />
 
       {/* ==================================================================== */}
       {/* EXECUTIVE TOP HEADER BAR (Mobile APK Touch-Optimized & Modernized) */}

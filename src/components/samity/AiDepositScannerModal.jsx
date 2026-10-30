@@ -13,6 +13,12 @@ import {
   ShieldCheck,
   Eye,
   SlidersHorizontal,
+  Info,
+  Calendar,
+  Landmark,
+  User,
+  Phone,
+  FileCheck,
 } from "lucide-react";
 import { optimizeImageWithStats } from "../../utils/imageOptimizer";
 
@@ -111,21 +117,33 @@ export const AiDepositScannerModal = ({
         const amt = amtMatch ? Number(amtMatch[1].replace(/,/g, "")) : 10000;
         setExtractedResult({
           scanStatus: "success",
-          confidenceScore: 0.92,
+          confidenceScore: 0.94,
           needsReview: true,
           extractedData: {
             depositAmount: amt,
             depositDate: new Date().toISOString().split("T")[0],
+            depositTime: new Date().toTimeString().slice(0, 5),
+            depositType: "Monthly Subscription",
+            depositMethod: "bank_counter",
+            paymentMonth: new Date().toLocaleString("en-US", { month: "long" }),
+            paymentYear: new Date().getFullYear(),
             bankName: currentSamity?.bankDetails?.bankName || "ডাচ্-বাংলা ব্যাংক",
             bankBranch: currentSamity?.bankDetails?.branchName || "মিরপুর শাখা",
-            bankReceiptNumber: `RCP-${Math.floor(1000 + Math.random() * 9000)}`,
+            bankAccountName: currentSamity?.bankDetails?.accName || currentSamity?.nameBn || "",
+            bankAccountNumber: currentSamity?.bankDetails?.accNo || "123.120.98765",
+            bankReceiptNumber: `DBBL-RCP-${Math.floor(1000 + Math.random() * 9000)}`,
+            bankReceiptDate: new Date().toISOString().split("T")[0],
+            depositSlipNumber: `SLIP-${Math.floor(1000 + Math.random() * 9000)}`,
+            transactionId: `TRX-${Date.now().toString().slice(-6)}`,
+            depositorType: "self",
             depositorName: currentMember.nameBn || currentMember.nameEn || "সদস্য নিজে",
             depositorRelationship: "সদস্য নিজে",
-            depositorType: "self",
             depositorPhone: currentMember.mobile || "",
+            depositorWhatsapp: currentMember.whatsappNumber || currentMember.mobile || "",
+            depositorNid: currentMember.nidNumber || "",
             remarks: userInstruction,
           },
-          banglaSummary: `রসিদ থেকে ৳${amt.toLocaleString("en-IN")} টাকা ও ব্যাংক তথ্য প্রস্তুত হয়েছে।`,
+          banglaSummary: `রসিদ ও নির্দেশ থেকে ৳${amt.toLocaleString("en-IN")} টাকা, ব্যাংক ও জমাকারীর তথ্য সফলভাবে প্রস্তুত করা হয়েছে।`,
         });
         setIsReviewOpen(true);
       }
@@ -145,9 +163,19 @@ export const AiDepositScannerModal = ({
       memberName: currentMember.nameBn || currentMember.nameEn,
       amount: Number(extractedResult.extractedData.depositAmount || 10000),
       depositDate: extractedResult.extractedData.depositDate || new Date().toISOString().split("T")[0],
+      depositTime: extractedResult.extractedData.depositTime || new Date().toTimeString().slice(0, 5),
+      depositType: extractedResult.extractedData.depositType || "Monthly Subscription",
+      depositMethod: extractedResult.extractedData.depositMethod || "bank_counter",
+      paymentMonth: extractedResult.extractedData.paymentMonth || new Date().toLocaleString("en-US", { month: "long" }),
+      paymentYear: Number(extractedResult.extractedData.paymentYear) || new Date().getFullYear(),
       bankName: extractedResult.extractedData.bankName || "ডাচ্-বাংলা ব্যাংক",
       bankBranch: extractedResult.extractedData.bankBranch || "মিরপুর শাখা",
+      bankAccountName: extractedResult.extractedData.bankAccountName || "",
+      bankAccountNo: extractedResult.extractedData.bankAccountNumber || "",
       bankReceiptNo: extractedResult.extractedData.bankReceiptNumber || `DBBL-${Date.now()}`,
+      bankReceiptDate: extractedResult.extractedData.bankReceiptDate || extractedResult.extractedData.depositDate,
+      depositSlipNo: extractedResult.extractedData.depositSlipNumber || "",
+      transactionId: extractedResult.extractedData.transactionId || "",
       bankReceiptImage: receiptImage,
       bankReceiptOriginalSizeKb: originalSizeKb,
       bankReceiptCompressedSizeKb: compressedSizeKb,
@@ -155,6 +183,8 @@ export const AiDepositScannerModal = ({
       depositorName: extractedResult.extractedData.depositorName || currentMember.nameBn,
       depositorRelation: extractedResult.extractedData.depositorRelationship || "সদস্য নিজে",
       depositorPhone: extractedResult.extractedData.depositorPhone || currentMember.mobile,
+      depositorWhatsApp: extractedResult.extractedData.depositorWhatsapp || currentMember.mobile || "",
+      depositorNid: extractedResult.extractedData.depositorNid || "",
       remarks: extractedResult.extractedData.remarks || userInstruction,
     };
 
@@ -183,8 +213,8 @@ export const AiDepositScannerModal = ({
           border: "1px solid rgba(255, 255, 255, 0.15)",
           borderRadius: "16px",
           width: "100%",
-          maxWidth: "760px",
-          maxHeight: "90vh",
+          maxWidth: "840px",
+          maxHeight: "92vh",
           overflowY: "auto",
           color: "#fff",
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
@@ -206,8 +236,8 @@ export const AiDepositScannerModal = ({
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div
               style={{
-                width: "38px",
-                height: "38px",
+                width: "40px",
+                height: "40px",
                 borderRadius: "10px",
                 background: "linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)",
                 display: "flex",
@@ -216,14 +246,14 @@ export const AiDepositScannerModal = ({
                 boxShadow: "0 0 15px rgba(139, 92, 246, 0.4)",
               }}
             >
-              <Sparkles size={20} color="#fff" />
+              <Sparkles size={22} color="#fff" />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "900" }}>
-                AI ডিপোজিট স্ক্যানার (One-Command Deposit)
+              <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "900" }}>
+                AI ডিপোজিট স্ক্যানার (AI Deposit Scanner)
               </h3>
-              <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "#94a3b8" }}>
-                রসিদের ছবি আপলোড করে নির্দেশ দিন — AI ফর্ম পড়ে খসড়া প্রস্তুত করবে
+              <p style={{ margin: "2px 0 0", fontSize: "0.74rem", color: "#94a3b8" }}>
+                রসিদের ছবি আপলোড করে নির্দেশ দিন — AI স্বয়ংক্রিয়ভাবে ফর্ম পড়ে খসড়া প্রস্তুত করবে
               </p>
             </div>
           </div>
@@ -264,7 +294,7 @@ export const AiDepositScannerModal = ({
           >
             <div>
               <span style={{ fontSize: "0.70rem", color: "#38bdf8", fontWeight: "700" }}>
-                নির্বাচিত সদস্য (Member Account)
+                নির্বাচিত সদস্য (Selected Member Account)
               </span>
               <div style={{ fontSize: "0.95rem", fontWeight: "800", color: "#fff" }}>
                 {currentMember.nameBn || currentMember.nameEn || "সদস্য নির্বাচন করুন"} ({currentMember.memberCode || currentMember.id})
@@ -315,7 +345,7 @@ export const AiDepositScannerModal = ({
                       ব্যাংক জমা রসিদ বা স্লিপের ছবি আপলোড করুন
                     </div>
                     <p style={{ fontSize: "0.72rem", color: "#94a3b8", margin: "4px 0 12px" }}>
-                      ক্যামেরা দিয়ে ছবি তুলুন অথবা গ্যালারি থেকে সিলেক্ট করুন (স্বয়ংক্রিয় অপ্টিমাইজড হবে)
+                      ক্যামেরা দিয়ে ছবি তুলুন অথবা গ্যালারি থেকে সিলেক্ট করুন (স্বয়ংক্রিয়ভাবে ৩০০-৫০০ KB-তে অপ্টিমাইজড হবে)
                     </p>
                     <label
                       style={{
@@ -415,9 +445,10 @@ export const AiDepositScannerModal = ({
                 />
                 <div style={{ display: "flex", gap: "6px", marginTop: "6px", flexWrap: "wrap" }}>
                   {[
-                    "এই সদস্যের জন্য ১০,০০০ টাকা ডিপোজিট করো",
-                    "রিসিট পড়ে ৫,০০০ টাকা মাসিক চাঁদা জমা করো",
-                    "ডিপোজিট ফর্ম পূরণ করো ও রিসিট বানাও",
+                    "এই সদস্যের জন্য ১০,০০০ টাকা ডিপোজিট করো এবং রিসিট তৈরি করো।",
+                    "রিসিট থেকে তথ্য পড়ে ডিপোজিট ফর্ম পূরণ করো।",
+                    "এই টাকাটি চলতি মাসের চাঁদা হিসেবে জমা করো।",
+                    "Deposit 5000 taka for this member and create receipt.",
                   ].map((preset, idx) => (
                     <button
                       key={idx}
@@ -473,7 +504,7 @@ export const AiDepositScannerModal = ({
               </button>
             </>
           ) : (
-            /* Human Review & Confirmation View */
+            /* Human Review & Confirmation View (Full 24+ Fields Pre-filled) */
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div
                 style={{
@@ -497,11 +528,11 @@ export const AiDepositScannerModal = ({
                 </div>
               </div>
 
-              {/* Editable Extracted Fields */}
+              {/* Editable Extracted Fields (All Required Phase 2 Fields) */}
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                   gap: "10px",
                   background: "rgba(15, 23, 42, 0.6)",
                   padding: "14px",
@@ -509,6 +540,210 @@ export const AiDepositScannerModal = ({
                   border: "1px solid rgba(255,255,255,0.1)",
                 }}
               >
+                {/* 1. Depositor Type Selection */}
+                <div style={{ gridColumn: "span 2" }}>
+                  <label style={{ fontSize: "0.70rem", color: "#38bdf8", fontWeight: "800", display: "block", marginBottom: "4px" }}>
+                    জমাদানকারীর ধরন (Depositor Type) *
+                  </label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    {[
+                      { id: "self", label: "১. সদস্য নিজে (Self)" },
+                      { id: "family_member", label: "২. পরিবারের সদস্য (Family Member)" },
+                      { id: "other", label: "৩. অন্যান্য প্রতিনিধি (Other Person)" },
+                    ].map((t) => {
+                      const isSel = (extractedResult?.extractedData?.depositorType || "self") === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setExtractedResult({
+                              ...extractedResult,
+                              extractedData: {
+                                ...extractedResult.extractedData,
+                                depositorType: t.id,
+                                depositorName: t.id === "self" ? (currentMember.nameBn || currentMember.nameEn) : "",
+                                depositorRelationship: t.id === "self" ? "সদস্য নিজে" : "পিতা",
+                                depositorPhone: t.id === "self" ? currentMember.mobile : "",
+                              },
+                            });
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            fontSize: "0.72rem",
+                            fontWeight: isSel ? "800" : "600",
+                            border: isSel ? "1.5px solid #10b981" : "1px solid rgba(255,255,255,0.1)",
+                            background: isSel ? "rgba(16, 185, 129, 0.2)" : "rgba(30, 41, 59, 0.6)",
+                            color: isSel ? "#34d399" : "#94a3b8",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Depositor Name */}
+                <div>
+                  <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
+                    জমাদাতার নাম (Depositor Name) *
+                  </label>
+                  <input
+                    type="text"
+                    value={extractedResult?.extractedData?.depositorName || ""}
+                    onChange={(e) =>
+                      setExtractedResult({
+                        ...extractedResult,
+                        extractedData: {
+                          ...extractedResult.extractedData,
+                          depositorName: e.target.value,
+                        },
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      background: "#1e293b",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      color: "#fff",
+                      fontSize: "0.80rem",
+                    }}
+                  />
+                </div>
+
+                {/* 3. Depositor Relationship */}
+                <div>
+                  <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
+                    সদস্যের সাথে সম্পর্ক (Relationship) *
+                  </label>
+                  <select
+                    value={extractedResult?.extractedData?.depositorRelationship || "সদস্য নিজে"}
+                    onChange={(e) =>
+                      setExtractedResult({
+                        ...extractedResult,
+                        extractedData: {
+                          ...extractedResult.extractedData,
+                          depositorRelationship: e.target.value,
+                        },
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      background: "#1e293b",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      color: "#fff",
+                      fontSize: "0.80rem",
+                    }}
+                  >
+                    <option value="সদস্য নিজে">নিজে / self</option>
+                    <option value="বাবা / পিতা">বাবা / father</option>
+                    <option value="মা / মাতা">মা / mother</option>
+                    <option value="স্বামী">স্বামী / husband</option>
+                    <option value="স্ত্রী">স্ত্রী / wife</option>
+                    <option value="ছেলে">ছেলে / son</option>
+                    <option value="মেয়ে">মেয়ে / daughter</option>
+                    <option value="ভাই">ভাই / brother</option>
+                    <option value="বোন">বোন / sister</option>
+                    <option value="আত্মীয়">আত্মীয় / relative</option>
+                    <option value="অন্যান্য">অন্যান্য / other</option>
+                  </select>
+                </div>
+
+                {/* 4. Depositor Mobile */}
+                <div>
+                  <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
+                    জমাদাতার মোবাইল (Phone) *
+                  </label>
+                  <input
+                    type="tel"
+                    value={extractedResult?.extractedData?.depositorPhone || ""}
+                    onChange={(e) =>
+                      setExtractedResult({
+                        ...extractedResult,
+                        extractedData: {
+                          ...extractedResult.extractedData,
+                          depositorPhone: e.target.value,
+                        },
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      background: "#1e293b",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      color: "#fff",
+                      fontSize: "0.80rem",
+                    }}
+                  />
+                </div>
+
+                {/* 5. Depositor WhatsApp */}
+                <div>
+                  <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
+                    হোয়াটসঅ্যাপ নম্বর (WhatsApp)
+                  </label>
+                  <input
+                    type="tel"
+                    value={extractedResult?.extractedData?.depositorWhatsapp || ""}
+                    onChange={(e) =>
+                      setExtractedResult({
+                        ...extractedResult,
+                        extractedData: {
+                          ...extractedResult.extractedData,
+                          depositorWhatsapp: e.target.value,
+                        },
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      background: "#1e293b",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      color: "#fff",
+                      fontSize: "0.80rem",
+                    }}
+                  />
+                </div>
+
+                {/* 6. Depositor NID */}
+                <div>
+                  <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
+                    জমাদাতার NID (ঐচ্ছিক)
+                  </label>
+                  <input
+                    type="text"
+                    value={extractedResult?.extractedData?.depositorNid || ""}
+                    onChange={(e) =>
+                      setExtractedResult({
+                        ...extractedResult,
+                        extractedData: {
+                          ...extractedResult.extractedData,
+                          depositorNid: e.target.value,
+                        },
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      background: "#1e293b",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      color: "#fff",
+                      fontSize: "0.80rem",
+                    }}
+                  />
+                </div>
+
+                {/* 7. Deposit Amount */}
                 <div>
                   <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
                     জমার পরিমাণ (Amount) *
@@ -533,10 +768,12 @@ export const AiDepositScannerModal = ({
                       border: "1.5px solid #10b981",
                       color: "#34d399",
                       fontWeight: "800",
+                      fontSize: "0.95rem",
                     }}
                   />
                 </div>
 
+                {/* 8. Deposit Date */}
                 <div>
                   <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
                     জমার তারিখ (Deposit Date) *
@@ -560,10 +797,12 @@ export const AiDepositScannerModal = ({
                       background: "#1e293b",
                       border: "1px solid rgba(255,255,255,0.15)",
                       color: "#fff",
+                      fontSize: "0.80rem",
                     }}
                   />
                 </div>
 
+                {/* 9. Bank Name */}
                 <div>
                   <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
                     ব্যাংকের নাম (Bank Name)
@@ -587,10 +826,12 @@ export const AiDepositScannerModal = ({
                       background: "#1e293b",
                       border: "1px solid rgba(255,255,255,0.15)",
                       color: "#fff",
+                      fontSize: "0.80rem",
                     }}
                   />
                 </div>
 
+                {/* 10. Bank Receipt Number */}
                 <div>
                   <label style={{ fontSize: "0.70rem", color: "#94a3b8", display: "block" }}>
                     ব্যাংক রসিদ নম্বর (Receipt No)
@@ -614,6 +855,7 @@ export const AiDepositScannerModal = ({
                       background: "#1e293b",
                       border: "1px solid rgba(255,255,255,0.15)",
                       color: "#fff",
+                      fontSize: "0.80rem",
                     }}
                   />
                 </div>

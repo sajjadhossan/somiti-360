@@ -45,7 +45,7 @@ function runTests() {
 
   assert(fs.existsSync('public/sw.js'), 'PWA sw.js exists');
   const sw = fs.readFileSync('public/sw.js', 'utf8');
-  assert(sw.includes('somiti360-shell-v2.1.0'), 'Service worker has correct cache version');
+  assert(sw.includes('somiti360-shell-v2.2.0'), 'Service worker has correct cache version (v2.2.0)');
   assert(sw.includes('/api/'), 'Service worker explicitly skips /api/ routes to prevent leaking private cache');
 
   // 3. Local Database & Offline Stores (IndexedDB v2)
@@ -72,10 +72,26 @@ function runTests() {
   assert(sql.includes('sync_conflicts'), 'SQL migration creates sync_conflicts');
   assert(sql.includes('sync_cursors'), 'SQL migration creates sync_cursors');
 
-  // 6. Frontend UI Integration
+  // 6. Multi-Tenant SaaS Master Switchboard & Cascading RBAC
+  const tenantService = fs.readFileSync('src/services/tenantManagerService.js', 'utf8');
+  assert(tenantService.includes('GRANULAR_FEATURE_CATEGORIES'), 'tenantManagerService exports GRANULAR_FEATURE_CATEGORIES');
+  assert(tenantService.includes('canRolePerformAction'), 'tenantManagerService exports double-gated canRolePerformAction');
+  assert(tenantService.includes('field_collection') && tenantService.includes('member_portal'), 'Granular features cover both field and member portals');
+  assert(fs.existsSync('src/components/superadmin/GranularMasterSwitchboardModal.jsx'), 'GranularMasterSwitchboardModal component exists');
+
+  // 7. 50-Point System Diagnostics & Self-Healing Suite
+  assert(fs.existsSync('src/services/systemDiagnosticService.js'), 'systemDiagnosticService.js exists');
+  const diagService = fs.readFileSync('src/services/systemDiagnosticService.js', 'utf8');
+  assert(diagService.includes('runFullSystemDiagnostic'), 'Diagnostic service exports runFullSystemDiagnostic');
+  assert(diagService.includes('executeSelfHealing'), 'Diagnostic service exports executeSelfHealing');
+  assert(fs.existsSync('src/components/common/SystemDiagnosticModal.jsx'), 'SystemDiagnosticModal.jsx exists');
+
+  // 8. Frontend UI & Power Keyboard Shortcuts Integration
   const appJsx = fs.readFileSync('src/App.jsx', 'utf8');
   assert(appJsx.includes('EnterpriseOfflineBanner'), 'App.jsx renders EnterpriseOfflineBanner');
   assert(appJsx.includes('SyncConflictResolutionModal'), 'App.jsx renders SyncConflictResolutionModal');
+  assert(appJsx.includes('SystemDiagnosticModal'), 'App.jsx renders SystemDiagnosticModal');
+  assert(appJsx.includes('somiti_trigger_diagnostic'), 'App.jsx listens to somiti_trigger_diagnostic event');
 
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);

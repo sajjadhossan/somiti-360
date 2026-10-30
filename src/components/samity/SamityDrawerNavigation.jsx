@@ -1165,7 +1165,14 @@ export const SamityDrawerNavigation = ({
                     >
                       {currentUser.name || "সাজ্জাদ হোসেন"}
                     </div>
-                    <div style={{ fontSize: "0.7rem", color: "#10b981", fontWeight: "700" }}>
+                    <div
+                      onClick={() => {
+                        playButtonClick?.();
+                        onAction?.("open_role_modal");
+                      }}
+                      title={t("স্টাফ পারমিশন ও রোল পরিবর্তন করতে ক্লিক করুন", "Click to configure role permissions")}
+                      style={{ fontSize: "0.7rem", color: "#10b981", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+                    >
                       {activeUserRole === "admin"
                         ? t("অ্যাডমিন (Admin)", "Admin")
                         : activeUserRole === "president"

@@ -17,7 +17,17 @@
 
 import { getSupabase, isSupabaseReady } from './supabaseClient';
 import { backupToTelegram } from './somitiTelegramBackupService';
-import { saveStateToIndexedDB, flushPendingOfflineMutations } from './somitiOfflineStore';
+import { 
+  saveStateToIndexedDB, 
+  flushPendingOfflineMutations,
+  getPendingOfflineMutations,
+  markMutationSynced,
+  markMutationFailed,
+  recordSyncConflict,
+  getPendingQueueCount,
+  putBulkLocalRecords,
+  STORES
+} from './somitiOfflineStore';
 
 const MESH_CHANNEL_NAME = 'hk360_somiti_mesh_sync';
 const STORAGE_KEY = 'hk360_samity_hub_data';
@@ -301,20 +311,11 @@ export const initSomitiCloudSync = () => {
     // Setup browser online / offline listeners
     if (typeof window !== 'undefined') {
       window.addEventListener('online', async () => {
-        console.info('[SomitiSync] Device back online, flushing offline queue and reconnecting mesh...');
+        console.info('[SomitiSync] Device back online, executing enterprise sync engine...');
         try {
-          const flushedCount = await flushPendingOfflineMutations(async (mutation) => {
-            console.info('[SomitiSync] Flushed offline mutation:', mutation.type, mutation.idempotencyKey);
-          });
-          if (flushedCount > 0) {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-              const currentData = JSON.parse(raw);
-              broadcastSamityStateUpdate(currentData, { action: 'FLUSH_OFFLINE_QUEUE', count: flushedCount });
-            }
-          }
+          await triggerFullSyncEngine();
         } catch (e) {
-          console.warn('[SomitiSync] Error flushing offline mutations:', e);
+          console.warn('[SomitiSync] Sync engine error upon reconnect:', e);
         }
         requestMeshSyncFromPeers();
       });
@@ -709,3 +710,156 @@ const notifyListeners = (state) => {
     }
   });
 };
+
+// ============================================================================
+// ENTERPRISE SYNC ENGINE (PUSH, PULL & CONFLICT HANDLING)
+// ============================================================================
+
+/**
+ * Push all pending offline mutations to the central cloud API
+ */
+export const pushOfflineQueueToServer = async () => {
+  const pending = await getPendingOfflineMutations();
+  if (!pending || pending.length === 0) return { processed: 0, conflicts: 0, failed: 0 };
+
+  const deviceId = getLocalDeviceId();
+  const lastCursor = localStorage.getItem('somiti360_sync_cursor') || '';
+
+  const changes = pending.map(item => ({
+    entityType: item.entityType,
+    entityId: item.entityId,
+    operation: item.operation,
+    idempotencyKey: item.idempotencyKey,
+    clientUpdatedAt: item.clientUpdatedAt || new Date().toISOString(),
+    clientVersion: item.clientVersion || 1,
+    payload: item.payload
+  }));
+
+  try {
+    const res = await fetch('/api/sync/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deviceId,
+        lastSyncCursor: lastCursor,
+        changes
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`Push failed with HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const result = data?.data || {};
+
+    // 1. Mark successfully processed items as synced
+    for (const item of (result.processed || [])) {
+      if (item.idempotencyKey) {
+        await markMutationSynced(item.idempotencyKey);
+      }
+    }
+
+    // 2. Record conflicts for financial safety
+    for (const conf of (result.conflicts || [])) {
+      await recordSyncConflict(conf);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('somiti_sync_conflict_detected', { detail: conf }));
+      }
+    }
+
+    // 3. Mark failed items with backoff
+    for (const fail of (result.failed || [])) {
+      if (fail.idempotencyKey) {
+        await markMutationFailed(fail.idempotencyKey, fail.error);
+      }
+    }
+
+    if (result.newSyncCursor) {
+      localStorage.setItem('somiti360_sync_cursor', result.newSyncCursor);
+    }
+
+    return {
+      processed: result.processed?.length || 0,
+      conflicts: result.conflicts?.length || 0,
+      failed: result.failed?.length || 0
+    };
+  } catch (err) {
+    console.debug('[SomitiSync] Push queue error, will retry later:', err.message);
+    return { processed: 0, conflicts: 0, failed: pending.length, error: err.message };
+  }
+};
+
+/**
+ * Pull incremental updates from server and update local cache
+ */
+export const pullServerUpdatesToLocal = async () => {
+  const lastCursor = localStorage.getItem('somiti360_sync_cursor') || '';
+  try {
+    const res = await fetch(`/api/sync/pull?since=${encodeURIComponent(lastCursor)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    if (data.success) {
+      if (data.deposits?.length) {
+        await putBulkLocalRecords(STORES.DEPOSITS, data.deposits);
+      }
+      if (data.members?.length) {
+        await putBulkLocalRecords(STORES.MEMBERS, data.members);
+      }
+      if (data.expenses?.length) {
+        await putBulkLocalRecords(STORES.EXPENSES, data.expenses);
+      }
+      if (data.documents?.length) {
+        await putBulkLocalRecords(STORES.DOCUMENTS, data.documents);
+      }
+      if (data.newSyncCursor) {
+        localStorage.setItem('somiti360_sync_cursor', data.newSyncCursor);
+      }
+      return data;
+    }
+  } catch (err) {
+    console.debug('[SomitiSync] Pull error:', err.message);
+  }
+  return null;
+};
+
+/**
+ * Trigger full bidirectional sync engine
+ */
+export const triggerFullSyncEngine = async () => {
+  if (isSyncing) return false;
+  isSyncing = true;
+  notifyListeners({ isSyncing: true });
+
+  try {
+    // 1. Push pending local mutations to cloud
+    const pushResult = await pushOfflineQueueToServer();
+
+    // 2. Pull latest server data into local cache
+    await pullServerUpdatesToLocal();
+
+    // 3. Notify peers across WebSocket mesh
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const currentData = JSON.parse(raw);
+      broadcastSamityStateUpdate(currentData, {
+        action: 'HYBRID_SYNC_ENGINE_COMPLETED',
+        pushed: pushResult.processed
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('somiti_hybrid_sync_finished', { detail: pushResult }));
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[SomitiSync] Full sync engine run failed:', err);
+    return false;
+  } finally {
+    isSyncing = false;
+    notifyListeners({ isSyncing: false });
+  }
+};
+

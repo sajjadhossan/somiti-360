@@ -8,3 +8,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 );
+
+// Register PWA Service Worker for Offline-First Capability
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV !== 'development') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      console.info('[PWA] Service Worker registered with scope:', reg.scope);
+    }).catch((err) => {
+      console.debug('[PWA] Service Worker registration failed:', err);
+    });
+  });
+}

@@ -5,8 +5,8 @@
 // ============================================================================
 
 import { broadcastSamityStateUpdate, markRecordAsDeletedTombstone } from './somitiCloudSyncService';
-import { saveStateToIndexedDB, generateIdempotencyKey } from './somitiOfflineStore';
-export { markRecordAsDeletedTombstone, generateIdempotencyKey };
+import { saveStateToIndexedDB, generateIdempotencyKey, enqueueOfflineMutation } from './somitiOfflineStore';
+export { markRecordAsDeletedTombstone, generateIdempotencyKey, enqueueOfflineMutation };
 
 const STORAGE_KEY = 'hk360_samity_hub_data';
 
@@ -592,6 +592,31 @@ export const saveSamityData = (data, actionMeta = {}) => {
     broadcastSamityStateUpdate(data, enrichedMeta);
   } catch (syncErr) {
     console.debug('[SamityService] Cloud broadcast error:', syncErr);
+  }
+
+  // Enqueue to Pending Offline Sync Queue for Zero Data-Loss Guarantee
+  if (actionMeta && actionMeta.action) {
+    let entityType = null;
+    let operation = 'create';
+    const actionStr = String(actionMeta.action);
+
+    if (actionStr.includes('DEPOSIT') || actionStr.includes('DUE_PAID')) entityType = 'deposit';
+    else if (actionStr.includes('MEMBER')) entityType = 'member';
+    else if (actionStr.includes('EXPENSE')) entityType = 'expense';
+    else if (actionStr.includes('CANCEL') || actionStr.includes('DELETE')) {
+      operation = 'delete';
+      if (actionStr.includes('MEMBER')) entityType = 'member';
+      else if (actionStr.includes('DEPOSIT')) entityType = 'deposit';
+      else if (actionStr.includes('EXPENSE')) entityType = 'expense';
+      else entityType = 'deposit';
+    }
+
+    if (entityType) {
+      enqueueOfflineMutation(entityType, operation, {
+        ...(actionMeta.details || {}),
+        idempotencyKey: enrichedMeta.idempotencyKey
+      }).catch(() => {});
+    }
   }
 
   return true;

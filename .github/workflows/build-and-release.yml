@@ -58,13 +58,16 @@ jobs:
         run: |
           mkdir -p artifacts
           cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360-v2.0.0-build20-android.apk
 
       - name: Backup Upload Artifact
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
           name: Somiti-360-Android-APK
-          path: artifacts/Somiti-360.apk
+          path: |
+            artifacts/Somiti-360.apk
+            artifacts/Somiti-360-v2.0.0-build20-android.apk
           retention-days: 7
 
   build-windows:
@@ -236,10 +239,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Somiti 360 Latest Multi-Platform Release (v1.9.0)"
+          name: "Somiti 360 Unified Multi-Platform Release (v2.0.0)"
           body: |
-            ### 🛡️ সমিতি ৩৬০ (Somiti 360) সর্বজনীন মাল্টি-প্ল্যাটফর্ম রিলিজ (v1.9.0)
-            সব প্ল্যাটফর্মের জন্য শতভাগ রিয়েল, জিরো-ডেমো ডিজিটাল সমবায় ব্যবস্থাপনা অ্যাপ। এআই ডিপোজিট স্ক্যানার, হাই-রেজুলেশন কিউআর এবং পাবলিক ভেরিফিকেশন পোর্টাল সংযুক্ত।
+            ### 🛡️ সমিতি ৩৬০ (Somiti 360) সর্বজনীন মাল্টি-প্ল্যাটফর্ম রিলিজ (v2.0.0, Build 20)
+            অফলাইন-ফার্স্ট হাইব্রিড সুপার অ্যাপ, সম্পূর্ণ অফলাইন ক্যাশিং (IndexedDB), জিরো-ল্যাগ লোকাল ডাটাবেজ, পুশ/পুল সিঙ্ক ইঞ্জিন, স্বয়ংক্রিয় কনফ্লিক্ট রেজোলিউশন ও PWA অফলাইন সাপোর্ট।
 
             | প্ল্যাটফর্ম (Platform) | ফাইল নেম (File Name) | বিবরণ |
             | :--- | :--- | :--- |

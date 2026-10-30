@@ -4,6 +4,8 @@ import { SamityManagementHub } from './components/samity/SamityManagementHub';
 import { SamityDocVerificationView } from './components/samity/SamityDocVerificationView';
 import { SomitiAuthView } from './components/auth/SomitiAuthView';
 import { DeviceMeshStatusModal } from './components/samity/DeviceMeshStatusModal';
+import { EnterpriseOfflineBanner } from './components/samity/EnterpriseOfflineBanner';
+import { SyncConflictResolutionModal } from './components/samity/SyncConflictResolutionModal';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { getPendingQueueCount } from './services/somitiOfflineStore';
 import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare } from 'lucide-react';
@@ -535,6 +537,7 @@ function MainView() {
   const [viewMode, setViewMode] = useState(() => (verifyData ? 'verify' : 'hub'));
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
   const [onlineDevices, setOnlineDevices] = useState(() => getOnlineDevicesList());
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
   const [pendingQueueCount, setPendingQueueCount] = useState(0);
@@ -775,6 +778,15 @@ function MainView() {
         />
       </header>
 
+      {/* Enterprise Offline-First Status Banner & Sync Controls */}
+      <EnterpriseOfflineBanner
+        isOnline={isOnline}
+        pendingCount={pendingQueueCount}
+        isLight={isLight}
+        lang={lang}
+        onOpenConflictModal={() => setIsConflictModalOpen(true)}
+      />
+
       <main style={{ flex: 1, width: '100%' }}>
         <SamityManagementHub />
       </main>
@@ -785,6 +797,14 @@ function MainView() {
         onClose={() => setIsDeviceMeshModalOpen(false)}
         isLight={isLight}
         t={(bn, en) => (lang === 'en' && en ? en : bn)}
+      />
+
+      {/* Enterprise Sync Conflict Resolution Dialog */}
+      <SyncConflictResolutionModal
+        isOpen={isConflictModalOpen}
+        onClose={() => setIsConflictModalOpen(false)}
+        isLight={isLight}
+        lang={lang}
       />
     </div>
   );

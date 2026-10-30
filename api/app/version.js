@@ -10,13 +10,13 @@ export default function handler(req, res) {
   return res.status(200).json({
     success: true,
     data: {
-      latestVersion: "1.9.0",
-      buildNumber: 19,
-      minimumSupportedVersion: "1.8.0",
+      latestVersion: "2.0.0",
+      buildNumber: 20,
+      minimumSupportedVersion: "1.9.0",
       apkDownloadUrl: "https://github.com/sajjadhossan/somiti-360/releases/latest",
       releaseNotes: {
-        bn: "সমিতি ৩৬০ v1.9.0 — এআই ব্যাংক ডিপোজিট স্ক্যানার, এক ক্লিকে রসিদ তৈরি, হাই-রেজুলেশন কিউআর কোড এবং ভেরিফিকেশন লিঙ্ক সংযোজন।",
-        en: "Somiti 360 v1.9.0 — AI Bank Deposit Scanner, One-Command Deposit, High-Res QR Code and Public Verification integration."
+        bn: "সমিতি ৩৬০ v2.0.0 — অফলাইন-ফার্স্ট হাইব্রিড সুপার অ্যাপ, জিরো-ল্যাগ লোকাল ডাটাবেজ, পুশ/পুল সিঙ্ক ইঞ্জিন, স্বয়ংক্রিয় কনফ্লিক্ট রেজোলিউশন ও PWA অফলাইন সাপোর্ট।",
+        en: "Somiti 360 v2.0.0 — Offline-First Hybrid Super App, Zero-Lag Local Database, Push/Pull Sync Engine, Conflict Resolution & PWA Offline Shell Support."
       },
       forceUpdate: false,
       releaseDate: new Date().toISOString()

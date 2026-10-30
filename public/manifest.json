@@ -1,0 +1,27 @@
+{
+  "short_name": "সমিতি ৩৬০",
+  "name": "সমিতি ৩৬০ - সমবায় ও সঞ্চয় ব্যবস্থাপনা",
+  "description": "সমিতি ৩৬০ - সমিতি, সমবায় সংস্থা ও ক্ষুদ্রঋণ সঞ্চয় ব্যবস্থাপনা প্ল্যাটফর্ম (Offline + Online Hybrid Super App)",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#070b12",
+  "theme_color": "#070b12",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "business", "productivity"],
+  "lang": "bn-BD",
+  "dir": "ltr"
+}

@@ -14,6 +14,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'GET') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
     return res.status(405).json({ success: false, message: 'Method Not Allowed' });
   }
 
@@ -22,6 +24,8 @@ export default async function handler(req, res) {
   const lookupIdentifier = (code || documentId || '').trim();
 
   if (!lookupIdentifier) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
     return res.status(400).json({
       success: false,
       errorCode: 'MISSING_IDENTIFIER',
@@ -119,6 +123,8 @@ export default async function handler(req, res) {
     }
 
     if (!doc) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
       return res.status(404).json({
         success: false,
         isValid: false,
@@ -129,6 +135,17 @@ export default async function handler(req, res) {
 
     const isCancelled = doc.status === 'cancelled';
     const isExpired = doc.status === 'expired';
+
+    // Set dynamic cache headers:
+    // If document is cancelled or expired, NEVER cache it anywhere (prevent stale validation)
+    // If document is active & valid, use safe micro-cache of 30 seconds
+    if (isCancelled || isExpired) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=30');
+      res.setHeader('Vercel-CDN-Cache-Control', 'public, max-age=30, stale-while-revalidate=30');
+    }
 
     // Log verification attempt
     try {
@@ -167,6 +184,8 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('Verify API error:', err);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
     return res.status(500).json({
       success: false,
       message: 'Server verification error',

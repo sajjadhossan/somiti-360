@@ -1740,6 +1740,31 @@ export const SamityDrawerNavigation = ({
                   <RefreshCw size={10} />
                   <span>{t('আপডেট চেক', 'Update')}</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playButtonClick?.();
+                    window.dispatchEvent(new CustomEvent('somiti_trigger_diagnostic'));
+                  }}
+                  title={t("সিস্টেম ডায়াগনস্টিক ও ৫০-পয়েন্ট হেলথ চেক (Ctrl+Shift+D)", "System Diagnostics & Health (Ctrl+Shift+D)")}
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: '800',
+                    color: '#10b981',
+                    background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)',
+                    border: isLight ? '1px solid #bbf7d0' : '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Activity size={10} />
+                  <span>{t('হেলথ', 'Health')}</span>
+                </button>
               </div>
             </>
           ) : (
@@ -1752,7 +1777,7 @@ export const SamityDrawerNavigation = ({
                 background: "#10b981",
                 boxShadow: "0 0 10px #10b981",
               }}
-              title="Cloud Connected (v1.8.0)"
+              title={`Cloud Connected (${APP_VERSION_NAME})`}
             />
           )}
         </div>

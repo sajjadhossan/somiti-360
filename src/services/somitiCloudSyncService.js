@@ -16,6 +16,7 @@
  */
 
 import { getSupabase, isSupabaseReady } from './supabaseClient';
+import { getActiveWorkspaceId } from './tenantManagerService';
 import { backupToTelegram } from './somitiTelegramBackupService';
 import { 
   saveStateToIndexedDB, 
@@ -29,6 +30,30 @@ import {
   STORES
 } from './somitiOfflineStore';
 
+export const getActiveStorageKey = () => {
+  try {
+    const tenantId = getActiveWorkspaceId();
+    if (!tenantId || tenantId === 'tenant_master_headquarters') {
+      return 'hk360_samity_hub_data';
+    }
+    return `hk360_samity_hub_data_${tenantId}`;
+  } catch {
+    return 'hk360_samity_hub_data';
+  }
+};
+
+export const getMeshChannelName = () => {
+  try {
+    const tenantId = getActiveWorkspaceId();
+    if (!tenantId || tenantId === 'tenant_master_headquarters') {
+      return 'hk360_somiti_mesh_sync';
+    }
+    return `hk360_somiti_mesh_sync_${tenantId}`;
+  } catch {
+    return 'hk360_somiti_mesh_sync';
+  }
+};
+// Legacy fallbacks
 const MESH_CHANNEL_NAME = 'hk360_somiti_mesh_sync';
 const STORAGE_KEY = 'hk360_samity_hub_data';
 const LAST_SYNC_TS_KEY = 'somiti360_last_sync_timestamp';
@@ -215,7 +240,7 @@ export const mergeSamityState = (localState, incomingState) => {
 /**
  * Initialize WebSocket Realtime Live Sync Mesh
  */
-export const initSomitiCloudSync = () => {
+export const initSomitiCloudSync = (force = false) => {
   const supabase = getSupabase();
   if (!supabase || !isSupabaseReady()) {
     console.debug('[SomitiSync] Supabase client not ready, live sync waiting.');
@@ -223,14 +248,23 @@ export const initSomitiCloudSync = () => {
   }
 
   if (meshChannel) {
-    return meshChannel;
+    if (force) {
+      try {
+        supabase.removeChannel(meshChannel);
+      } catch {}
+      meshChannel = null;
+      isChannelSubscribed = false;
+    } else {
+      return meshChannel;
+    }
   }
 
   const deviceId = getLocalDeviceId();
   const origin = getDeviceOrigin();
+  const channelName = getMeshChannelName();
 
   try {
-    meshChannel = supabase.channel(MESH_CHANNEL_NAME, {
+    meshChannel = supabase.channel(channelName, {
       config: {
         broadcast: { ack: false, self: false },
         presence: { key: deviceId }
@@ -340,7 +374,7 @@ const handleIncomingBroadcast = (payload, isResponse = false) => {
 
   try {
     isApplyingIncoming = true;
-    const localRaw = localStorage.getItem(STORAGE_KEY);
+    const localRaw = localStorage.getItem(getActiveStorageKey());
     const localData = localRaw ? JSON.parse(localRaw) : {};
     
     // Deep merge incoming state with local state
@@ -348,7 +382,7 @@ const handleIncomingBroadcast = (payload, isResponse = false) => {
 
     // Persist to local storage with quota protection
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedData));
+      localStorage.setItem(getActiveStorageKey(), JSON.stringify(mergedData));
     } catch (stErr) {
       console.warn('[SomitiSync] localStorage quota exceeded, IndexedDB saving:', stErr);
     }
@@ -402,7 +436,7 @@ const handleMeshSyncRequest = async (payload) => {
     const localTs = Number(localStorage.getItem(LAST_SYNC_TS_KEY)) || 0;
     // If our state is newer or valid, send our snapshot
     if (localTs >= (payload.timestamp || 0)) {
-      const localRaw = localStorage.getItem(STORAGE_KEY);
+      const localRaw = localStorage.getItem(getActiveStorageKey());
       if (!localRaw) return;
       const data = JSON.parse(localRaw);
       
@@ -840,7 +874,7 @@ export const triggerFullSyncEngine = async () => {
     await pullServerUpdatesToLocal();
 
     // 3. Notify peers across WebSocket mesh
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getActiveStorageKey());
     if (raw) {
       const currentData = JSON.parse(raw);
       broadcastSamityStateUpdate(currentData, {
@@ -862,4 +896,9 @@ export const triggerFullSyncEngine = async () => {
     notifyListeners({ isSyncing: false });
   }
 };
-
+if (typeof window !== 'undefined') {
+  window.addEventListener('somiti_workspace_switched', () => {
+    // Re-initialize mesh channel for newly selected tenant workspace
+    initSomitiCloudSync(true);
+  });
+}

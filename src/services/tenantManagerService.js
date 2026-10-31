@@ -357,9 +357,12 @@ export const isModuleEnabled = (moduleId, tenantId = null) => {
   const targetId = tenantId || getActiveWorkspaceId();
   const tenant = getTenantById(targetId);
   if (!tenant) return true; // Fallback to true if tenant not configured
+  if (tenant.isOwnSamity) return true; // Master headquarters retains access to all modules
   if (!tenant.modules) return true;
   return tenant.modules[moduleId] !== false;
 };
+
+export const isModuleEnabledForTenant = isModuleEnabled;
 
 /**
  * Check if the active session user is Super Admin

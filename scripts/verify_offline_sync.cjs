@@ -99,6 +99,15 @@ function runTests() {
   assert(fs.existsSync('src/components/superadmin/TenantSubscriptionLockModal.jsx'), 'TenantSubscriptionLockModal component exists');
   assert(appJsx.includes('TenantSubscriptionLockModal'), 'App.jsx renders TenantSubscriptionLockModal');
 
+  // 10. Commercial Plan Isolation & In-App Module Enforcement
+  assert(fs.existsSync('src/components/common/ModuleLockedBySuperAdminCard.jsx'), 'ModuleLockedBySuperAdminCard component exists');
+  const hubJsx = fs.readFileSync('src/components/samity/SamityManagementHub.jsx', 'utf8');
+  assert(hubJsx.includes('ModuleLockedBySuperAdminCard'), 'SamityManagementHub renders ModuleLockedBySuperAdminCard');
+  assert(hubJsx.includes('checkPermissionOrToast'), 'SamityManagementHub enforces checkPermissionOrToast');
+  const samitySvc = fs.readFileSync('src/services/samityService.js', 'utf8');
+  assert(samitySvc.includes('field_officer'), 'samityService exports field_officer in SAMITY_RBAC_ROLES');
+  assert(tenantService.includes('isModuleEnabledForTenant'), 'tenantManagerService exports isModuleEnabledForTenant');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

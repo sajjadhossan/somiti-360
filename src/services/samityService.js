@@ -1172,11 +1172,18 @@ export const SAMITY_RBAC_ROLES = [
     color: '#10b981'
   },
   {
+    role: 'field_officer',
+    titleBn: 'মাঠকর্মী / কালেক্টর (Field Collector)',
+    titleEn: 'Field Officer / Collector',
+    permissions: ['entry_deposit', 'view_members', 'print_receipts', 'offline_collect'],
+    color: '#f59e0b'
+  },
+  {
     role: 'accountant',
     titleBn: 'হিসাবরক্ষক (Accountant)',
     titleEn: 'Accountant',
     permissions: ['entry_deposit', 'entry_expense', 'view_reports', 'view_members', 'print_receipts'],
-    color: '#f59e0b'
+    color: '#eab308'
   },
   {
     role: 'auditor',

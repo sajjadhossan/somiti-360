@@ -165,6 +165,30 @@ import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
 import { AiDepositScannerModal } from "./AiDepositScannerModal";
 import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
 import { SamityRolePermissionManagerModal, checkRolePermission } from "./SamityRolePermissionManagerModal";
+import { ModuleLockedBySuperAdminCard } from "../common/ModuleLockedBySuperAdminCard";
+import {
+  getActiveWorkspaceId,
+  isModuleEnabled,
+  canRolePerformAction
+} from "../../services/tenantManagerService";
+
+const TAB_TO_MODULE_MAP = {
+  members: 'members',
+  deposits: 'savings',
+  bulk_deposit: 'savings',
+  paid_receipt: 'savings',
+  payment_status: 'savings',
+  due_mgmt: 'loans',
+  expenses: 'expenses',
+  reminders: 'reminders',
+  reports: 'audit_reports',
+  letterhead: 'letterhead',
+  signatures: 'signatures',
+  roles_permissions: 'rbac',
+  approvals: 'approvals',
+  backup_restore: 'backup_cloud',
+  api_docs: 'api_webhook'
+};
 import { optimizeImage, optimizeImageWithStats } from "../../utils/imageOptimizer";
 import { parseBioDataFile } from "../../services/bioDataDocumentParser";
 import {
@@ -722,6 +746,28 @@ export const SamityManagementHub = ({ onClose }) => {
     }
   });
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const checkPermissionOrToast = (featureId) => {
+    const currentTenantId = getActiveWorkspaceId();
+    const perm = canRolePerformAction(currentTenantId, activeUserRole, featureId);
+    if (!perm.allowed) {
+      showToast?.(activeLang === "en" ? perm.messageEn : perm.messageBn, "error");
+      return false;
+    }
+    return true;
+  };
+
+  const [, setModuleToggleVersion] = useState(0);
+  useEffect(() => {
+    const handleModuleToggle = () => setModuleToggleVersion((v) => v + 1);
+    window.addEventListener("somiti_module_toggled", handleModuleToggle);
+    window.addEventListener("somiti_workspace_switched", handleModuleToggle);
+    window.addEventListener("somiti_rbac_matrix_updated", handleModuleToggle);
+    return () => {
+      window.removeEventListener("somiti_module_toggled", handleModuleToggle);
+      window.removeEventListener("somiti_workspace_switched", handleModuleToggle);
+      window.removeEventListener("somiti_rbac_matrix_updated", handleModuleToggle);
+    };
+  }, []);
   const [isSaaSGuideModalOpen, setIsSaaSGuideModalOpen] = useState(false);
   const [globalModuleSearchQuery, setGlobalModuleSearchQuery] = useState("");
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
@@ -2338,6 +2384,7 @@ export const SamityManagementHub = ({ onClose }) => {
   };
 
   const handleSaveMember = (e) => {
+    if (!checkPermissionOrToast("field_member_onboard")) return;
     e.preventDefault();
     const effectiveName =
       (memberForm.nameBn || "").trim() ||
@@ -2452,6 +2499,7 @@ export const SamityManagementHub = ({ onClose }) => {
   };
 
   const handleDeleteMember = (memberId) => {
+    if (!checkPermissionOrToast("admin_delete_records")) return;
     const target = (data.members || []).find(
       (m) => String(m.id) === String(memberId),
     );
@@ -3181,6 +3229,7 @@ export const SamityManagementHub = ({ onClose }) => {
   };
 
   const handleSaveDeposit = (e) => {
+    if (!checkPermissionOrToast("field_cash_collect")) return;
     e.preventDefault();
     if (!depositForm.amount || Number(depositForm.amount) <= 0) {
       showToast?.("সঠিক জমার পরিমাণ উল্লেখ করুন", "error");
@@ -3972,6 +4021,7 @@ export const SamityManagementHub = ({ onClose }) => {
   };
 
   const handleSaveExpense = (e) => {
+    if (!checkPermissionOrToast("cash_expense_entry")) return;
     e.preventDefault();
     if (!expenseForm.amount || Number(expenseForm.amount) <= 0) {
       showToast?.("খরচের সঠিক পরিমাণ উল্লেখ করুন", "error");
@@ -4291,6 +4341,7 @@ ${samityTitle}
 
   // Handler: Cancel Receipt with Authorized Permission
   const handleCancelReceipt = (e) => {
+    if (!checkPermissionOrToast("admin_edit_transactions")) return;
     e?.preventDefault?.();
     if (!cancelReceiptTarget) return;
     playButtonClick?.();
@@ -4412,6 +4463,7 @@ ${samityTitle}
   };
 
   const handleApproveExpense = (expenseId) => {
+    if (!checkPermissionOrToast("cash_expense_approve")) return;
     playSuccessChime?.();
     triggerHaptic();
     updateAndSave(
@@ -6102,6 +6154,15 @@ ${samityTitle}
       {/* 3. MAIN WORKSPACE / CONTENT AREA */}
       {/* ==================================================================== */}
       <div style={{ flex: 1, padding: "20px", overflowY: "auto" }}>
+        {TAB_TO_MODULE_MAP[activeTab] && !isModuleEnabled(TAB_TO_MODULE_MAP[activeTab]) ? (
+          <ModuleLockedBySuperAdminCard
+            moduleId={TAB_TO_MODULE_MAP[activeTab]}
+            isLight={isLight}
+            lang={activeLang}
+            onReturnToDashboard={() => setActiveTab("dashboard")}
+          />
+        ) : (
+          <>
         {/* TAB 0: SAMITY INTERNAL CHAT & NOTICE HUB */}
         {activeTab === "internal_chat" && (
           <SamityInternalChatHub
@@ -32085,6 +32146,8 @@ ${samityTitle}
               />
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
 

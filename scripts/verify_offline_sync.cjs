@@ -169,6 +169,17 @@ function runTests() {
   assert(appJsx.includes('VoiceSoundboxModal'), 'App.jsx renders VoiceSoundboxModal');
   assert(appJsx.includes('initSoundboxBroadcastListener'), 'App.jsx initializes initSoundboxBroadcastListener');
 
+  // 18. Retail Merchant & Partner Store QR Code Hub Engine
+  assert(fs.existsSync('src/services/merchantService.js'), 'merchantService.js exists');
+  const merchantSvc = fs.readFileSync('src/services/merchantService.js', 'utf8');
+  assert(merchantSvc.includes('getMerchantsList'), 'merchantService exports getMerchantsList');
+  assert(merchantSvc.includes('saveMerchantRecord'), 'merchantService exports saveMerchantRecord');
+  assert(merchantSvc.includes('recordMerchantPurchase'), 'merchantService exports recordMerchantPurchase');
+  assert(merchantSvc.includes('settleMerchantPayment'), 'merchantService exports settleMerchantPayment');
+  assert(fs.existsSync('src/components/samity/MerchantStoreHubModal.jsx'), 'MerchantStoreHubModal.jsx component exists');
+  assert(hubJsx.includes('MerchantStoreHubModal'), 'SamityManagementHub renders MerchantStoreHubModal');
+  assert(hubJsx.includes('ai_merchant_qr_pos'), 'SamityManagementHub guards ai_merchant_qr_pos permission');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

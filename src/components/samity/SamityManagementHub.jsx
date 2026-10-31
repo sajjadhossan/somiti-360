@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from "rea
 import {
   Users,
   Building2,
+  Store,
   Building,
   Landmark,
   Wallet,
@@ -166,6 +167,7 @@ import { AiDepositScannerModal } from "./AiDepositScannerModal";
 const BluetoothThermalPrinterModal = lazy(() => import("./BluetoothThermalPrinterModal"));
 const AiNidOcrScannerModal = lazy(() => import("./AiNidOcrScannerModal"));
 const FieldCollectionSheetModal = lazy(() => import("./FieldCollectionSheetModal"));
+const MerchantStoreHubModal = lazy(() => import("./MerchantStoreHubModal"));
 import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
 import { SamityRolePermissionManagerModal, checkRolePermission } from "./SamityRolePermissionManagerModal";
 import { ModuleLockedBySuperAdminCard } from "../common/ModuleLockedBySuperAdminCard";
@@ -1468,6 +1470,7 @@ export const SamityManagementHub = ({ onClose }) => {
   const [thermalPrintDeposit, setThermalPrintDeposit] = useState(null);
   const [isAiNidScannerOpen, setIsAiNidScannerOpen] = useState(false);
   const [isFieldCollectionSheetOpen, setIsFieldCollectionSheetOpen] = useState(false);
+  const [isMerchantHubOpen, setIsMerchantHubOpen] = useState(false);
   const [activePrintNotice, setActivePrintNotice] = useState(null);
   const [activePrintDoc, setActivePrintDoc] = useState(null);
   const [reminderModalMember, setReminderModalMember] = useState(null);
@@ -9868,6 +9871,36 @@ ${samityTitle}
                 >
                   <Smartphone size={16} />
                   <span>মাঠ কালেকশন শীট</span>
+                </button>
+
+                {/* Retail Merchant QR Store Hub Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playButtonClick?.();
+                    triggerHaptic();
+                    if (!checkPermissionOrToast("ai_merchant_qr_pos")) return;
+                    setIsMerchantHubOpen(true);
+                  }}
+                  className="btn"
+                  title="মার্চেন্ট ও পার্টনার স্টোর হাব (কিউআর কোড পেমেন্ট)"
+                  style={{
+                    background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "800",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
+                  }}
+                >
+                  <Store size={16} />
+                  <span>মার্চেন্ট হাব</span>
                 </button>
               </div>
             </div>
@@ -49436,6 +49469,17 @@ ${samityTitle}
           onOpenThermalPrinter={(dep) => {
             setThermalPrintDeposit(dep);
           }}
+          showToast={showToast}
+        />
+      </Suspense>
+
+      {/* 14. Retail Merchant & Partner Store QR Code Hub Modal */}
+      <Suspense fallback={null}>
+        <MerchantStoreHubModal
+          isOpen={isMerchantHubOpen}
+          onClose={() => setIsMerchantHubOpen(false)}
+          members={data.members || []}
+          currentSamity={currentSamity}
           showToast={showToast}
         />
       </Suspense>

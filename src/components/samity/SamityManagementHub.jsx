@@ -163,6 +163,7 @@ import { SupervisorLiveRadarModal } from "./SupervisorLiveRadarModal";
 import { SamityAIAssistantModal } from "./SamityAIAssistantModal";
 import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
 import { AiDepositScannerModal } from "./AiDepositScannerModal";
+const BluetoothThermalPrinterModal = lazy(() => import("./BluetoothThermalPrinterModal"));
 import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
 import { SamityRolePermissionManagerModal, checkRolePermission } from "./SamityRolePermissionManagerModal";
 import { ModuleLockedBySuperAdminCard } from "../common/ModuleLockedBySuperAdminCard";
@@ -1462,6 +1463,7 @@ export const SamityManagementHub = ({ onClose }) => {
   }));
 
   const [activePrintReceipt, setActivePrintReceipt] = useState(null);
+  const [thermalPrintDeposit, setThermalPrintDeposit] = useState(null);
   const [activePrintNotice, setActivePrintNotice] = useState(null);
   const [activePrintDoc, setActivePrintDoc] = useState(null);
   const [reminderModalMember, setReminderModalMember] = useState(null);
@@ -13212,6 +13214,33 @@ ${samityTitle}
                                     <Printer size={12} />
                                     <span>মূল রিসিট</span>
                                   </button>
+
+                                   {/* Thermal POS Print */}
+                                   <button
+                                     onClick={() => {
+                                       playButtonClick?.();
+                                       triggerHaptic();
+                                       if (!checkPermissionOrToast("field_bluetooth_thermal")) return;
+                                       setThermalPrintDeposit(dep);
+                                     }}
+                                     title="ব্লুটুথ থার্মাল প্রিন্ট (POS 58mm/80mm)"
+                                     style={{
+                                       background: "rgba(16, 185, 129, 0.15)",
+                                       color: "#10b981",
+                                       border: "1px solid rgba(16, 185, 129, 0.3)",
+                                       padding: "4px 8px",
+                                       borderRadius: "6px",
+                                       fontSize: "0.7rem",
+                                       fontWeight: "800",
+                                       cursor: "pointer",
+                                       display: "inline-flex",
+                                       alignItems: "center",
+                                       gap: "4px",
+                                     }}
+                                   >
+                                     <Printer size={12} />
+                                     <span>থার্মাল</span>
+                                   </button>
 
                                   {/* Member Copy Print */}
                                   <button
@@ -41543,6 +41572,33 @@ ${samityTitle}
                       <span>PDF ডাউনলোড</span>
                     </button>
 
+                    {/* Action: Bluetooth Thermal POS Print */}
+                    <button
+                      onClick={() => {
+                        playButtonClick?.();
+                        triggerHaptic();
+                        if (!checkPermissionOrToast("field_bluetooth_thermal")) return;
+                        setThermalPrintDeposit(dep);
+                      }}
+                      title="ব্লুটুথ থার্মাল পিওএস প্রিন্টারে পাঠান (58mm/80mm)"
+                      style={{
+                        background: "#059669",
+                        color: "#fff",
+                        border: "none",
+                        padding: "7px 12px",
+                        borderRadius: "8px",
+                        fontSize: "0.78rem",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Printer size={15} />
+                      <span>থার্মাল প্রিন্ট (POS)</span>
+                    </button>
+
                     {/* Action 3: Send PDF by WhatsApp */}
                     <button
                       onClick={async () => {
@@ -49270,6 +49326,20 @@ ${samityTitle}
         }}
         showToast={showToast}
       />
+
+      {/* 11. Bluetooth Thermal POS Printer Modal (58mm/80mm) */}
+      <Suspense fallback={null}>
+        <BluetoothThermalPrinterModal
+          isOpen={Boolean(thermalPrintDeposit)}
+          onClose={() => setThermalPrintDeposit(null)}
+          deposit={thermalPrintDeposit}
+          samityInfo={currentSamity}
+          onSuccessPrint={(d) => {
+            showToast?.(`রসিদ #${d.receiptNo || d.voucherNo || d.id} থার্মাল প্রিন্টারে পাঠানো হয়েছে!`, "success");
+            setThermalPrintDeposit(null);
+          }}
+        />
+      </Suspense>
     </div>
   );
 };

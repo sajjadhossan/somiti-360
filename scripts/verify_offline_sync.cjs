@@ -133,6 +133,16 @@ function runTests() {
   assert(GRANULAR_FEATURE_CATEGORIES.some(c => c.features.some(f => f.id === 'field_bluetooth_thermal')), 'Thermal printing switch exists');
   assert(GRANULAR_FEATURE_CATEGORIES.some(c => c.features.some(f => f.id === 'ai_nid_ocr_scanner')), 'Bangla NID OCR switch exists');
 
+  // 14. Commercial Bluetooth Thermal Receipt POS Printer Engine (58mm/80mm)
+  assert(fs.existsSync('src/services/thermalPrinterService.js'), 'thermalPrinterService.js exists');
+  const thermalSvc = fs.readFileSync('src/services/thermalPrinterService.js', 'utf8');
+  assert(thermalSvc.includes('buildReceiptEscPosBuffer'), 'thermalPrinterService exports buildReceiptEscPosBuffer');
+  assert(thermalSvc.includes('getPairedBluetoothPrinters'), 'thermalPrinterService exports getPairedBluetoothPrinters');
+  assert(thermalSvc.includes('sendBufferToPrinter'), 'thermalPrinterService exports sendBufferToPrinter');
+  assert(fs.existsSync('src/components/samity/BluetoothThermalPrinterModal.jsx'), 'BluetoothThermalPrinterModal.jsx component exists');
+  assert(hubJsx.includes('BluetoothThermalPrinterModal'), 'SamityManagementHub renders BluetoothThermalPrinterModal');
+  assert(hubJsx.includes('field_bluetooth_thermal'), 'SamityManagementHub guards field_bluetooth_thermal permission');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

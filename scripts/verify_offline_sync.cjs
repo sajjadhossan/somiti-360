@@ -153,6 +153,11 @@ function runTests() {
   assert(hubJsx.includes('AiNidOcrScannerModal'), 'SamityManagementHub renders AiNidOcrScannerModal');
   assert(hubJsx.includes('ai_nid_ocr_scanner'), 'SamityManagementHub guards ai_nid_ocr_scanner permission');
 
+  // 16. Field Officer Mobile Offline Collection Route Sheet & 1-Tap Collection Engine
+  assert(fs.existsSync('src/components/samity/FieldCollectionSheetModal.jsx'), 'FieldCollectionSheetModal.jsx component exists');
+  assert(hubJsx.includes('FieldCollectionSheetModal'), 'SamityManagementHub renders FieldCollectionSheetModal');
+  assert(hubJsx.includes('field_offline_sheet'), 'SamityManagementHub guards field_offline_sheet permission');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

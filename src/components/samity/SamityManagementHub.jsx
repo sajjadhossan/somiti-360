@@ -165,6 +165,7 @@ import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
 import { AiDepositScannerModal } from "./AiDepositScannerModal";
 const BluetoothThermalPrinterModal = lazy(() => import("./BluetoothThermalPrinterModal"));
 const AiNidOcrScannerModal = lazy(() => import("./AiNidOcrScannerModal"));
+const FieldCollectionSheetModal = lazy(() => import("./FieldCollectionSheetModal"));
 import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
 import { SamityRolePermissionManagerModal, checkRolePermission } from "./SamityRolePermissionManagerModal";
 import { ModuleLockedBySuperAdminCard } from "../common/ModuleLockedBySuperAdminCard";
@@ -1466,6 +1467,7 @@ export const SamityManagementHub = ({ onClose }) => {
   const [activePrintReceipt, setActivePrintReceipt] = useState(null);
   const [thermalPrintDeposit, setThermalPrintDeposit] = useState(null);
   const [isAiNidScannerOpen, setIsAiNidScannerOpen] = useState(false);
+  const [isFieldCollectionSheetOpen, setIsFieldCollectionSheetOpen] = useState(false);
   const [activePrintNotice, setActivePrintNotice] = useState(null);
   const [activePrintDoc, setActivePrintDoc] = useState(null);
   const [reminderModalMember, setReminderModalMember] = useState(null);
@@ -9836,6 +9838,36 @@ ${samityTitle}
                       ? "+ New Deposit Entry"
                       : "+ নতুন জমা এন্ট্রি"}
                   </span>
+                </button>
+
+                {/* Field Officer Route Collection Sheet Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playButtonClick?.();
+                    triggerHaptic();
+                    if (!checkPermissionOrToast("field_offline_sheet")) return;
+                    setIsFieldCollectionSheetOpen(true);
+                  }}
+                  className="btn"
+                  title="মাঠকর্মীর অফলাইন কালেকশন শীট ও ১-ট্যাপে কিস্তি আদায়"
+                  style={{
+                    background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "800",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(2, 132, 199, 0.35)",
+                  }}
+                >
+                  <Smartphone size={16} />
+                  <span>মাঠ কালেকশন শীট</span>
                 </button>
               </div>
             </div>
@@ -49381,6 +49413,28 @@ ${samityTitle}
           onApplyNidData={(parsedData) => {
             handleOpenMemberModalWithData(parsedData);
             showToast?.("✨ এনআইডি কার্ডের তথ্য মেম্বার ফর্মে যুক্ত করা হয়েছে!", "success");
+          }}
+          showToast={showToast}
+        />
+      </Suspense>
+
+      {/* 13. Field Officer Mobile Offline Collection Route Sheet Modal */}
+      <Suspense fallback={null}>
+        <FieldCollectionSheetModal
+          isOpen={isFieldCollectionSheetOpen}
+          onClose={() => setIsFieldCollectionSheetOpen(false)}
+          members={data.members || []}
+          deposits={data.deposits || []}
+          currentSamity={currentSamity}
+          currentUser={{ name: activeUserRole === 'field_officer' ? 'মাঠকর্মী' : 'অফিসার' }}
+          onDepositCreated={(newDep) => {
+            updateAndSave((prev) => ({
+              ...prev,
+              deposits: [newDep, ...(prev.deposits || [])]
+            }), { action: 'FIELD_OFFLINE_DEPOSIT', module: 'SAVINGS' });
+          }}
+          onOpenThermalPrinter={(dep) => {
+            setThermalPrintDeposit(dep);
           }}
           showToast={showToast}
         />

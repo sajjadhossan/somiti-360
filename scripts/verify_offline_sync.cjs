@@ -143,6 +143,16 @@ function runTests() {
   assert(hubJsx.includes('BluetoothThermalPrinterModal'), 'SamityManagementHub renders BluetoothThermalPrinterModal');
   assert(hubJsx.includes('field_bluetooth_thermal'), 'SamityManagementHub guards field_bluetooth_thermal permission');
 
+  // 15. Bangla Smart NID Auto-Fill On-Device OCR Scanner Engine
+  assert(fs.existsSync('src/services/nidOcrParserService.js'), 'nidOcrParserService.js exists');
+  const nidSvc = fs.readFileSync('src/services/nidOcrParserService.js', 'utf8');
+  assert(nidSvc.includes('scanSmartNidImage'), 'nidOcrParserService exports scanSmartNidImage');
+  assert(nidSvc.includes('parseBanglaNidRawText'), 'nidOcrParserService exports parseBanglaNidRawText');
+  assert(nidSvc.includes('normalizeDateOfBirth'), 'nidOcrParserService exports normalizeDateOfBirth');
+  assert(fs.existsSync('src/components/samity/AiNidOcrScannerModal.jsx'), 'AiNidOcrScannerModal.jsx component exists');
+  assert(hubJsx.includes('AiNidOcrScannerModal'), 'SamityManagementHub renders AiNidOcrScannerModal');
+  assert(hubJsx.includes('ai_nid_ocr_scanner'), 'SamityManagementHub guards ai_nid_ocr_scanner permission');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

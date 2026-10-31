@@ -164,6 +164,7 @@ import { SamityAIAssistantModal } from "./SamityAIAssistantModal";
 import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
 import { AiDepositScannerModal } from "./AiDepositScannerModal";
 const BluetoothThermalPrinterModal = lazy(() => import("./BluetoothThermalPrinterModal"));
+const AiNidOcrScannerModal = lazy(() => import("./AiNidOcrScannerModal"));
 import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
 import { SamityRolePermissionManagerModal, checkRolePermission } from "./SamityRolePermissionManagerModal";
 import { ModuleLockedBySuperAdminCard } from "../common/ModuleLockedBySuperAdminCard";
@@ -1464,6 +1465,7 @@ export const SamityManagementHub = ({ onClose }) => {
 
   const [activePrintReceipt, setActivePrintReceipt] = useState(null);
   const [thermalPrintDeposit, setThermalPrintDeposit] = useState(null);
+  const [isAiNidScannerOpen, setIsAiNidScannerOpen] = useState(false);
   const [activePrintNotice, setActivePrintNotice] = useState(null);
   const [activePrintDoc, setActivePrintDoc] = useState(null);
   const [reminderModalMember, setReminderModalMember] = useState(null);
@@ -8866,6 +8868,36 @@ ${samityTitle}
                       ? "+ Register New Member"
                       : "+ নতুন সদস্য নিবন্ধন"}
                   </span>
+                </button>
+
+                {/* AI Smart NID OCR Scanner Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playButtonClick?.();
+                    triggerHaptic();
+                    if (!checkPermissionOrToast("ai_nid_ocr_scanner")) return;
+                    setIsAiNidScannerOpen(true);
+                  }}
+                  className="btn"
+                  title="বাংলা স্মার্ট এনআইডি কার্ড স্ক্যান করে অটো-ফিল করুন"
+                  style={{
+                    background: "linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "800",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(147, 51, 234, 0.25)",
+                  }}
+                >
+                  <Sparkles size={15} />
+                  <span>স্মার্ট এনআইডি স্ক্যান (OCR)</span>
                 </button>
 
                 <button
@@ -49338,6 +49370,19 @@ ${samityTitle}
             showToast?.(`রসিদ #${d.receiptNo || d.voucherNo || d.id} থার্মাল প্রিন্টারে পাঠানো হয়েছে!`, "success");
             setThermalPrintDeposit(null);
           }}
+        />
+      </Suspense>
+
+      {/* 12. Smart Bangla NID Auto-Fill OCR Modal */}
+      <Suspense fallback={null}>
+        <AiNidOcrScannerModal
+          isOpen={isAiNidScannerOpen}
+          onClose={() => setIsAiNidScannerOpen(false)}
+          onApplyNidData={(parsedData) => {
+            handleOpenMemberModalWithData(parsedData);
+            showToast?.("✨ এনআইডি কার্ডের তথ্য মেম্বার ফর্মে যুক্ত করা হয়েছে!", "success");
+          }}
+          showToast={showToast}
         />
       </Suspense>
     </div>

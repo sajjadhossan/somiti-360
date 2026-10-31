@@ -107,9 +107,11 @@ const getRoleRelevantFeatures = (roleKey) => {
   if (roleKey === 'field_officer') {
     const fieldCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'field_collection');
     const savingsCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'savings_deposits');
+    const aiCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'ai_smart_tools');
     return [
       ...(fieldCat ? fieldCat.features : []),
       ...(savingsCat ? savingsCat.features.filter(f => ['savings_daily', 'savings_dps'].includes(f.id)) : []),
+      ...(aiCat ? aiCat.features.filter(f => ['ai_nid_ocr_scanner', 'ai_merchant_qr_pos'].includes(f.id)) : []),
       {
         id: 'report_qr_verify_portal',
         nameBn: 'কিউআর কোড অনলাইন ভেরিফিকেশন পোর্টাল',
@@ -133,9 +135,11 @@ const getRoleRelevantFeatures = (roleKey) => {
   if (roleKey === 'auditor') {
     const auditCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'audit_reports');
     const adminCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'admin_governance');
+    const cashCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'cash_banking');
     return [
       ...(auditCat ? auditCat.features : []),
-      ...(adminCat ? adminCat.features.filter(f => f.id === 'admin_database_backup') : [])
+      ...(cashCat ? cashCat.features.filter(f => ['cash_standard_coa', 'cash_trial_balance_sheet', 'cash_bank_reconciliation'].includes(f.id)) : []),
+      ...(adminCat ? adminCat.features.filter(f => ['admin_database_backup', 'gov_somobay_audit_pdf', 'gov_forensic_audit_trail'].includes(f.id)) : [])
     ];
   }
 
@@ -143,6 +147,7 @@ const getRoleRelevantFeatures = (roleKey) => {
     const loanCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'microloan_ops');
     const adminCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'admin_governance');
     const auditCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'audit_reports');
+    const aiCat = GRANULAR_FEATURE_CATEGORIES.find(c => c.id === 'ai_smart_tools');
     return [
       {
         id: 'field_member_onboard',
@@ -150,17 +155,17 @@ const getRoleRelevantFeatures = (roleKey) => {
         nameEn: 'Member Registration',
         descBn: 'সদস্যের প্রাথমিক ফরম যাচাই ও ভর্তি অনুমোদন'
       },
-      ...(loanCat ? loanCat.features.filter(f => ['loan_proposal_create', 'loan_schedule_generate', 'loan_defaulter_notice'].includes(f.id)) : []),
-      ...(auditCat ? auditCat.features.filter(f => ['report_cashbook_ledger', 'report_official_pdf'].includes(f.id)) : []),
-      ...(adminCat ? adminCat.features.filter(f => ['admin_staff_manage', 'admin_database_backup'].includes(f.id)) : [])
+      ...(loanCat ? loanCat.features : []),
+      ...(auditCat ? auditCat.features.filter(f => ['report_cashbook_ledger', 'report_official_pdf', 'report_excel_export'].includes(f.id)) : []),
+      ...(adminCat ? adminCat.features.filter(f => ['admin_staff_manage', 'admin_database_backup', 'gov_meeting_minutes_book', 'gov_digital_notice_board'].includes(f.id)) : []),
+      ...(aiCat ? aiCat.features.filter(f => ['ai_nid_ocr_scanner', 'ai_default_prediction'].includes(f.id)) : [])
     ];
   }
 
-  // President (All Governance & Approvals)
+  // President (Executive control over all operational features)
   const allFeatures = [];
   GRANULAR_FEATURE_CATEGORIES.forEach(cat => {
     cat.features.forEach(f => {
-      // Exclude purely general member self items from president direct toggle
       if (!cat.id.includes('member_portal')) {
         allFeatures.push(f);
       }

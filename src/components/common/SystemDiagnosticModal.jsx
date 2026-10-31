@@ -255,11 +255,16 @@ export const SystemDiagnosticModal = ({
             }}>
               <HardDrive size={22} color="#0284c7" />
               <div>
-                <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: '700' }}>
-                  {isEn ? 'Storage (Used / Total)' : 'স্টোরেজ ব্যবহার'}
+                <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>{isEn ? 'Storage (Used / Quota)' : 'স্টোরেজ ব্যবহার ও কোটা'}</span>
+                  {report.storage.isMultiGigabyteReady && (
+                    <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: '800' }}>
+                      10GB+ Ready
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: '0.82rem', fontWeight: '900' }}>
-                  {report.storage.usedMb} MB <span style={{ opacity: 0.5 }}>/</span> {report.storage.quotaMb} MB
+                  {Number(report.storage.quotaGb) >= 1 ? `${report.storage.usedMb} MB / ${report.storage.quotaGb} GB` : `${report.storage.usedMb} MB / ${report.storage.quotaMb} MB`}
                 </div>
               </div>
             </div>

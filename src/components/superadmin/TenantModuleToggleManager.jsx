@@ -39,9 +39,11 @@ import {
   Phone,
   Mail,
   Sparkles,
-  Zap
+  Zap,
+  Rocket
 } from 'lucide-react';
 import { GranularMasterSwitchboardModal } from './GranularMasterSwitchboardModal';
+import { BlueGreenReleaseModal } from './BlueGreenReleaseModal';
 
 const MODULE_ICON_MAP = {
   Wallet: Wallet,
@@ -67,6 +69,7 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState(null);
   const [granularTenant, setGranularTenant] = useState(null);
+  const [isOtaModalOpen, setIsOtaModalOpen] = useState(false);
   const [notification, setNotification] = useState(null);
 
   // Form State for New / Edit Tenant
@@ -343,6 +346,27 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => setIsOtaModalOpen(true)}
+              style={{
+                background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '9px 16px',
+                fontSize: '0.82rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.35)'
+              }}
+            >
+              <Rocket size={16} />
+              <span>{isEn ? 'OTA Blue-Green Release' : '🚀 ১-ক্লিক ওটিএ রিলিজ'}</span>
+            </button>
+
             <button
               onClick={handleOpenAddModal}
               style={{
@@ -1267,6 +1291,16 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
             onUpdated={() => {
               setTenants(getTenantsList());
             }}
+          />
+        )}
+
+        {/* Blue-Green OTA Release & Global Push Modal */}
+        {isOtaModalOpen && (
+          <BlueGreenReleaseModal
+            isOpen={isOtaModalOpen}
+            onClose={() => setIsOtaModalOpen(false)}
+            isLight={isLight}
+            lang={lang}
           />
         )}
       </div>

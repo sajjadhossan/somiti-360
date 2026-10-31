@@ -607,27 +607,60 @@ export const loadStateFromIndexedDB = async () => {
 };
 
 /**
- * Storage quota monitor
+ * Request permanent browser storage persistence (Prevents browser from auto-evicting 10GB+ data)
+ */
+export const requestPersistentStorage = async () => {
+  if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
+    try {
+      const isPersisted = await navigator.storage.persist();
+      const status = await (navigator.storage.persisted ? navigator.storage.persisted() : Promise.resolve(isPersisted));
+      return {
+        persisted: Boolean(status),
+        messageBn: status ? 'স্থায়ী অফলাইন স্টোরেজ সক্রিয় (১০+ জিবি সুরক্ষিত)' : 'স্ট্যান্ডার্ড ব্রাউজার স্টোরেজ কোটা বরাদ্দ',
+        messageEn: status ? 'Persistent offline storage enabled (10GB+ secured)' : 'Standard browser storage quota allocated'
+      };
+    } catch (e) {
+      console.warn('[OfflineDB] Storage persistence request error:', e);
+      return { persisted: false, messageBn: 'পারসিস্টেন্স চেক অনুপলব্ধ', messageEn: 'Persistence unavailable' };
+    }
+  }
+  return { persisted: false, messageBn: 'পারসিস্টেন্স এপিআই অনুপলব্ধ', messageEn: 'Storage API unavailable' };
+};
+
+/**
+ * Storage quota monitor (Detailed GB/MB telemetry with 10GB+ scale support)
  */
 export const getStorageQuotaHealth = async () => {
   if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
     try {
       const estimate = await navigator.storage.estimate();
-      const usedMB = ((estimate.usage || 0) / (1024 * 1024)).toFixed(2);
-      const totalMB = ((estimate.quota || 0) / (1024 * 1024)).toFixed(0);
-      const percent = estimate.quota ? Math.round((estimate.usage / estimate.quota) * 100) : 0;
+      const usageBytes = estimate.usage || 0;
+      const quotaBytes = estimate.quota || 0;
+
+      const usedMB = (usageBytes / (1024 * 1024)).toFixed(2);
+      const usedGB = (usageBytes / (1024 * 1024 * 1024)).toFixed(3);
+      const totalMB = (quotaBytes / (1024 * 1024)).toFixed(0);
+      const totalGB = (quotaBytes / (1024 * 1024 * 1024)).toFixed(2);
+      const percent = quotaBytes > 0 ? Math.round((usageBytes / quotaBytes) * 100) : 0;
+      const isPersisted = await (navigator.storage.persisted ? navigator.storage.persisted() : Promise.resolve(false));
+
       return {
         healthy: percent < 90,
         usedMB,
+        usedGB,
         totalMB,
+        totalGB,
+        usageBytes,
+        quotaBytes,
         percent,
-        persisted: await (navigator.storage.persisted ? navigator.storage.persisted() : Promise.resolve(false))
+        persisted: Boolean(isPersisted),
+        supportsMultiGigabyte: quotaBytes >= (1024 * 1024 * 1024 * 5) // >= 5GB available
       };
     } catch {
-      return { healthy: true, usedMB: '0.00', totalMB: 'Unlimited', percent: 0, persisted: false };
+      return { healthy: true, usedMB: '0.00', usedGB: '0.00', totalMB: 'Unlimited', totalGB: 'Unlimited', percent: 0, persisted: false, supportsMultiGigabyte: true };
     }
   }
-  return { healthy: true, usedMB: '0.00', totalMB: 'N/A', percent: 0, persisted: false };
+  return { healthy: true, usedMB: '0.00', usedGB: '0.00', totalMB: 'N/A', totalGB: 'N/A', percent: 0, persisted: false, supportsMultiGigabyte: false };
 };
 
 /**

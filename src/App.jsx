@@ -20,6 +20,7 @@ const SamityDocVerificationView = lazy(() => import('./components/samity/SamityD
 const DeviceMeshStatusModal = lazy(() => import('./components/samity/DeviceMeshStatusModal').then(m => ({ default: m.DeviceMeshStatusModal })));
 const SyncConflictResolutionModal = lazy(() => import('./components/samity/SyncConflictResolutionModal').then(m => ({ default: m.SyncConflictResolutionModal })));
 const TenantSubscriptionLockModal = lazy(() => import('./components/superadmin/TenantSubscriptionLockModal').then(m => ({ default: m.TenantSubscriptionLockModal })));
+const GlobalUpdatePromptModal = lazy(() => import('./components/common/GlobalUpdatePromptModal').then(m => ({ default: m.GlobalUpdatePromptModal })));
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -1125,6 +1126,15 @@ function MainView() {
           />
         </Suspense>
       )}
+
+      {/* Global In-App Blue-Green OTA Update Prompt Dialog */}
+      <Suspense fallback={null}>
+        <GlobalUpdatePromptModal
+          isLight={isLight}
+          lang={lang}
+          currentClientVersion={APP_VERSION_NAME}
+        />
+      </Suspense>
     </div>
   );
 }

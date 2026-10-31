@@ -108,6 +108,31 @@ function runTests() {
   assert(samitySvc.includes('field_officer'), 'samityService exports field_officer in SAMITY_RBAC_ROLES');
   assert(tenantService.includes('isModuleEnabledForTenant'), 'tenantManagerService exports isModuleEnabledForTenant');
 
+  // 11. Multi-Gigabyte (10GB+) Persistent Offline Storage & Idempotency Engine
+  const offlineSvc = fs.readFileSync('src/services/somitiOfflineStore.js', 'utf8');
+  assert(offlineSvc.includes('requestPersistentStorage'), 'somitiOfflineStore exports requestPersistentStorage');
+  assert(offlineSvc.includes('supportsMultiGigabyte'), 'somitiOfflineStore tracks supportsMultiGigabyte');
+  assert(diagService.includes('isMultiGigabyteReady'), 'diagnosticService evaluates isMultiGigabyteReady');
+
+  // 12. Blue-Green 1-Click OTA Global Broadcast & In-App Rollback Engine
+  assert(fs.existsSync('src/services/blueGreenReleaseService.js'), 'blueGreenReleaseService.js exists');
+  const otaSvc = fs.readFileSync('src/services/blueGreenReleaseService.js', 'utf8');
+  assert(otaSvc.includes('publishOtaRelease'), 'blueGreenReleaseService exports publishOtaRelease');
+  assert(otaSvc.includes('executeEmergencyRollback'), 'blueGreenReleaseService exports executeEmergencyRollback');
+  assert(otaSvc.includes('checkClientNeedsUpdate'), 'blueGreenReleaseService exports checkClientNeedsUpdate');
+  assert(fs.existsSync('src/components/superadmin/BlueGreenReleaseModal.jsx'), 'BlueGreenReleaseModal.jsx component exists');
+  assert(fs.existsSync('src/components/common/GlobalUpdatePromptModal.jsx'), 'GlobalUpdatePromptModal.jsx component exists');
+  assert(appJsx.includes('GlobalUpdatePromptModal'), 'App.jsx renders GlobalUpdatePromptModal');
+
+  // 13. Super Admin 50+ Enterprise Feature Switchboard Catalog
+  const { GRANULAR_FEATURE_CATEGORIES } = require('../src/services/tenantManagerService');
+  let totalFeatures = 0;
+  GRANULAR_FEATURE_CATEGORIES.forEach(c => totalFeatures += c.features.length);
+  assert(totalFeatures >= 50, `Catalog contains 50+ individual toggle switches (Found: ${totalFeatures})`);
+  assert(GRANULAR_FEATURE_CATEGORIES.some(c => c.id === 'ai_smart_tools'), 'AI & Advanced Super SaaS category exists');
+  assert(GRANULAR_FEATURE_CATEGORIES.some(c => c.features.some(f => f.id === 'field_bluetooth_thermal')), 'Thermal printing switch exists');
+  assert(GRANULAR_FEATURE_CATEGORIES.some(c => c.features.some(f => f.id === 'ai_nid_ocr_scanner')), 'Bangla NID OCR switch exists');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

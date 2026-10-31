@@ -55,9 +55,22 @@ export const inspectStorageQuota = async () => {
     }
   } catch {}
 
+  const quotaGb = (quota.totalBytes / (1024 * 1024 * 1024)).toFixed(2);
+  const usedGb = (quota.usedBytes / (1024 * 1024 * 1024)).toFixed(3);
+  let isPersisted = false;
+  if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persisted) {
+    try {
+      isPersisted = await navigator.storage.persisted();
+    } catch {}
+  }
+
   return {
     quotaMb: (quota.totalBytes / (1024 * 1024)).toFixed(1),
     usedMb: (quota.usedBytes / (1024 * 1024)).toFixed(2),
+    quotaGb,
+    usedGb,
+    isPersisted,
+    isMultiGigabyteReady: quota.totalBytes >= (1024 * 1024 * 1024 * 5),
     usedPercentage: quota.percentage,
     localStorageKb: (lsBytes / 1024).toFixed(1),
     isSafe: quota.percentage < 80

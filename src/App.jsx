@@ -21,6 +21,8 @@ const DeviceMeshStatusModal = lazy(() => import('./components/samity/DeviceMeshS
 const SyncConflictResolutionModal = lazy(() => import('./components/samity/SyncConflictResolutionModal').then(m => ({ default: m.SyncConflictResolutionModal })));
 const TenantSubscriptionLockModal = lazy(() => import('./components/superadmin/TenantSubscriptionLockModal').then(m => ({ default: m.TenantSubscriptionLockModal })));
 const GlobalUpdatePromptModal = lazy(() => import('./components/common/GlobalUpdatePromptModal').then(m => ({ default: m.GlobalUpdatePromptModal })));
+import { initSoundboxBroadcastListener } from './services/voiceSoundboxService';
+const VoiceSoundboxModal = lazy(() => import('./components/common/VoiceSoundboxModal'));
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -243,6 +245,32 @@ function ExecutiveHeaderBrand({ isLight, lang, user, onLogout, onOpenSaaSControl
         >
           <Activity size={12} color="#10b981" />
           <span>১০০% হেলথ</span>
+        </button>
+
+        {/* Smart E-Voice Soundbox Button */}
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('somiti_trigger_soundbox_modal'));
+            }
+          }}
+          title={isEn ? 'Smart E-Voice Soundbox' : 'স্মার্ট ই-ভয়েস সাউন্ডবক্স (টাকা জমার ঘোষণা)'}
+          style={{
+            background: 'rgba(168, 85, 247, 0.12)',
+            color: '#c084fc',
+            border: '1px solid rgba(168, 85, 247, 0.35)',
+            borderRadius: '8px',
+            padding: '5px 8px',
+            fontSize: '0.72rem',
+            fontWeight: '900',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          <span style={{ fontSize: '11px' }}>🔊</span>
+          <span>{isEn ? 'Soundbox' : 'সাউন্ডবক্স'}</span>
         </button>
 
         <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
@@ -655,6 +683,7 @@ function MainView() {
   const [updateInfo, setUpdateInfo] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
+  const [isSoundboxModalOpen, setIsSoundboxModalOpen] = useState(false);
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveWorkspaceId());
   const [subscriptionStatus, setSubscriptionStatus] = useState(() => checkTenantSubscriptionStatus());
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
@@ -736,7 +765,10 @@ function MainView() {
     window.addEventListener('somiti_trigger_update_check', handleManualUpdateCheck);
 
     const handleTriggerDiagnostic = () => setIsDiagnosticOpen(true);
+    const handleTriggerSoundbox = () => setIsSoundboxModalOpen(true);
+    initSoundboxBroadcastListener();
     window.addEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
+    window.addEventListener('somiti_trigger_soundbox_modal', handleTriggerSoundbox);
 
     // Global Power Keyboard Shortcuts (Ctrl+Shift+D for Diagnostics, Escape to close modals)
     const handleGlobalKeyDown = (e) => {
@@ -763,6 +795,7 @@ function MainView() {
       window.removeEventListener('somiti_subscription_renewed', handleSubscriptionRenewed);
       window.removeEventListener('somiti_trigger_update_check', handleManualUpdateCheck);
       window.removeEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
+      window.removeEventListener('somiti_trigger_soundbox_modal', handleTriggerSoundbox);
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
   }, []);
@@ -1133,6 +1166,15 @@ function MainView() {
           isLight={isLight}
           lang={lang}
           currentClientVersion={APP_VERSION_NAME}
+        />
+      </Suspense>
+
+      {/* Smart E-Voice Soundbox & Audio Announcement Modal */}
+      <Suspense fallback={null}>
+        <VoiceSoundboxModal
+          isOpen={isSoundboxModalOpen}
+          onClose={() => setIsSoundboxModalOpen(false)}
+          currentSamity={{ nameBn: 'সমিতি ৩৬০' }}
         />
       </Suspense>
     </div>

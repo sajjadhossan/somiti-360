@@ -34,6 +34,7 @@ import {
   STORES 
 } from '../../services/somitiOfflineStore';
 import { generateReceiptNumber } from '../../services/samityService';
+import { announceDepositSoundbox } from '../../services/voiceSoundboxService';
 
 export default function FieldCollectionSheetModal({
   isOpen,
@@ -194,6 +195,7 @@ export default function FieldCollectionSheetModal({
       }));
 
       onDepositCreated(newDeposit);
+      announceDepositSoundbox(newDeposit, currentSamity);
       playSuccessChime?.();
       hapticFeedback.success();
       showToast?.(`৳${amount.toLocaleString()} সফলভাবে আদায় হয়েছে! রসিদ #${receiptNo}`, 'success');

@@ -158,6 +158,17 @@ function runTests() {
   assert(hubJsx.includes('FieldCollectionSheetModal'), 'SamityManagementHub renders FieldCollectionSheetModal');
   assert(hubJsx.includes('field_offline_sheet'), 'SamityManagementHub guards field_offline_sheet permission');
 
+  // 17. Smart E-Voice Soundbox & Audio Announcement Engine
+  assert(fs.existsSync('src/services/voiceSoundboxService.js'), 'voiceSoundboxService.js exists');
+  const soundboxSvc = fs.readFileSync('src/services/voiceSoundboxService.js', 'utf8');
+  assert(soundboxSvc.includes('isSoundboxEnabled'), 'voiceSoundboxService exports isSoundboxEnabled');
+  assert(soundboxSvc.includes('playSoundboxDing'), 'voiceSoundboxService exports playSoundboxDing');
+  assert(soundboxSvc.includes('speakText'), 'voiceSoundboxService exports speakText');
+  assert(soundboxSvc.includes('announceDepositSoundbox'), 'voiceSoundboxService exports announceDepositSoundbox');
+  assert(fs.existsSync('src/components/common/VoiceSoundboxModal.jsx'), 'VoiceSoundboxModal.jsx component exists');
+  assert(appJsx.includes('VoiceSoundboxModal'), 'App.jsx renders VoiceSoundboxModal');
+  assert(appJsx.includes('initSoundboxBroadcastListener'), 'App.jsx initializes initSoundboxBroadcastListener');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

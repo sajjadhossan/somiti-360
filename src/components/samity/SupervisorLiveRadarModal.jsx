@@ -16,15 +16,21 @@ import {
 export const SupervisorLiveRadarModal = ({
   isOpen,
   onClose,
-  data = {},
-  onUpdateData,
+  data: propData,
+  samityData,
+  onUpdateData: propOnUpdateData,
+  onUpdateSamityData,
   isLight = false,
   activeLang = 'bn',
-  currentStaffName = 'সুপারভাইজার'
+  currentStaffName = 'সুপারভাইজার',
+  showToast,
+  t: propT
 }) => {
   if (!isOpen) return null;
 
-  const t = (bn, en) => (activeLang === 'bn' ? bn : en);
+  const data = samityData || propData || {};
+  const onUpdateData = onUpdateSamityData || propOnUpdateData;
+  const t = (bn, en) => (propT ? propT(bn, en) : (activeLang === 'bn' ? bn : en));
 
   // Filter & Search states
   const [filterTab, setFilterTab] = useState('all'); // 'all' | 'pending' | 'verified'

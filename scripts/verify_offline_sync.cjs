@@ -244,6 +244,31 @@ function runTests() {
   assert(dualDb.includes('insertNeonDeposit') && dualDb.includes('insertNeonDelta'), 'dualEngineDb exports insertNeonDeposit and insertNeonDelta');
   assert(fs.existsSync('scripts/test_postgres_fdw_link.cjs'), 'Postgres FDW automated verification script exists');
 
+  // 26. CQRS (Read-Write Split) & Neon WAL Reverse Sync Pipeline
+  assert(fs.existsSync('api/_lib/cqrsManager.js'), 'cqrsManager.js exists');
+  const cqrsManager = fs.readFileSync('api/_lib/cqrsManager.js', 'utf8');
+  assert(cqrsManager.includes('executeDepositCommand') && cqrsManager.includes('executeDashboardMetricsQuery'), 'cqrsManager separates commands and queries');
+  assert(fs.existsSync('api/_lib/reverseSyncEngine.js'), 'reverseSyncEngine.js exists');
+  const revSyncEngine = fs.readFileSync('api/_lib/reverseSyncEngine.js', 'utf8');
+  assert(revSyncEngine.includes('runReverseSyncCycle') && revSyncEngine.includes('samity_live_mesh'), 'reverseSyncEngine broadcasts WAL deltas to Supabase mesh');
+  assert(fs.existsSync('api/sync/reverse.js'), 'api/sync/reverse.js reverse sync endpoint exists');
+  assert(fs.existsSync('api/cqrs.js'), 'api/cqrs.js CQRS command/query router endpoint exists');
+  assert(fs.existsSync('src/services/cqrsService.js'), 'cqrsService.js client service exists');
+  assert(fs.existsSync('scripts/test_cqrs_and_wal.cjs'), 'CQRS and WAL automated verification test exists');
+
+  // 27. 7 Lightning-Fast Data Push Super Tips
+  assert(fs.existsSync('src/services/lightningPushEngine.js'), 'lightningPushEngine.js engine exists');
+  const lightningEngine = fs.readFileSync('src/services/lightningPushEngine.js', 'utf8');
+  assert(lightningEngine.includes('generateUuidV7'), 'Tip 4: RFC 9562 Monotonic UUIDv7 generator exists');
+  assert(lightningEngine.includes('createDeltaMutationPayload'), 'Tip 1: Delta-only mutation standard exists');
+  assert(lightningEngine.includes('executeOptimisticMutation'), 'Tip 2: Optimistic UI engine with rollback exists');
+  assert(lightningEngine.includes('packCompressedBatch') && lightningEngine.includes('unpackCompressedBatch'), 'Tip 3: Compact batch packing & unpacker exists');
+  assert(lightningEngine.includes('broadcastToPeerMesh'), 'Tip 5: Ephemeral peer mesh broadcast exists');
+  assert(lightningEngine.includes('generateMicroThumbnail'), 'Tip 6: Micro thumbnail placeholder generator exists');
+  assert(lightningEngine.includes('calculateBackoffDelay') && lightningEngine.includes('executeWithExponentialBackoff'), 'Tip 7: Jittered exponential backoff engine exists');
+  assert(cloudSync.includes('generateUuidV7') && cloudSync.includes('createDeltaMutationPayload'), 'somitiCloudSyncService integrates lightning push engine');
+  assert(fs.existsSync('scripts/test_lightning_push_7_tips.cjs'), '7 Tips automated verification test suite exists');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

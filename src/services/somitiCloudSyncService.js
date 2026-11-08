@@ -18,6 +18,29 @@
 import { getSupabase, isSupabaseReady } from './supabaseClient';
 import { getActiveWorkspaceId } from './tenantManagerService';
 import { backupToTelegram } from './somitiTelegramBackupService';
+import {
+  generateUuidV7,
+  createDeltaMutationPayload,
+  executeOptimisticMutation,
+  packCompressedBatch,
+  unpackCompressedBatch,
+  broadcastToPeerMesh,
+  generateMicroThumbnail,
+  calculateBackoffDelay,
+  executeWithExponentialBackoff
+} from './lightningPushEngine';
+
+export {
+  generateUuidV7,
+  createDeltaMutationPayload,
+  executeOptimisticMutation,
+  packCompressedBatch,
+  unpackCompressedBatch,
+  broadcastToPeerMesh,
+  generateMicroThumbnail,
+  calculateBackoffDelay,
+  executeWithExponentialBackoff
+};
 import { 
   saveStateToIndexedDB, 
   flushPendingOfflineMutations,

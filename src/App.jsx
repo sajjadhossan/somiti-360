@@ -1,28 +1,29 @@
 import React, { useState, useEffect, Component, lazy, Suspense } from 'react';
 import { APP_VERSION_NAME, APP_BUILD_NUMBER } from './config/version';
 import { AppProvider, useApp } from './context/AppContext';
-import { SamityManagementHub } from './components/samity/SamityManagementHub';
-import { SomitiAuthView } from './components/auth/SomitiAuthView';
-import { PublicVerificationPortal } from './components/samity/PublicVerificationPortal';
 import { EnterpriseOfflineBanner } from './components/samity/EnterpriseOfflineBanner';
 import { subscribeDevicePresence, getOnlineDevicesList } from './services/somitiCloudSyncService';
 import { getPendingQueueCount } from './services/somitiOfflineStore';
 import { ShieldCheck, RefreshCw, AlertTriangle, LogOut, Globe, Sun, Moon, Palette, Check, WifiOff, Database, MessageSquare, Crown, Activity } from 'lucide-react';
-const SystemDiagnosticModal = lazy(() => import('./components/common/SystemDiagnosticModal').then(m => ({ default: m.SystemDiagnosticModal })));
-import { TenantModuleToggleManager } from './components/superadmin/TenantModuleToggleManager';
 import { SuperAdminDualModeBar } from './components/superadmin/SuperAdminDualModeBar';
 import { AppUpdateModal } from './components/common/AppUpdateModal';
 import { checkForAppUpdate } from './services/appUpdateService';
 import { getTenantsList, getActiveWorkspaceId, getTenantById, checkTenantSubscriptionStatus } from './services/tenantManagerService';
+import { initSoundboxBroadcastListener } from './services/voiceSoundboxService';
 
-// Lazy-loaded heavy modal views for optimal bundle splitting
+// Dynamic code-splitting for high-speed initial bundle delivery
+const SamityManagementHub = lazy(() => import('./components/samity/SamityManagementHub').then(m => ({ default: m.SamityManagementHub })));
+const SomitiAuthView = lazy(() => import('./components/auth/SomitiAuthView').then(m => ({ default: m.SomitiAuthView })));
+const PublicVerificationPortal = lazy(() => import('./components/samity/PublicVerificationPortal').then(m => ({ default: m.PublicVerificationPortal })));
+const TenantModuleToggleManager = lazy(() => import('./components/superadmin/TenantModuleToggleManager').then(m => ({ default: m.TenantModuleToggleManager })));
+const SystemDiagnosticModal = lazy(() => import('./components/common/SystemDiagnosticModal').then(m => ({ default: m.SystemDiagnosticModal })));
 const SamityDocVerificationView = lazy(() => import('./components/samity/SamityDocVerificationView').then(m => ({ default: m.SamityDocVerificationView })));
 const DeviceMeshStatusModal = lazy(() => import('./components/samity/DeviceMeshStatusModal').then(m => ({ default: m.DeviceMeshStatusModal })));
 const SyncConflictResolutionModal = lazy(() => import('./components/samity/SyncConflictResolutionModal').then(m => ({ default: m.SyncConflictResolutionModal })));
 const TenantSubscriptionLockModal = lazy(() => import('./components/superadmin/TenantSubscriptionLockModal').then(m => ({ default: m.TenantSubscriptionLockModal })));
 const GlobalUpdatePromptModal = lazy(() => import('./components/common/GlobalUpdatePromptModal').then(m => ({ default: m.GlobalUpdatePromptModal })));
-import { initSoundboxBroadcastListener } from './services/voiceSoundboxService';
 const VoiceSoundboxModal = lazy(() => import('./components/common/VoiceSoundboxModal'));
+const RenderPublishHubModal = lazy(() => import('./components/common/RenderPublishHubModal'));
 
 // Error Boundary to prevent any blank screen
 class ErrorBoundary extends Component {
@@ -684,6 +685,7 @@ function MainView() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
   const [isSoundboxModalOpen, setIsSoundboxModalOpen] = useState(false);
+  const [isRenderPublishModalOpen, setIsRenderPublishModalOpen] = useState(false);
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState(() => getActiveWorkspaceId());
   const [subscriptionStatus, setSubscriptionStatus] = useState(() => checkTenantSubscriptionStatus());
   const [isDeviceMeshModalOpen, setIsDeviceMeshModalOpen] = useState(false);
@@ -766,9 +768,11 @@ function MainView() {
 
     const handleTriggerDiagnostic = () => setIsDiagnosticOpen(true);
     const handleTriggerSoundbox = () => setIsSoundboxModalOpen(true);
+    const handleTriggerRenderPublish = () => setIsRenderPublishModalOpen(true);
     initSoundboxBroadcastListener();
     window.addEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
     window.addEventListener('somiti_trigger_soundbox_modal', handleTriggerSoundbox);
+    window.addEventListener('somiti_trigger_render_publish', handleTriggerRenderPublish);
 
     // Global Power Keyboard Shortcuts (Ctrl+Shift+D for Diagnostics, Escape to close modals)
     const handleGlobalKeyDown = (e) => {
@@ -780,6 +784,7 @@ function MainView() {
         setIsDiagnosticOpen(false);
         setIsUpdateModalOpen(false);
         setIsSaaSControlOpen(false);
+        setIsRenderPublishModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -796,6 +801,7 @@ function MainView() {
       window.removeEventListener('somiti_trigger_update_check', handleManualUpdateCheck);
       window.removeEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
       window.removeEventListener('somiti_trigger_soundbox_modal', handleTriggerSoundbox);
+      window.removeEventListener('somiti_trigger_render_publish', handleTriggerRenderPublish);
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
   }, []);
@@ -917,16 +923,23 @@ function MainView() {
   if (isDirectVerifyScan) {
     const activeParams = verifyData || Object.fromEntries(searchParams.entries());
     return (
-      <PublicVerificationPortal
-        initialParams={activeParams}
-        onBackToApp={() => {
-          setViewMode('hub');
-          setVerifyData(null);
-          if (typeof window !== 'undefined' && window.history.pushState) {
-            window.history.pushState({}, '', '/');
-          }
-        }}
-      />
+      <Suspense fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#070b14', color: '#10b981', gap: '12px' }}>
+          <RefreshCw size={28} className="animate-spin" />
+          <span style={{ fontSize: '0.85rem', fontWeight: '800' }}>ভেরিফিকেশন পোর্টাল লোড হচ্ছে...</span>
+        </div>
+      }>
+        <PublicVerificationPortal
+          initialParams={activeParams}
+          onBackToApp={() => {
+            setViewMode('hub');
+            setVerifyData(null);
+            if (typeof window !== 'undefined' && window.history.pushState) {
+              window.history.pushState({}, '', '/');
+            }
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -946,10 +959,17 @@ function MainView() {
   // Strict Authentication Gate (Rule 7)
   if (!isAuthenticated) {
     return (
-      <SomitiAuthView
-        onAuthSuccess={() => {}}
-        onOpenPublicVerification={() => setViewMode('verify')}
-      />
+      <Suspense fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#070b14', color: '#10b981', gap: '12px' }}>
+          <RefreshCw size={28} className="animate-spin" />
+          <span style={{ fontSize: '0.85rem', fontWeight: '800' }}>লগইন গেটওয়ে লোড হচ্ছে...</span>
+        </div>
+      }>
+        <SomitiAuthView
+          onAuthSuccess={() => {}}
+          onOpenPublicVerification={() => setViewMode('verify')}
+        />
+      </Suspense>
     );
   }
 
@@ -1082,7 +1102,16 @@ function MainView() {
       />
 
       <main style={{ flex: 1, width: '100%' }}>
-        <SamityManagementHub />
+        <Suspense fallback={
+          <div style={{ minHeight: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#94a3b8', padding: '48px 16px' }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '50%', border: '3px solid rgba(16, 185, 129, 0.2)', borderTopColor: '#10b981', animation: 'spin 0.8s linear infinite' }} />
+            <span style={{ fontSize: '0.88rem', fontWeight: '800', color: isLight ? '#334155' : '#e2e8f0' }}>
+              {lang === 'en' ? 'Loading Somiti Management Hub...' : 'সমিতি ৩৬০ মডিউল লোড হচ্ছে...'}
+            </span>
+          </div>
+        }>
+          <SamityManagementHub />
+        </Suspense>
       </main>
 
       {/* Cross-Platform Device Mesh Status & Telegram Timestamp Modal */}
@@ -1111,16 +1140,18 @@ function MainView() {
 
       {/* Super Admin: Multi-Tenant SaaS & Module Toggle Manager */}
       {isSaaSControlOpen && (
-        <TenantModuleToggleManager
-          isOpen={isSaaSControlOpen}
-          onClose={() => setIsSaaSControlOpen(false)}
-          isLight={isLight}
-          lang={lang}
-          onWorkspaceSwitched={(tId) => {
-            setActiveWorkspaceIdState(tId);
-            setIsSaaSControlOpen(false);
-          }}
-        />
+        <Suspense fallback={null}>
+          <TenantModuleToggleManager
+            isOpen={isSaaSControlOpen}
+            onClose={() => setIsSaaSControlOpen(false)}
+            isLight={isLight}
+            lang={lang}
+            onWorkspaceSwitched={(tId) => {
+              setActiveWorkspaceIdState(tId);
+              setIsSaaSControlOpen(false);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Cross-Platform App Version Update Modal */}
@@ -1177,6 +1208,18 @@ function MainView() {
           currentSamity={{ nameBn: 'সমিতি ৩৬০' }}
         />
       </Suspense>
+
+      {/* Render.com Cloud Web Publishing Hub */}
+      {isRenderPublishModalOpen && (
+        <Suspense fallback={null}>
+          <RenderPublishHubModal
+            isOpen={isRenderPublishModalOpen}
+            onClose={() => setIsRenderPublishModalOpen(false)}
+            isLight={isLight}
+            lang={lang}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

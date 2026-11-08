@@ -1,0 +1,44 @@
+# ==============================================================================
+# Somiti 360 (সমিতি ৩৬০) - Render Blueprint Specification
+# Multi-Platform Hybrid Architecture (Web PWA + Node.js Service)
+# ==============================================================================
+services:
+  # 1. High-Speed Static Site (Recommended: Free, Global CDN, Auto SSL, Zero Ops)
+  - type: web
+    name: somiti-360-web
+    runtime: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # 2. Production Node.js Web Service (Full SSR / Preview & API Host)
+  - type: web
+    name: somiti-360-service
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run render:build
+    startCommand: npm run render:start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_APP_NAME
+        value: Somiti 360
+      - key: PORT
+        value: 10000

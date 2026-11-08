@@ -1679,3 +1679,10 @@ export const canRolePerformAction = (tenantId = null, roleId, featureId) => {
     messageEn: 'Granted'
   };
 };
+
+export const checkRolePermission = (customRolePermissions, roleKey, permissionKey) => {
+  if (!roleKey || roleKey === 'president' || roleKey === 'admin') return true;
+  const activeTenantId = getActiveWorkspaceId();
+  const check = canRolePerformAction(activeTenantId, roleKey, permissionKey);
+  return check.allowed;
+};

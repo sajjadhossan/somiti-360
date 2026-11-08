@@ -180,6 +180,29 @@ function runTests() {
   assert(hubJsx.includes('MerchantStoreHubModal'), 'SamityManagementHub renders MerchantStoreHubModal');
   assert(hubJsx.includes('ai_merchant_qr_pos'), 'SamityManagementHub guards ai_merchant_qr_pos permission');
 
+  // 19. Render.com Cloud Web Publishing & Hosting Engine
+  assert(fs.existsSync('render.yaml'), 'render.yaml blueprint specification exists');
+  const renderYaml = fs.readFileSync('render.yaml', 'utf8');
+  assert(renderYaml.includes('somiti-360-web') && renderYaml.includes('runtime: static'), 'render.yaml configures high-speed static CDN site');
+  assert(renderYaml.includes('somiti-360-service') && renderYaml.includes('runtime: node'), 'render.yaml configures Node.js web service');
+  assert(fs.existsSync('render_server.cjs'), 'render_server.cjs production server exists');
+  const renderServer = fs.readFileSync('render_server.cjs', 'utf8');
+  assert(renderServer.includes('process.env.PORT'), 'render_server.cjs binds to dynamic Render PORT');
+  assert(pkg.scripts['render:build'] && pkg.scripts['render:start'], 'package.json defines render:build and render:start');
+  assert(fs.existsSync('src/components/common/RenderPublishHubModal.jsx'), 'RenderPublishHubModal.jsx component exists');
+  assert(appJsx.includes('RenderPublishHubModal'), 'App.jsx renders RenderPublishHubModal');
+  assert(appJsx.includes('somiti_trigger_render_publish'), 'App.jsx listens to somiti_trigger_render_publish event');
+
+  // 20. High-Speed Architecture & Performance Optimizations
+  assert(offlineStore.includes('optimizeImageWithStats'), 'somitiOfflineStore integrates client-side image downsampling');
+  assert(fs.existsSync('supabase/migrations/20261108_enterprise_high_speed_atomic_transactions.sql'), 'Atomic transactions and composite index SQL migration exists');
+  const atomicSql = fs.readFileSync('supabase/migrations/20261108_enterprise_high_speed_atomic_transactions.sql', 'utf8');
+  assert(atomicSql.includes('idx_samity_deposits_tenant_created'), 'SQL migration creates composite tenant deposit index');
+  assert(atomicSql.includes('process_atomic_deposit_with_ledger'), 'SQL migration creates atomic deposit RPC function');
+  const printerSvc = fs.readFileSync('src/services/thermalPrinterService.js', 'utf8');
+  assert(printerSvc.includes('enqueueThermalPrintJob'), 'thermalPrinterService exports enqueueThermalPrintJob buffer');
+  assert(appJsx.includes('const SamityManagementHub = lazy('), 'App.jsx uses dynamic code splitting for SamityManagementHub');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

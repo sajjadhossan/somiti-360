@@ -275,6 +275,57 @@ export function uint8ArrayToBase64(uint8Array) {
   return btoa(binary);
 }
 
+// Internal In-Memory & LocalStorage Print Queue Buffer
+const PRINT_QUEUE_KEY = 'somiti360_thermal_print_queue';
+
+export function enqueueThermalPrintJob(job) {
+  try {
+    const raw = localStorage.getItem(PRINT_QUEUE_KEY);
+    const queue = raw ? JSON.parse(raw) : [];
+    queue.push({
+      id: `print_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      timestamp: new Date().toISOString(),
+      ...job
+    });
+    localStorage.setItem(PRINT_QUEUE_KEY, JSON.stringify(queue));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getPendingThermalPrintQueue() {
+  try {
+    const raw = localStorage.getItem(PRINT_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function flushThermalPrintQueue(printerMeta = {}) {
+  const queue = getPendingThermalPrintQueue();
+  if (!queue.length) return { flushed: 0, failed: 0 };
+
+  const remaining = [];
+  let flushedCount = 0;
+
+  for (const item of queue) {
+    try {
+      if (item.buffer) {
+        const uint8 = new Uint8Array(item.buffer);
+        await sendBufferToPrinter(uint8, printerMeta);
+        flushedCount++;
+      }
+    } catch {
+      remaining.push(item);
+    }
+  }
+
+  localStorage.setItem(PRINT_QUEUE_KEY, JSON.stringify(remaining));
+  return { flushed: flushedCount, remaining: remaining.length };
+}
+
 /**
  * Sends ESC/POS byte buffer to selected printer
  */

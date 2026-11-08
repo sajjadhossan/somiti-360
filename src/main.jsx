@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
-import { PublicVerificationPortal } from './components/samity/PublicVerificationPortal';
 import './index.css';
+
+const PublicVerificationPortal = lazy(() =>
+  import('./components/samity/PublicVerificationPortal').then(m => ({ default: m.PublicVerificationPortal }))
+);
 
 // -------------------------------------------------------------
 // Top-Level Immediate Verification Intercept (Rule 1 & Rule 3)
@@ -28,7 +31,9 @@ if (isVerificationRequest && rootElement) {
   const initialParams = Object.fromEntries(searchParams.entries());
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <PublicVerificationPortal initialParams={initialParams} />
+      <Suspense fallback={null}>
+        <PublicVerificationPortal initialParams={initialParams} />
+      </Suspense>
     </React.StrictMode>
   );
 } else if (rootElement) {

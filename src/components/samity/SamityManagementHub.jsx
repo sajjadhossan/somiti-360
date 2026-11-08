@@ -158,23 +158,25 @@ import {
   subscribeDevicePresence,
   format12HourTime,
 } from "../../services/somitiCloudSyncService";
-import { SamityInternalChatHub } from "./SamityInternalChatHub";
+const SamityInternalChatHub = lazy(() => import("./SamityInternalChatHub").then(m => ({ default: m.SamityInternalChatHub })));
 const DeviceMeshStatusModal = lazy(() => import("./DeviceMeshStatusModal").then(m => ({ default: m.DeviceMeshStatusModal })));
-import { SupervisorLiveRadarModal } from "./SupervisorLiveRadarModal";
-import { SamityAIAssistantModal } from "./SamityAIAssistantModal";
-import { UniversalQrVerifierModal } from "./UniversalQrVerifierModal";
-import { AiDepositScannerModal } from "./AiDepositScannerModal";
+const SupervisorLiveRadarModal = lazy(() => import("./SupervisorLiveRadarModal").then(m => ({ default: m.SupervisorLiveRadarModal })));
+const SamityAIAssistantModal = lazy(() => import("./SamityAIAssistantModal").then(m => ({ default: m.SamityAIAssistantModal })));
+const UniversalQrVerifierModal = lazy(() => import("./UniversalQrVerifierModal").then(m => ({ default: m.UniversalQrVerifierModal })));
+const AiDepositScannerModal = lazy(() => import("./AiDepositScannerModal").then(m => ({ default: m.AiDepositScannerModal })));
 const BluetoothThermalPrinterModal = lazy(() => import("./BluetoothThermalPrinterModal"));
 const AiNidOcrScannerModal = lazy(() => import("./AiNidOcrScannerModal"));
 const FieldCollectionSheetModal = lazy(() => import("./FieldCollectionSheetModal"));
 const MerchantStoreHubModal = lazy(() => import("./MerchantStoreHubModal"));
 import { SamityDrawerNavigation } from "./SamityDrawerNavigation";
-import { SamityRolePermissionManagerModal, checkRolePermission } from "./SamityRolePermissionManagerModal";
+
+const SamityRolePermissionManagerModal = lazy(() => import("./SamityRolePermissionManagerModal").then(m => ({ default: m.SamityRolePermissionManagerModal })));
 import { ModuleLockedBySuperAdminCard } from "../common/ModuleLockedBySuperAdminCard";
 import {
   getActiveWorkspaceId,
   isModuleEnabled,
-  canRolePerformAction
+  canRolePerformAction,
+  checkRolePermission
 } from "../../services/tenantManagerService";
 
 const TAB_TO_MODULE_MAP = {

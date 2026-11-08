@@ -19,6 +19,8 @@
  * 12. app_metadata
  */
 
+import { optimizeImageWithStats } from '../utils/imageOptimizer.js';
+
 const DB_NAME = 'Somiti360_OfflineDB';
 const DB_VERSION = 2;
 
@@ -510,13 +512,36 @@ export const resolveConflictLocally = async (conflictId, choice, resolvedData) =
  * Save an offline file (e.g. Bank receipt image or document) before upload
  */
 export const saveOfflineFile = async ({ fileId, entityId, fileName, mimeType, dataUrl, sizeBytes }) => {
+  let processedDataUrl = dataUrl;
+  let finalSizeBytes = sizeBytes || 0;
+  let finalMime = mimeType || 'image/jpeg';
+
+  // Automatically downscale and compress offline receipt images to protect device storage
+  if (dataUrl && typeof dataUrl === 'string' && dataUrl.startsWith('data:image')) {
+    try {
+      const stats = await optimizeImageWithStats(dataUrl, {
+        maxWidth: 1600,
+        maxHeight: 1600,
+        targetMaxKb: 350,
+        mimeType: 'image/jpeg'
+      });
+      if (stats?.dataUrl) {
+        processedDataUrl = stats.dataUrl;
+        finalSizeBytes = Math.round((stats.compressedSizeKb || 0) * 1024);
+        finalMime = stats.mimeType || 'image/jpeg';
+      }
+    } catch (e) {
+      console.warn('Image optimization fallback in saveOfflineFile:', e);
+    }
+  }
+
   const fileRecord = {
     fileId: fileId || `file_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
     entityId,
     fileName,
-    mimeType,
-    dataUrl,
-    sizeBytes,
+    mimeType: finalMime,
+    dataUrl: processedDataUrl,
+    sizeBytes: finalSizeBytes,
     status: 'pending', // 'pending' | 'uploading' | 'uploaded' | 'failed'
     createdAt: new Date().toISOString()
   };

@@ -115,6 +115,33 @@ export const SuperAdminDualModeBar = ({
           <span>{isEn ? 'SaaS Control Tower' : 'প্ল্যাটফর্ম ও মডিউল লাইসেন্স'}</span>
         </button>
 
+        {/* Button: Render.com Cloud Web Publishing */}
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('somiti_trigger_render_publish'));
+            }
+          }}
+          style={{
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '3px 10px',
+            fontSize: '0.72rem',
+            fontWeight: '900',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+          }}
+          title={isEn ? 'Deploy & Publish Website to Render.com' : 'রেন্ডার ক্লাউডে সরাসরি ওয়েবসাইট পাবলিশ করুন'}
+        >
+          <span>🚀</span>
+          <span>{isEn ? 'Render Web Publish' : 'রেন্ডার ওয়েবসাইট পাবলিশ'}</span>
+        </button>
+
         {/* Button 2: Switch to My Own Samity */}
         <button
           onClick={() => handleSwitch(mySamity.id)}

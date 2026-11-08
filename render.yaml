@@ -42,3 +42,7 @@ services:
         value: Somiti 360
       - key: PORT
         value: 10000
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false

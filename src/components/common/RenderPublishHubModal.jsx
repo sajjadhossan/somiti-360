@@ -63,7 +63,11 @@ export const RenderPublishHubModal = ({
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000`;
+        value: 10000
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false`;
 
   const copyToClipboard = (text, keyName) => {
     try {

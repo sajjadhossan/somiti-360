@@ -209,6 +209,17 @@ function runTests() {
   assert(cloudSync.includes('applyDeltaMutationToLocalState'), 'somitiCloudSyncService exports applyDeltaMutationToLocalState');
   assert(cloudSync.includes('isDeltaOnly'), 'somitiCloudSyncService enforces lightweight delta payload over WebSockets');
 
+  // 22. Supabase + Neon Hybrid Dual-Engine Database Backend
+  assert(fs.existsSync('api/_lib/dualEngineDb.js'), 'dualEngineDb.js adapter exists');
+  const dualDb = fs.readFileSync('api/_lib/dualEngineDb.js', 'utf8');
+  assert(dualDb.includes('isNeonConfigured'), 'dualEngineDb exports isNeonConfigured');
+  assert(dualDb.includes('checkDualEngineHealth'), 'dualEngineDb exports checkDualEngineHealth');
+  const healthApi = fs.readFileSync('api/health.js', 'utf8');
+  assert(healthApi.includes('checkDualEngineHealth'), 'api/health.js monitors dual-engine health status');
+  const envExample = fs.readFileSync('.env.example', 'utf8');
+  assert(envExample.includes('NEON_DATABASE_URL'), '.env.example configures Neon Serverless Postgres');
+  assert(renderYaml.includes('NEON_DATABASE_URL'), 'render.yaml configures Neon Serverless Postgres connection');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

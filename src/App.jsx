@@ -10,6 +10,8 @@ import { AppUpdateModal } from './components/common/AppUpdateModal';
 import { checkForAppUpdate } from './services/appUpdateService';
 import { getTenantsList, getActiveWorkspaceId, getTenantById, checkTenantSubscriptionStatus } from './services/tenantManagerService';
 import { initSoundboxBroadcastListener } from './services/voiceSoundboxService';
+import { initNativeBackHandling, registerBackAction } from './services/nativeAppService';
+import { requestPersistentStorage } from './services/somitiOfflineStore';
 
 // Dynamic code-splitting for high-speed initial bundle delivery
 const SamityManagementHub = lazy(() => import('./components/samity/SamityManagementHub').then(m => ({ default: m.SamityManagementHub })));
@@ -805,6 +807,92 @@ function MainView() {
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
   }, []);
+
+  // 3. Android APK Hardware Back-Button, Modal Dismissal Stack & Persistent Memory Lock
+  useEffect(() => {
+    // 3.1. Persistent Storage Lock: Request browser & OS to lock offline IndexedDB from eviction
+    requestPersistentStorage().then((res) => {
+      console.log('[Storage] Memory lock status:', res?.messageEn || res);
+    }).catch((err) => {
+      console.warn('[Storage] Memory lock warning:', err);
+    });
+
+    // 3.2. Register App-level modals in back action stack (closes topmost modal on back press)
+    const unregisterBack = registerBackAction(() => {
+      if (isRenderPublishModalOpen) {
+        setIsRenderPublishModalOpen(false);
+        return true;
+      }
+      if (isSoundboxModalOpen) {
+        setIsSoundboxModalOpen(false);
+        return true;
+      }
+      if (isDiagnosticOpen) {
+        setIsDiagnosticOpen(false);
+        return true;
+      }
+      if (isDeviceMeshModalOpen) {
+        setIsDeviceMeshModalOpen(false);
+        return true;
+      }
+      if (isConflictModalOpen) {
+        setIsConflictModalOpen(false);
+        return true;
+      }
+      if (isSaaSControlOpen) {
+        setIsSaaSControlOpen(false);
+        return true;
+      }
+      if (isUpdateModalOpen) {
+        setIsUpdateModalOpen(false);
+        return true;
+      }
+      if (isThemeDropdownOpen) {
+        setIsThemeDropdownOpen(false);
+        return true;
+      }
+      if (viewMode === 'verify') {
+        setViewMode('hub');
+        return true;
+      }
+      return false;
+    });
+
+    // 3.3. Initialize Native Android Hardware Back Button listener
+    initNativeBackHandling({
+      onHomeExitNotice: () => {
+        showToast?.(
+          lang === 'en'
+            ? 'Press back again to exit Somiti 360'
+            : 'অ্যাপ থেকে বের হতে আবার ব্যাক বাটন চাপুন',
+          'warning'
+        );
+      },
+      onNavigateHome: () => {
+        if (viewMode !== 'hub') {
+          setViewMode('hub');
+          return true;
+        }
+        return false;
+      }
+    });
+
+    return () => {
+      unregisterBack();
+    };
+  }, [
+    isRenderPublishModalOpen,
+    isSoundboxModalOpen,
+    isDiagnosticOpen,
+    isDeviceMeshModalOpen,
+    isConflictModalOpen,
+    isSaaSControlOpen,
+    isUpdateModalOpen,
+    isThemeDropdownOpen,
+    viewMode,
+    lang,
+    showToast
+  ]);
 
   const isLight = theme === 'light' || theme === 'nordic_clean';
   const activeTenant = getTenantById(activeWorkspaceId);

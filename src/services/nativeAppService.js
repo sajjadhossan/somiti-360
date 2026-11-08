@@ -162,9 +162,19 @@ export const initNativeBackHandling = ({ onHomeExitNotice, onNavigateHome, onNav
       }
     }
 
-    // 1.5. Fallback: Automatically close topmost DOM modal overlay if active
+    // 1.5. Dispatch custom event for React components listening to back navigation
+    if (typeof window !== 'undefined') {
+      const backEvt = new CustomEvent('somiti_hardware_back_pressed', { cancelable: true });
+      window.dispatchEvent(backEvt);
+      if (backEvt.defaultPrevented) {
+        hapticFeedback.light();
+        return true;
+      }
+    }
+
+    // 1.6. Fallback: Automatically close topmost DOM modal overlay if active
     if (typeof document !== 'undefined') {
-      const openOverlays = document.querySelectorAll('.modal-overlay, .modal-backdrop, [role="dialog"]');
+      const openOverlays = document.querySelectorAll('.modal-overlay, .modal-backdrop, [role="dialog"], [data-modal="true"], .fixed.inset-0, div[style*="position: fixed"], div[style*="position:fixed"]');
       if (openOverlays.length > 0) {
         const topOverlay = openOverlays[openOverlays.length - 1];
         // Look for close button or trigger click

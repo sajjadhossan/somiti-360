@@ -220,6 +220,22 @@ function runTests() {
   assert(envExample.includes('NEON_DATABASE_URL'), '.env.example configures Neon Serverless Postgres');
   assert(renderYaml.includes('NEON_DATABASE_URL'), 'render.yaml configures Neon Serverless Postgres connection');
 
+  // 23. Neon Full-Stack Infrastructure as Code & Client Services
+  assert(fs.existsSync('neon.ts'), 'neon.ts infrastructure as code file exists');
+  const neonTs = fs.readFileSync('neon.ts', 'utf8');
+  assert(neonTs.includes('realtime: true') && neonTs.includes('auth: true'), 'neon.ts defines realtime, auth and storage');
+  assert(fs.existsSync('src/services/neonService.js'), 'neonService.js client service exists');
+  const neonService = fs.readFileSync('src/services/neonService.js', 'utf8');
+  assert(neonService.includes('getNeonAuthClient') && neonService.includes('getNeonRealtimeClient'), 'neonService exports auth and realtime clients');
+
+  // 24. Android Hardware Back Button & Persistent Memory Lock
+  const nativeApp = fs.readFileSync('src/services/nativeAppService.js', 'utf8');
+  assert(nativeApp.includes('initNativeBackHandling') && nativeApp.includes('registerBackAction'), 'nativeAppService exports back button stack handling');
+  assert(nativeApp.includes('somiti_hardware_back_pressed'), 'nativeAppService dispatches somiti_hardware_back_pressed event');
+  assert(appJsx.includes('initNativeBackHandling'), 'App.jsx initializes native hardware back button handling');
+  assert(appJsx.includes('registerBackAction'), 'App.jsx registers modal hierarchy with back action stack');
+  assert(appJsx.includes('requestPersistentStorage'), 'App.jsx actively locks storage with requestPersistentStorage on launch');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

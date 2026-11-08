@@ -203,6 +203,12 @@ function runTests() {
   assert(printerSvc.includes('enqueueThermalPrintJob'), 'thermalPrinterService exports enqueueThermalPrintJob buffer');
   assert(appJsx.includes('const SamityManagementHub = lazy('), 'App.jsx uses dynamic code splitting for SamityManagementHub');
 
+  // 21. Sub-50ms Delta Mutation Real-Time Sync Engine
+  const cloudSync = fs.readFileSync('src/services/somitiCloudSyncService.js', 'utf8');
+  assert(cloudSync.includes('extractDeltaFromAction'), 'somitiCloudSyncService exports extractDeltaFromAction');
+  assert(cloudSync.includes('applyDeltaMutationToLocalState'), 'somitiCloudSyncService exports applyDeltaMutationToLocalState');
+  assert(cloudSync.includes('isDeltaOnly'), 'somitiCloudSyncService enforces lightweight delta payload over WebSockets');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

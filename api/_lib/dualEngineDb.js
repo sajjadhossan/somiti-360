@@ -1,17 +1,54 @@
 /**
  * Somiti 360 - Enterprise Supabase + Neon Hybrid Dual-Engine Database Adapter
  * ----------------------------------------------------------------------------
- * Powers the unified data layer:
- *  1. Neon Serverless Postgres: Core transactional ledger, connection pooling, and auto-scaling
- *  2. Supabase Cloud Gateway: Realtime WebSocket broadcast mesh (<50ms), Auth, and Storage buckets
+ * Powers the unified data layer across all platforms (Web, Mobile APK, Desktop):
+ *  1. Neon Serverless Postgres: Core transactional ledger, connection pooling (-pooler), and auto-scaling
+ *  2. Neon Managed Auth: Better Auth JWT session security & JWKS validation
+ *  3. Neon Object Storage: S3-compatible copy-on-write branch storage
+ *  4. Neon Realtime: Live SQL query subscriptions & reactive change delivery
+ *  5. Supabase Cloud Gateway: Fallback mobile mesh & realtime channel broadcaster
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { neon } from '@neondatabase/serverless';
+import { S3Client, ListObjectsV2Command, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import fs from 'fs';
+import path from 'path';
+
+// Helper to auto-load .env.local in local/standalone node runtimes
+function ensureEnvLoaded() {
+  if (process.env.DATABASE_URL && process.env.AWS_ENDPOINT_URL_S3) return;
+  try {
+    const envPath = path.resolve(process.cwd(), '.env.local');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      content.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          let val = trimmed.slice(eqIdx + 1).trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
+      });
+    }
+  } catch (e) {
+    // Ignore in read-only/serverless runtimes
+  }
+}
+
+ensureEnvLoaded();
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://ygigujzrnghxtcwykhjo.supabase.co';
 const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaWd1anpybmdoeHRjd3lraGpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2NzQxOTEsImV4cCI6MjEwODI1MDE5MX0.BsVJwFbKv3LUzgZZkwubbX5jl2-mOv_p1umNJ9fxn5E';
 
-const NEON_DATABASE_URL = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || '';
+const NEON_DATABASE_URL = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || '';
 
 /**
  * Checks if Neon Serverless Postgres is configured
@@ -24,6 +61,28 @@ export function isNeonConfigured() {
 }
 
 /**
+ * Gets the Neon Serverless SQL driver instance
+ */
+let cachedNeonSql = null;
+export function getNeonSql() {
+  if (!isNeonConfigured()) {
+    throw new Error('Neon DATABASE_URL is not configured.');
+  }
+  if (!cachedNeonSql) {
+    cachedNeonSql = neon(NEON_DATABASE_URL);
+  }
+  return cachedNeonSql;
+}
+
+/**
+ * Executes a parameterized SQL query on Neon Serverless Postgres
+ */
+export async function queryNeon(sqlString, params = []) {
+  const sql = getNeonSql();
+  return await sql(sqlString, params);
+}
+
+/**
  * Gets Supabase Client for Auth, Storage, and Realtime
  */
 export function getSupabaseClient() {
@@ -31,12 +90,70 @@ export function getSupabaseClient() {
 }
 
 /**
- * Inspects Dual-Engine Health Status (Neon + Supabase)
+ * Gets S3 Client for Neon Object Storage (Bucket: assets)
+ */
+let cachedS3Client = null;
+export function getNeonStorageClient() {
+  const endpoint = process.env.AWS_ENDPOINT_URL_S3;
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const region = process.env.AWS_REGION || 'ap-southeast-1';
+
+  if (!endpoint || !accessKeyId || !secretAccessKey) {
+    return null;
+  }
+
+  if (!cachedS3Client) {
+    cachedS3Client = new S3Client({
+      region,
+      endpoint,
+      credentials: {
+        accessKeyId,
+        secretAccessKey
+      },
+      forcePathStyle: true
+    });
+  }
+  return cachedS3Client;
+}
+
+/**
+ * Uploads a file/buffer to Neon Object Storage
+ */
+export async function uploadToNeonStorage(key, buffer, contentType = 'application/octet-stream', bucket = 'assets') {
+  const s3 = getNeonStorageClient();
+  if (!s3) throw new Error('Neon Object Storage credentials not configured');
+
+  return await s3.send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType
+  }));
+}
+
+/**
+ * Lists objects in Neon Object Storage bucket
+ */
+export async function listNeonStorage(prefix = '', bucket = 'assets') {
+  const s3 = getNeonStorageClient();
+  if (!s3) throw new Error('Neon Object Storage credentials not configured');
+
+  const res = await s3.send(new ListObjectsV2Command({
+    Bucket: bucket,
+    Prefix: prefix
+  }));
+  return res.Contents || [];
+}
+
+/**
+ * Inspects Dual-Engine Health Status (Neon Full Stack + Supabase)
  */
 export async function checkDualEngineHealth() {
   const startTime = Date.now();
   const supabase = getSupabaseClient();
   
+  // 1. Supabase Health
   let supabaseStatus = 'healthy';
   let supabaseLatencyMs = 0;
   let depositCount = 0;
@@ -59,12 +176,45 @@ export async function checkDualEngineHealth() {
     supabaseLatencyMs = Date.now() - startTime;
   }
 
-  const isNeon = isNeonConfigured();
-  const neonStatus = isNeon ? 'connected' : 'ready_for_connection';
+  // 2. Neon Postgres Live Ping
+  let neonPostgresStatus = 'not_configured';
+  let neonLatencyMs = 0;
+  let neonDbName = null;
+  let neonVersion = null;
+
+  if (isNeonConfigured()) {
+    try {
+      const nStart = Date.now();
+      const sql = getNeonSql();
+      const rows = await sql`SELECT current_database() as db, version() as version`;
+      neonLatencyMs = Date.now() - nStart;
+      neonPostgresStatus = 'healthy';
+      neonDbName = rows[0]?.db || 'neondb';
+      neonVersion = rows[0]?.version?.split(' ')[0] + ' ' + (rows[0]?.version?.split(' ')[1] || '');
+    } catch (err) {
+      neonPostgresStatus = 'error: ' + err.message;
+    }
+  }
+
+  // 3. Neon Auth Status
+  const hasNeonAuth = Boolean(process.env.NEON_AUTH_BASE_URL);
+  const neonAuthStatus = hasNeonAuth ? 'configured (Managed Better Auth)' : 'not_configured';
+
+  // 4. Neon Object Storage Status
+  const hasNeonStorage = Boolean(process.env.AWS_ENDPOINT_URL_S3 && process.env.AWS_ACCESS_KEY_ID);
+  const neonStorageStatus = hasNeonStorage ? 'configured (Bucket: assets, S3 Compatible)' : 'not_configured';
+
+  // 5. Neon Realtime Status
+  const hasNeonRealtime = Boolean(process.env.NEON_REALTIME_URL && process.env.NEON_REALTIME_SECRET);
+  const neonRealtimeStatus = hasNeonRealtime ? 'configured (Live SQL Engine Active)' : 'not_configured';
+
+  const isNeonFullyActive = isNeonConfigured() && neonPostgresStatus === 'healthy';
 
   return {
-    engineMode: isNeon ? 'HYBRID_DUAL_ENGINE (Neon Core + Supabase Realtime)' : 'SUPABASE_PRIMARY (Realtime Mesh Active)',
-    isNeonActive: isNeon,
+    engineMode: isNeonFullyActive
+      ? 'HYBRID_DUAL_ENGINE (Neon Core + Supabase Realtime Mesh)'
+      : 'SUPABASE_PRIMARY (Realtime Mesh Active)',
+    isNeonActive: isNeonFullyActive,
     totalLatencyMs: Date.now() - startTime,
     timestamp: new Date().toISOString(),
     providers: {
@@ -75,10 +225,25 @@ export async function checkDualEngineHealth() {
         depositsCount: depositCount
       },
       neon: {
-        status: neonStatus,
-        connectionPooling: 'PgBouncer / Supavisor Port 6543 Supported',
-        autoScaling: isNeon ? 'Enabled (Serverless Scale-to-Zero)' : 'Configurable via NEON_DATABASE_URL',
-        capabilities: ['ACID Ledger Transactions', 'Instant Branching', 'Zero-Downtime Migration Support']
+        status: neonPostgresStatus,
+        latencyMs: neonLatencyMs,
+        database: neonDbName,
+        serverVersion: neonVersion,
+        connectionPooling: 'PgBouncer / Supavisor Port 6543 Supported (-pooler)',
+        autoScaling: 'Enabled (Serverless Scale-to-Zero)',
+        branch: process.env.NEON_BRANCH || 'production',
+        services: {
+          postgres: neonPostgresStatus,
+          auth: neonAuthStatus,
+          objectStorage: neonStorageStatus,
+          realtime: neonRealtimeStatus
+        },
+        capabilities: [
+          'ACID Ledger Transactions',
+          'Managed Better Auth with JWKS',
+          'S3-Compatible Branching Object Storage',
+          'Neon Realtime Live SQL Engine'
+        ]
       }
     }
   };

@@ -26,3 +26,4 @@ artifacts/
 *.exe
 
 
+.neon

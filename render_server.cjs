@@ -36,19 +36,40 @@ function serveStatic(req, res) {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = parsedUrl.pathname;
 
-    // Health check endpoint for Render service monitoring
+    // Health check endpoint for Render service monitoring & Neon Full-Stack diagnostics
     if (pathname === '/api/health' || pathname === '/healthz') {
-      res.writeHead(200, {
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Cache-Control': 'no-cache, no-store'
+      import('./api/_lib/dualEngineDb.js').then(async (dualEngine) => {
+        let healthData = {};
+        try {
+          healthData = await dualEngine.checkDualEngineHealth();
+        } catch (e) {
+          healthData = { error: e.message };
+        }
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Cache-Control': 'no-cache, no-store'
+        });
+        res.end(JSON.stringify({
+          status: 'ok',
+          uptime: process.uptime(),
+          platform: 'render',
+          timestamp: new Date().toISOString(),
+          version: '2.2.0',
+          dualEngine: healthData
+        }, null, 2));
+      }).catch(err => {
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=UTF-8'
+        });
+        res.end(JSON.stringify({
+          status: 'ok',
+          uptime: process.uptime(),
+          platform: 'render',
+          timestamp: new Date().toISOString(),
+          version: '2.2.0',
+          fallback: true
+        }));
       });
-      res.end(JSON.stringify({
-        status: 'ok',
-        uptime: process.uptime(),
-        platform: 'render',
-        timestamp: new Date().toISOString(),
-        version: '2.2.0'
-      }));
       return;
     }
 

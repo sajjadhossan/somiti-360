@@ -83,6 +83,64 @@ export async function queryNeon(sqlString, params = []) {
 }
 
 /**
+ * Inserts a deposit record directly into Neon Core Ledger
+ */
+export async function insertNeonDeposit(deposit) {
+  const sql = getNeonSql();
+  const rows = await sql`
+    INSERT INTO public.samity_deposits (
+      id, tenant_id, member_id, amount, deposit_type, payment_method,
+      collector_id, collector_name, receipt_no, status, is_synced,
+      sync_version, idempotency_key, created_at, updated_at
+    ) VALUES (
+      ${deposit.id},
+      ${deposit.tenant_id || deposit.tenantId || 'tenant_main'},
+      ${deposit.member_id || deposit.memberId},
+      ${deposit.amount},
+      ${deposit.deposit_type || deposit.type || 'savings'},
+      ${deposit.payment_method || deposit.paymentMethod || 'cash'},
+      ${deposit.collector_id || deposit.collectorId || null},
+      ${deposit.collector_name || deposit.collectorName || 'System'},
+      ${deposit.receipt_no || deposit.receiptNo || null},
+      ${deposit.status || 'approved'},
+      true,
+      ${deposit.sync_version || 1},
+      ${deposit.idempotency_key || deposit.idempotencyKey || deposit.id},
+      ${deposit.created_at || new Date().toISOString()},
+      ${new Date().toISOString()}
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      amount = EXCLUDED.amount,
+      status = EXCLUDED.status,
+      updated_at = now()
+    RETURNING *;
+  `;
+  return rows[0];
+}
+
+/**
+ * Inserts a delta mutation into Neon's Real-time Delta Stream
+ */
+export async function insertNeonDelta(delta) {
+  const sql = getNeonSql();
+  const rows = await sql`
+    INSERT INTO public.samity_sync_deltas (
+      id, tenant_id, table_name, record_id, action, delta_payload, created_at
+    ) VALUES (
+      ${delta.id || ('delta_' + Date.now())},
+      ${delta.tenant_id || delta.tenantId || 'tenant_main'},
+      ${delta.table_name || delta.tableName || 'samity_deposits'},
+      ${delta.record_id || delta.recordId || ''},
+      ${delta.action || 'INSERT'},
+      ${JSON.stringify(delta.delta_payload || delta.payload || {})},
+      now()
+    )
+    RETURNING *;
+  `;
+  return rows[0];
+}
+
+/**
  * Gets Supabase Client for Auth, Storage, and Realtime
  */
 export function getSupabaseClient() {
@@ -232,6 +290,7 @@ export async function checkDualEngineHealth() {
         connectionPooling: 'PgBouncer / Supavisor Port 6543 Supported (-pooler)',
         autoScaling: 'Enabled (Serverless Scale-to-Zero)',
         branch: process.env.NEON_BRANCH || 'production',
+        fdwLink: 'Postgres FDW Link Ready (Foreign Tables: samity_deposits, samity_members, samity_sync_deltas)',
         services: {
           postgres: neonPostgresStatus,
           auth: neonAuthStatus,
@@ -242,7 +301,8 @@ export async function checkDualEngineHealth() {
           'ACID Ledger Transactions',
           'Managed Better Auth with JWKS',
           'S3-Compatible Branching Object Storage',
-          'Neon Realtime Live SQL Engine'
+          'Neon Realtime Live SQL Engine',
+          'Postgres FDW (Foreign Data Wrapper) Mount'
         ]
       }
     }

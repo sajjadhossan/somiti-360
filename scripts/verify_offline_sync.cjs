@@ -236,6 +236,14 @@ function runTests() {
   assert(appJsx.includes('registerBackAction'), 'App.jsx registers modal hierarchy with back action stack');
   assert(appJsx.includes('requestPersistentStorage'), 'App.jsx actively locks storage with requestPersistentStorage on launch');
 
+  // 25. Postgres FDW (Foreign Data Wrapper) Neon Direct Link
+  assert(fs.existsSync('supabase/migrations/20261108_neon_postgres_fdw_link.sql'), 'Postgres FDW SQL migration exists');
+  const fdwSql = fs.readFileSync('supabase/migrations/20261108_neon_postgres_fdw_link.sql', 'utf8');
+  assert(fdwSql.includes('postgres_fdw') && fdwSql.includes('neon_server'), 'FDW migration creates neon_server foreign wrapper');
+  assert(fdwSql.includes('neon_core') && fdwSql.includes('v_neon_deposits'), 'FDW migration defines neon_core foreign tables & views');
+  assert(dualDb.includes('insertNeonDeposit') && dualDb.includes('insertNeonDelta'), 'dualEngineDb exports insertNeonDeposit and insertNeonDelta');
+  assert(fs.existsSync('scripts/test_postgres_fdw_link.cjs'), 'Postgres FDW automated verification script exists');
+
   console.log('\n-----------------------------------------------------');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('-----------------------------------------------------\n');

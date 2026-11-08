@@ -260,3 +260,111 @@ export const subscribeToAuthState = (onUserChanged) => {
     subscription?.unsubscribe();
   };
 };
+
+// ============================================================================
+// NEON MANAGED BETTER AUTH INTEGRATION
+// ============================================================================
+const NEON_AUTH_BASE_URL = 'https://ep-wispy-unit-aodnt6pk.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth';
+
+/**
+ * Sign In with Email & Password directly via Neon Managed Better Auth
+ */
+export const signInWithNeonAuth = async (email, password, remember = true) => {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanPassword = String(password || '').trim();
+
+  if (!cleanEmail || !cleanPassword) {
+    throw new Error('ইমেইল ও পাসওয়ার্ড প্রদান করা বাধ্যতামূলক।');
+  }
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://somiti-360.vercel.app';
+
+  const res = await fetch(`${NEON_AUTH_BASE_URL}/sign-in/email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Origin': origin
+    },
+    body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
+  });
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (res.status === 401 || body.message?.includes('Invalid')) {
+      throw new Error('নিওন অথ: ভুল ইমেইল বা পাসওয়ার্ড। দয়া করে সঠিক তথ্য দিন।');
+    }
+    throw new Error(body.message || 'নিওন অথ সাইন ইন ব্যর্থ হয়েছে।');
+  }
+
+  const neonUser = body.user || {};
+  const normalized = {
+    id: neonUser.id || ('neon_' + Date.now()),
+    email: neonUser.email || cleanEmail,
+    name: neonUser.name || cleanEmail.split('@')[0],
+    samityName: 'সমিতি ৩৬০ (নিওন কোর লেজার)',
+    phone: '',
+    avatar: neonUser.image || '',
+    role: neonUser.role || 'admin',
+    provider: 'neon_auth',
+    token: body.token || null,
+    lastSignIn: new Date().toISOString()
+  };
+
+  if (remember) {
+    localStorage.setItem(REMEMBER_KEY, 'true');
+  } else {
+    localStorage.removeItem(REMEMBER_KEY);
+  }
+  setCachedAuthUser(normalized);
+
+  return normalized;
+};
+
+/**
+ * Sign Up with Email & Password directly via Neon Managed Better Auth
+ */
+export const signUpWithNeonAuth = async ({ email, password, fullName, samityName }) => {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanPassword = String(password || '').trim();
+
+  if (!cleanEmail || !cleanPassword) {
+    throw new Error('ইমেইল ও পাসওয়ার্ড প্রদান করা বাধ্যতামূলক।');
+  }
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://somiti-360.vercel.app';
+
+  const res = await fetch(`${NEON_AUTH_BASE_URL}/sign-up/email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Origin': origin
+    },
+    body: JSON.stringify({
+      email: cleanEmail,
+      password: cleanPassword,
+      name: fullName || cleanEmail.split('@')[0]
+    })
+  });
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body.message || 'নিওন অথ সাইন আপ ব্যর্থ হয়েছে।');
+  }
+
+  const neonUser = body.user || {};
+  const normalized = {
+    id: neonUser.id || ('neon_' + Date.now()),
+    email: neonUser.email || cleanEmail,
+    name: neonUser.name || fullName || cleanEmail.split('@')[0],
+    samityName: samityName || 'সমিতি ৩৬০ (নিওন কোর লেজার)',
+    phone: '',
+    avatar: neonUser.image || '',
+    role: neonUser.role || 'admin',
+    provider: 'neon_auth',
+    token: body.token || null,
+    lastSignIn: new Date().toISOString()
+  };
+
+  setCachedAuthUser(normalized);
+  return { user: normalized, requiresConfirmation: false };
+};

@@ -24,7 +24,9 @@ import {
   signInWithEmail,
   signUpWithEmail,
   signInWithGoogle,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  signInWithNeonAuth,
+  signUpWithNeonAuth
 } from '../../services/somitiAuthService';
 import { isSupabaseReady } from '../../services/supabaseClient';
 import { useApp } from '../../context/AppContext';
@@ -36,6 +38,7 @@ export const SomitiAuthView = ({ onAuthSuccess, onOpenPublicVerification }) => {
   const { t } = useSamityTranslator(authContainerRef, lang);
 
   const [authView, setAuthView] = useState('login'); // 'login' | 'signup' | 'forgot'
+  const [authProvider, setAuthProvider] = useState('supabase'); // 'supabase' | 'neon'
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' | 'pin'
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -94,7 +97,12 @@ export const SomitiAuthView = ({ onAuthSuccess, onOpenPublicVerification }) => {
         }
       }
 
-      const user = await signInWithEmail(loginEmail, loginPassword, rememberMe);
+      let user;
+      if (authProvider === 'neon') {
+        user = await signInWithNeonAuth(loginEmail, loginPassword, rememberMe);
+      } else {
+        user = await signInWithEmail(loginEmail, loginPassword, rememberMe);
+      }
       setSuccessMessage('সফলভাবে সাইন ইন হয়েছে! ড্যাশবোর্ডে প্রবেশ করা হচ্ছে...');
       if (onAuthSuccess) {
         setTimeout(() => onAuthSuccess(user), 400);
@@ -119,13 +127,23 @@ export const SomitiAuthView = ({ onAuthSuccess, onOpenPublicVerification }) => {
 
     setLoading(true);
     try {
-      const result = await signUpWithEmail({
-        email: signupForm.email,
-        password: signupForm.password,
-        fullName: signupForm.fullName,
-        samityName: signupForm.samityName,
-        phone: signupForm.phone
-      });
+      let result;
+      if (authProvider === 'neon') {
+        result = await signUpWithNeonAuth({
+          email: signupForm.email,
+          password: signupForm.password,
+          fullName: signupForm.fullName,
+          samityName: signupForm.samityName
+        });
+      } else {
+        result = await signUpWithEmail({
+          email: signupForm.email,
+          password: signupForm.password,
+          fullName: signupForm.fullName,
+          samityName: signupForm.samityName,
+          phone: signupForm.phone
+        });
+      }
 
       if (result.requiresConfirmation) {
         setSuccessMessage('রেজিস্ট্রেশন সফল হয়েছে! আপনার ইমেইল ইনবক্স চেক করে একাউন্ট নিশ্চিত করুন, অথবা সরাসরি সাইন ইন করুন।');
@@ -456,6 +474,55 @@ export const SomitiAuthView = ({ onAuthSuccess, onOpenPublicVerification }) => {
         {/* ========================================================= */}
         {authView === 'login' && (
           <form onSubmit={handleLoginSubmit} style={{ padding: '1.25rem 1.5rem 1.5rem' }}>
+            {/* Dual-Engine Auth Provider Switch: Supabase vs Neon Managed Auth */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '7px 10px',
+                borderRadius: '9px',
+                background: authProvider === 'neon' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(56, 189, 248, 0.08)',
+                border: authProvider === 'neon' ? '1.5px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(56, 189, 248, 0.25)',
+                marginBottom: '1rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '15px' }}>{authProvider === 'neon' ? '🏛️' : '⚡'}</span>
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: '800', color: authProvider === 'neon' ? '#4ade80' : '#38bdf8' }}>
+                    {authProvider === 'neon' ? 'নিওন ক্লাউড অথ (Neon Auth)' : 'সুপাবেস গেটওয়ে (Supabase)'}
+                  </div>
+                  <div style={{ fontSize: '0.67rem', color: 'var(--text-muted, #94a3b8)' }}>
+                    {authProvider === 'neon' ? 'নিওন পোস্টগ্রেস neon_auth লেজারে লগইন' : 'সুপাবেস রিয়েলটাইম ক্লাউড'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = authProvider === 'neon' ? 'supabase' : 'neon';
+                  setAuthProvider(next);
+                  if (next === 'neon' && !loginEmail) {
+                    setLoginEmail('test_admin@somiti360.com');
+                    setLoginPassword('Password123!');
+                  }
+                }}
+                style={{
+                  background: authProvider === 'neon' ? 'linear-gradient(135deg, #16a34a, #059669)' : 'linear-gradient(135deg, #0284c7, #2563eb)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '7px',
+                  padding: '5px 9px',
+                  fontSize: '0.70rem',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
+              >
+                {authProvider === 'neon' ? 'সুপাবেসে যান 🔄' : 'নিওন অথ-এ যান 🏛️'}
+              </button>
+            </div>
+
             {/* Method switch: Email vs PIN */}
             <div
               style={{

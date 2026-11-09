@@ -28,14 +28,15 @@ function runTests() {
 
   // 1. Version Parity Check
   const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-  assert(pkg.version === '2.2.0', 'package.json version is 2.2.0');
+  assert(pkg.version === '2.3.0', 'package.json version is 2.3.0');
 
   const gradle = fs.readFileSync('android/app/build.gradle', 'utf8');
-  assert(gradle.includes('versionCode 22'), 'android/app/build.gradle versionCode is 22');
-  assert(gradle.includes('versionName "2.2.0"'), 'android/app/build.gradle versionName is "2.2.0"');
+  assert(gradle.includes('versionCode 23'), 'android/app/build.gradle versionCode is 23');
+  assert(gradle.includes('versionName "2.3.0"'), 'android/app/build.gradle versionName is "2.3.0"');
+  assert(gradle.includes('v1SigningEnabled true') && gradle.includes('v2SigningEnabled true'), 'android/app/build.gradle enforces consistent v1 & v2 signing for in-place updates');
 
   const versionApi = fs.readFileSync('api/app/version.js', 'utf8');
-  assert(versionApi.includes('"2.2.0"') && versionApi.includes('buildNumber: 22'), 'api/app/version.js specifies v2.2.0 Build 22');
+  assert(versionApi.includes('"2.3.0"') && versionApi.includes('buildNumber: 23'), 'api/app/version.js specifies v2.3.0 Build 23');
 
   // 2. PWA & Service Worker
   assert(fs.existsSync('public/manifest.json'), 'PWA manifest.json exists');
@@ -45,8 +46,17 @@ function runTests() {
 
   assert(fs.existsSync('public/sw.js'), 'PWA sw.js exists');
   const sw = fs.readFileSync('public/sw.js', 'utf8');
-  assert(sw.includes('somiti360-shell-v2.2.0'), 'Service worker has correct cache version (v2.2.0)');
+  assert(sw.includes('somiti360-shell-v2.3.0'), 'Service worker has correct cache version (v2.3.0)');
   assert(sw.includes('/api/'), 'Service worker explicitly skips /api/ routes to prevent leaking private cache');
+
+  // 2b. Enterprise Zero-Demo & Multi-Platform Logo Service Checks
+  assert(fs.existsSync('src/services/samityLogoService.js'), 'src/services/samityLogoService.js exists');
+  const logoService = fs.readFileSync('src/services/samityLogoService.js', 'utf8');
+  assert(logoService.includes('getEffectiveSamityLogo') && logoService.includes('setGlobalSamityLogo'), 'samityLogoService exports getEffectiveSamityLogo and setGlobalSamityLogo');
+
+  const tenantSrc = fs.readFileSync('src/services/tenantManagerService.js', 'utf8');
+  assert(tenantSrc.includes('setOwnSamity'), 'tenantManagerService exports setOwnSamity for Super Admin dynamic designation');
+  assert(!tenantSrc.includes('tenant_demo_client_1'), 'tenantManagerService contains zero demo clients');
 
   // 3. Local Database & Offline Stores (IndexedDB v2)
   const offlineStore = fs.readFileSync('src/services/somitiOfflineStore.js', 'utf8');

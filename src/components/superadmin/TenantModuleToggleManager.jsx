@@ -5,11 +5,17 @@ import {
   createNewTenant,
   updateTenant,
   deleteTenant,
+  setOwnSamity,
   toggleTenantModule,
   getActiveWorkspaceId,
   setActiveWorkspaceId,
   SAAS_MODULES
 } from '../../services/tenantManagerService';
+import {
+  setGlobalSamityLogo,
+  getEffectiveSamityLogo,
+  compressImageFile
+} from '../../services/samityLogoService';
 import {
   Building2,
   Users,
@@ -150,6 +156,30 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
     });
     setEditingTenant(null);
     setIsAddModalOpen(true);
+  };
+
+  const handleOpenEditModal = (tenant) => {
+    setFormData({
+      name: tenant.name || '',
+      ownerName: tenant.ownerName || '',
+      ownerPhone: tenant.ownerPhone || '',
+      ownerEmail: tenant.ownerEmail || '',
+      plan: tenant.plan || 'Standard Yearly',
+      validUntil: tenant.validUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      address: tenant.settings?.address || '',
+      registrationNo: tenant.settings?.registrationNo || '',
+      initialModules: tenant.modules || {}
+    });
+    setEditingTenant(tenant);
+    setIsAddModalOpen(true);
+  };
+
+  const handleDesignateOwnSamity = (tenantId, tenantName) => {
+    if (window.confirm(isEn ? `Designate "${tenantName}" as your primary Own Samity?` : `"${tenantName}"-কে কি আপনার নিজস্ব প্রধান সমিতি হিসেবে নির্ধারণ করতে চান?`)) {
+      setOwnSamity(tenantId);
+      setTenants(getTenantsList());
+      showNotice(isEn ? `Designated "${tenantName}" as Own Samity` : `"${tenantName}" সফলভাবে নিজস্ব সমিতি নির্ধারিত হয়েছে!`, 'success');
+    }
   };
 
   const handleSaveTenant = (e) => {
@@ -628,22 +658,59 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
                         gap: '12px'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '12px',
-                            background: tenant.isOwnSamity
-                              ? 'linear-gradient(135deg, #f59e0b, #d97706)'
-                              : 'linear-gradient(135deg, #0284c7, #0369a1)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ffffff',
-                            fontWeight: '900',
-                            fontSize: '1rem',
-                            flexShrink: 0
-                          }}>
-                            {tenant.isOwnSamity ? '👑' : tenant.name[0]}
+                          <input
+                            type="file"
+                            id={`tenant-logo-file-${tenant.id}`}
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  showNotice(isEn ? 'Optimizing logo...' : 'লোগো অপটিমাইজ করা হচ্ছে...', 'info');
+                                  const compressed = await compressImageFile(file, { maxWidth: 512, maxHeight: 512, quality: 0.9 });
+                                  await setGlobalSamityLogo(compressed, tenant.id);
+                                  setTenants(getTenantsList());
+                                  showNotice(isEn ? 'Samity logo updated successfully across all views!' : 'সমিতির লোগো সফলভাবে সেট হয়েছে এবং সর্বত্র আপডেট হয়েছে!', 'success');
+                                } catch (err) {
+                                  showNotice(isEn ? 'Failed to update logo' : 'লোগো আপডেট ব্যর্থ হয়েছে', 'error');
+                                }
+                              }
+                            }}
+                          />
+                          <div
+                            onClick={() => document.getElementById(`tenant-logo-file-${tenant.id}`)?.click()}
+                            title={isEn ? 'Click to upload/change Samity Logo' : 'সমিতির লোগো আপলোড বা পরিবর্তন করতে ক্লিক করুন'}
+                            style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: '12px',
+                              background: tenant.isOwnSamity
+                                ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                                : 'linear-gradient(135deg, #0284c7, #0369a1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#ffffff',
+                              fontWeight: '900',
+                              fontSize: '1rem',
+                              flexShrink: 0,
+                              cursor: 'pointer',
+                              overflow: 'hidden',
+                              border: tenant.logo ? '1.5px solid rgba(245, 158, 11, 0.5)' : 'none',
+                              padding: tenant.logo ? '2px' : 0
+                            }}
+                          >
+                            {tenant.logo ? (
+                              <img
+                                src={tenant.logo}
+                                alt={tenant.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            ) : (
+                              tenant.isOwnSamity ? '👑' : tenant.name[0]
+                            )}
                           </div>
 
                           <div>
@@ -756,6 +823,50 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
                             <Zap size={13} />
                             <span>{isEn ? 'A-to-Z Options' : 'এ-টু-জেড অপশন'}</span>
                           </button>
+
+                          <button
+                            onClick={() => handleOpenEditModal(tenant)}
+                            title={isEn ? 'Edit Samity Details' : 'সমিতির তথ্য সম্পাদনা করুন'}
+                            style={{
+                              background: 'rgba(59, 130, 246, 0.12)',
+                              color: '#3b82f6',
+                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              borderRadius: '10px',
+                              padding: '6px 12px',
+                              fontSize: '0.76rem',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}
+                          >
+                            <Edit2 size={13} />
+                            <span>{isEn ? 'Edit' : 'এডিট'}</span>
+                          </button>
+
+                          {!tenant.isOwnSamity && (
+                            <button
+                              onClick={() => handleDesignateOwnSamity(tenant.id, tenant.name)}
+                              title={isEn ? 'Designate as My Own Primary Samity' : 'এটিকে আমার নিজস্ব প্রধান সমিতি নির্ধারণ করুন'}
+                              style={{
+                                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(217, 119, 6, 0.25))',
+                                color: '#f59e0b',
+                                border: '1.5px solid rgba(245, 158, 11, 0.5)',
+                                borderRadius: '10px',
+                                padding: '6px 12px',
+                                fontSize: '0.76rem',
+                                fontWeight: '900',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <Crown size={13} color="#f59e0b" />
+                              <span>{isEn ? 'Set as Own Samity' : '👑 নিজস্ব সমিতি নির্ধারণ'}</span>
+                            </button>
+                          )}
 
                           {!tenant.isOwnSamity && (
                             <>

@@ -158,6 +158,7 @@ import {
   subscribeDevicePresence,
   format12HourTime,
 } from "../../services/somitiCloudSyncService";
+import { setGlobalSamityLogo, getEffectiveSamityLogo } from "../../services/samityLogoService";
 const SamityInternalChatHub = lazy(() => import("./SamityInternalChatHub").then(m => ({ default: m.SamityInternalChatHub })));
 const DeviceMeshStatusModal = lazy(() => import("./DeviceMeshStatusModal").then(m => ({ default: m.DeviceMeshStatusModal })));
 const SupervisorLiveRadarModal = lazy(() => import("./SupervisorLiveRadarModal").then(m => ({ default: m.SupervisorLiveRadarModal })));
@@ -1064,9 +1065,10 @@ export const SamityManagementHub = ({ onClose }) => {
     if (
       !samityLogo ||
       samityLogo === "/somiti-emblem.svg" ||
-      samityLogo === "/logo.png"
+      samityLogo === "/logo.png" ||
+      samityLogo === "/shopnochoa-logo.svg"
     ) {
-      samityLogo = "/shopnochoa-logo.svg";
+      samityLogo = getEffectiveSamityLogo() || "/somiti-emblem.png";
     }
     return {
       ...samity,
@@ -5814,6 +5816,8 @@ ${samityTitle}
                       maxHeight: 512,
                       quality: 0.9,
                     });
+                    try { await setGlobalSamityLogo(base64Logo, activeSamityId); } catch (_) {}
+                    try { await setGlobalSamityLogo(base64Logo, activeSamityId); } catch (_) {}
                     updateAndSave(
                       (prev) => ({
                         ...prev,
@@ -23967,6 +23971,8 @@ ${samityTitle}
                               maxHeight: 500,
                               quality: 0.88,
                             });
+                            try { await setGlobalSamityLogo(base64Logo, activeSamityId); } catch (_) {}
+                            try { await setGlobalSamityLogo(base64Logo, activeSamityId); } catch (_) {}
                             updateAndSave(
                               (prev) => ({
                                 ...prev,

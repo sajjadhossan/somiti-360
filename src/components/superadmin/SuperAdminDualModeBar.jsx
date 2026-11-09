@@ -38,10 +38,12 @@ export const SuperAdminDualModeBar = ({
 
     window.addEventListener('somiti_tenants_changed', handleTenantsChanged);
     window.addEventListener('somiti_workspace_switched', handleWorkspaceChanged);
+    window.addEventListener('somiti_own_samity_designated', handleTenantsChanged);
 
     return () => {
       window.removeEventListener('somiti_tenants_changed', handleTenantsChanged);
       window.removeEventListener('somiti_workspace_switched', handleWorkspaceChanged);
+      window.removeEventListener('somiti_own_samity_designated', handleTenantsChanged);
     };
   }, []);
 

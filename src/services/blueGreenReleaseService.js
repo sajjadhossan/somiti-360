@@ -15,15 +15,15 @@ const STORAGE_KEY_ROLLBACK = 'somiti360_ota_rollback_snapshot';
 // Default initial release configuration
 export const DEFAULT_RELEASE_CONFIG = {
   currentSlot: 'blue', // 'blue' (stable) | 'green' (canary/next)
-  version: '2.2.0',
-  buildNumber: 22,
+  version: '2.3.0',
+  buildNumber: 23,
   releaseDate: new Date().toISOString(),
   forceUpdate: false,
   minSupportedVersion: '2.1.0',
-  apkDownloadUrl: 'https://github.com/sajjadhossan/somiti-360/releases/latest',
+  apkDownloadUrl: 'https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360.apk',
   releaseNotes: {
-    bn: 'সমিতি ৩৬০ v2.2.0 — সুপার এডমিন এ-টু-জেড সুইচবোর্ড, ক্যাসকেডিং RBAC, ১০ জিবি+ অফলাইন স্টোরেজ ও সেলফ-হিলিং ডায়াগনস্টিক।',
-    en: 'Somiti 360 v2.2.0 — Super Admin A-to-Z Switchboard, Cascading RBAC, 10GB+ Offline Storage & Self-Healing Diagnostics.'
+    bn: 'সমিতি ৩৬০ v2.3.0 — ইন-প্লেস এপিকে স্মুথ আপডেট (আনইনস্টল ছাড়াই), পারসিস্টেন্ট মাল্টি-প্ল্যাটফর্ম লোগো সিঙ্ক, এবং সুপার অ্যাডমিন সম্পূর্ণ ডাইনামিক নিজস্ব সমিতি নির্ধারণ।',
+    en: 'Somiti 360 v2.3.0 — In-place seamless APK update (no uninstall required), persistent multi-platform logo sync, and fully dynamic Super Admin Own Samity designation.'
   },
   publishedBy: 'সুপার এডমিন (Headquarters)',
   broadcastCount: 1
@@ -140,7 +140,7 @@ export const executeEmergencyRollback = () => {
 /**
  * Check if the active client app version is behind the latest broadcasted OTA version
  */
-export const checkClientNeedsUpdate = (clientVersion = '2.2.0') => {
+export const checkClientNeedsUpdate = (clientVersion = '2.3.0') => {
   const activeRelease = getActiveOtaRelease();
   const isOutdated = compareSemanticVersions(clientVersion, activeRelease.version) < 0;
   return {

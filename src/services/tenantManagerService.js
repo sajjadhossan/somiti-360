@@ -114,13 +114,14 @@ export const SAAS_MODULES = [
 const DEFAULT_INITIAL_TENANTS = [
   {
     id: 'tenant_master_headquarters',
-    name: 'শাপলা সমবায় সমিতি (হেড অফিস - নিজস্ব)',
-    ownerName: 'সাজ্জাদ হোসেন (সুপার এডমিন)',
-    ownerEmail: 'hossansajjad1994@gmail.com',
+    name: 'সমিতি ৩৬০ প্রধান কার্যালয়',
+    ownerName: 'সুপার এডমিন',
+    ownerEmail: 'admin@somiti360.com',
     ownerPhone: '01700000000',
     plan: 'Enterprise Lifetime',
     status: 'active', // 'active' | 'suspended' | 'trial'
     isOwnSamity: true,
+    logo: '/somiti-emblem.png',
     createdAt: '2026-01-01T00:00:00Z',
     validUntil: '2099-12-31',
     modules: {
@@ -138,38 +139,8 @@ const DEFAULT_INITIAL_TENANTS = [
     },
     settings: {
       address: 'ঢাকা, বাংলাদেশ',
-      establishedYear: '2020',
-      registrationNo: 'SOMITI-DH-2026',
-    }
-  },
-  {
-    id: 'tenant_demo_client_1',
-    name: 'অগ্রণী সঞ্চয় ও ঋণদান সমবায় সমিতি',
-    ownerName: 'মোঃ আব্দুল করিম',
-    ownerEmail: 'karim.agrani@gmail.com',
-    ownerPhone: '01811223344',
-    plan: 'Standard Yearly',
-    status: 'active',
-    isOwnSamity: false,
-    createdAt: '2026-06-15T00:00:00Z',
-    validUntil: '2027-06-15',
-    modules: {
-      savings: true,
-      microloan: true,
-      members: true,
-      expenses: true,
-      bank_funds: true,
-      sms_gateway: false,
-      whatsapp_alerts: false,
-      secretariat: true,
-      qr_verification: true,
-      audit_reports: true,
-      staff_rbac: true,
-    },
-    settings: {
-      address: 'মিরপুর ১০, ঢাকা',
-      establishedYear: '2022',
-      registrationNo: 'SOMITI-DH-9081',
+      establishedYear: '2024',
+      registrationNo: 'SOMITI-HQ-001',
     }
   }
 ];
@@ -183,7 +154,11 @@ export const getTenantsList = () => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // Zero-demo filter: purge obsolete mock/demo records
+        const sanitized = parsed.filter(t => !t.id.includes('demo') && t.ownerEmail !== 'karim.agrani@gmail.com');
+        if (sanitized.length > 0) {
+          return sanitized;
+        }
       }
     }
   } catch (e) {
@@ -329,22 +304,41 @@ export const toggleTenantModule = (tenantId, moduleId, isEnabled) => {
 };
 
 /**
+ * Super Admin designation: sets which tenant is the primary "Own Samity" (নিজস্ব সমিতি)
+ * Fully customizable and controlled solely by Super Admin
+ */
+export const setOwnSamity = (tenantId) => {
+  const tenants = getTenantsList();
+  const updated = tenants.map(t => ({
+    ...t,
+    isOwnSamity: t.id === tenantId,
+    updatedAt: new Date().toISOString()
+  }));
+  saveTenantsList(updated);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('somiti_own_samity_designated', { detail: { tenantId } }));
+  }
+  return updated;
+};
+
+/**
  * Delete a tenant client
  */
 export const deleteTenant = (tenantId) => {
   const tenants = getTenantsList();
-  // Prevent deleting the master headquarters
+  // Prevent deleting the designated own samity
   const target = tenants.find(t => t.id === tenantId);
   if (target?.isOwnSamity) {
-    throw new Error('আপনার নিজস্ব মূল সমিতি ডিলিট করা যাবে না।');
+    throw new Error('আপনার নিজস্ব নির্ধারিত মূল সমিতি ডিলিট করা যাবে না। অন্য সমিতিকে নিজস্ব নির্ধারণ করার পর এটি ডিলিট করতে পারেন।');
   }
 
   const filtered = tenants.filter(t => t.id !== tenantId);
   saveTenantsList(filtered);
 
-  // If deleted was active, revert to master
+  // If deleted was active, revert to the current designated own samity
   if (getActiveWorkspaceId() === tenantId) {
-    setActiveWorkspaceId('tenant_master_headquarters');
+    const own = filtered.find(t => t.isOwnSamity) || filtered[0];
+    setActiveWorkspaceId(own ? own.id : 'tenant_master_headquarters');
   }
 
   return true;

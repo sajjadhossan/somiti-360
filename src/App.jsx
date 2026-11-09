@@ -9,6 +9,7 @@ import { SuperAdminDualModeBar } from './components/superadmin/SuperAdminDualMod
 import { AppUpdateModal } from './components/common/AppUpdateModal';
 import { checkForAppUpdate } from './services/appUpdateService';
 import { getTenantsList, getActiveWorkspaceId, getTenantById, checkTenantSubscriptionStatus } from './services/tenantManagerService';
+import { getEffectiveSamityLogo, setGlobalSamityLogo, compressImageFile } from './services/samityLogoService';
 import { initSoundboxBroadcastListener } from './services/voiceSoundboxService';
 import { initNativeBackHandling, registerBackAction } from './services/nativeAppService';
 import { requestPersistentStorage } from './services/somitiOfflineStore';
@@ -139,11 +140,54 @@ function getVerifyButtonBg(isVerifyActive, isLight) {
 // Subcomponent: Executive Header Brand & User Profile
 function ExecutiveHeaderBrand({ isLight, lang, user, onLogout, onOpenSaaSControl }) {
   const isEn = lang === 'en';
+  const [currentLogo, setCurrentLogo] = useState(() => getEffectiveSamityLogo());
+
+  useEffect(() => {
+    const handleLogoUpdate = (e) => {
+      if (e?.detail?.logo) setCurrentLogo(e.detail.logo);
+      else setCurrentLogo(getEffectiveSamityLogo());
+    };
+    const handleWorkspaceSwitch = () => {
+      setCurrentLogo(getEffectiveSamityLogo());
+    };
+
+    window.addEventListener('somiti_logo_updated', handleLogoUpdate);
+    window.addEventListener('somiti_workspace_switched', handleWorkspaceSwitch);
+    window.addEventListener('somiti_tenants_changed', handleWorkspaceSwitch);
+
+    return () => {
+      window.removeEventListener('somiti_logo_updated', handleLogoUpdate);
+      window.removeEventListener('somiti_workspace_switched', handleWorkspaceSwitch);
+      window.removeEventListener('somiti_tenants_changed', handleWorkspaceSwitch);
+    };
+  }, []);
+
+  const handleHeaderLogoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressed = await compressImageFile(file, { maxWidth: 512, maxHeight: 512, quality: 0.9 });
+        await setGlobalSamityLogo(compressed);
+        setCurrentLogo(compressed);
+      } catch (err) {
+        console.error('Failed to change logo from header:', err);
+      }
+    }
+  };
+
   return (
     <div className="somiti-brand-profile-row">
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <input
+          type="file"
+          id="executive-header-logo-upload"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleHeaderLogoChange}
+        />
         <div
-          title="Somiti 360 Master Logo"
+          onClick={() => document.getElementById('executive-header-logo-upload')?.click()}
+          title={isEn ? 'Click to change Samity Logo' : 'সমিতির নিজস্ব লোগো পরিবর্তন করতে ক্লিক করুন'}
           style={{
             width: '44px',
             height: '44px',
@@ -156,14 +200,15 @@ function ExecutiveHeaderBrand({ isLight, lang, user, onLogout, onOpenSaaSControl
             flexShrink: 0,
             padding: '2px',
             boxShadow: isLight ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 14px rgba(0,0,0,0.3)',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            overflow: 'hidden'
           }}
         >
           <img
-            src="/somiti-emblem.png"
+            src={currentLogo || '/somiti-emblem.png'}
             alt="Somiti 360 Logo"
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            onError={(e) => { e.currentTarget.src = '/Somiti_360_Official_Logo.png'; }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }}
+            onError={(e) => { e.currentTarget.src = '/somiti-emblem.png'; }}
           />
         </div>
 

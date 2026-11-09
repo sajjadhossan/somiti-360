@@ -1,15 +1,15 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
 # ==============================================================================
 # Somiti 360 (সমিতি ৩৬০) - Render Blueprint Specification
-# Multi-Platform Hybrid Architecture (Web PWA + Node.js Service)
+# Multi-Platform Hybrid Architecture (Web Static CDN + Node.js Web Service)
 # ==============================================================================
 services:
   # 1. High-Speed Static Site (Recommended: Free, Global CDN, Auto SSL, Zero Ops)
   - type: web
     name: somiti-360-web
     runtime: static
-    plan: free
     buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: dist
     headers:
       - path: /*
         name: X-Frame-Options
@@ -28,11 +28,13 @@ services:
         source: /*
         destination: /index.html
 
-  # 2. Production Node.js Web Service (Full SSR / Preview & API Host)
+  # 2. Production Node.js Web Service (Full SSR / Preview & Dual-Engine API Host)
   - type: web
     name: somiti-360-service
     runtime: node
     plan: free
+    region: singapore
+    branch: main
     buildCommand: npm install && npm run render:build
     startCommand: npm run render:start
     envVars:
@@ -41,7 +43,7 @@ services:
       - key: VITE_APP_NAME
         value: Somiti 360
       - key: PORT
-        value: 10000
+        value: "10000"
       - key: NEON_DATABASE_URL
         sync: false
       - key: DATABASE_URL

@@ -18,7 +18,7 @@ import {
 export const GlobalUpdatePromptModal = ({
   isLight = false,
   lang = 'bn',
-  currentClientVersion = '2.3.0'
+  currentClientVersion = '2.4.0'
 }) => {
   const isEn = lang === 'en';
   const [updateInfo, setUpdateInfo] = useState(null);

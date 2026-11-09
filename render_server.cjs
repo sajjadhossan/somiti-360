@@ -54,7 +54,7 @@ function serveStatic(req, res) {
           uptime: process.uptime(),
           platform: 'render',
           timestamp: new Date().toISOString(),
-          version: '2.3.0',
+          version: '2.4.0',
           dualEngine: healthData
         }, null, 2));
       }).catch(err => {
@@ -66,7 +66,7 @@ function serveStatic(req, res) {
           uptime: process.uptime(),
           platform: 'render',
           timestamp: new Date().toISOString(),
-          version: '2.3.0',
+          version: '2.4.0',
           fallback: true
         }));
       });

@@ -15,15 +15,15 @@ const STORAGE_KEY_ROLLBACK = 'somiti360_ota_rollback_snapshot';
 // Default initial release configuration
 export const DEFAULT_RELEASE_CONFIG = {
   currentSlot: 'blue', // 'blue' (stable) | 'green' (canary/next)
-  version: '2.3.0',
-  buildNumber: 23,
+  version: '2.4.0',
+  buildNumber: 24,
   releaseDate: new Date().toISOString(),
   forceUpdate: false,
   minSupportedVersion: '2.1.0',
   apkDownloadUrl: 'https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360.apk',
   releaseNotes: {
-    bn: 'সমিতি ৩৬০ v2.3.0 — ইন-প্লেস এপিকে স্মুথ আপডেট (আনইনস্টল ছাড়াই), পারসিস্টেন্ট মাল্টি-প্ল্যাটফর্ম লোগো সিঙ্ক, এবং সুপার অ্যাডমিন সম্পূর্ণ ডাইনামিক নিজস্ব সমিতি নির্ধারণ।',
-    en: 'Somiti 360 v2.3.0 — In-place seamless APK update (no uninstall required), persistent multi-platform logo sync, and fully dynamic Super Admin Own Samity designation.'
+    bn: 'সমিতি ৩৬০ v2.4.0 — ইন-প্লেস এপিকে স্মুথ আপডেট v2.4.0, রেন্ডার ব্লুপ্রিন্ট স্ট্যান্ডার্ডাইজেশন, সেন্ট্রালাইজড লোগো ইঞ্জিন ও সুপার অ্যাডমিন নিজস্ব সমিতি কন্ট্রোল।',
+    en: 'Somiti 360 v2.4.0 — In-place seamless APK update v2.4.0, Render Blueprint standardization, centralized logo engine & Super Admin Own Samity control.'
   },
   publishedBy: 'সুপার এডমিন (Headquarters)',
   broadcastCount: 1
@@ -140,7 +140,7 @@ export const executeEmergencyRollback = () => {
 /**
  * Check if the active client app version is behind the latest broadcasted OTA version
  */
-export const checkClientNeedsUpdate = (clientVersion = '2.3.0') => {
+export const checkClientNeedsUpdate = (clientVersion = '2.4.0') => {
   const activeRelease = getActiveOtaRelease();
   const isOutdated = compareSemanticVersions(clientVersion, activeRelease.version) < 0;
   return {

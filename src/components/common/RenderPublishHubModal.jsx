@@ -188,7 +188,7 @@ export const RenderPublishHubModal = ({
                   fontWeight: '800',
                   border: '1px solid rgba(16, 185, 129, 0.3)'
                 }}>
-                  v{APP_VERSION_NAME}
+                  {APP_VERSION_NAME}
                 </span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8' }}>

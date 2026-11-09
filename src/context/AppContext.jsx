@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCachedAuthUser, signOutUser, subscribeToAuthState } from '../services/somitiAuthService';
+import { CheckCircle2, AlertCircle, X, Sparkles, AlertTriangle } from 'lucide-react';
 
 const AppContext = createContext(null);
 
@@ -72,10 +73,11 @@ export const AppProvider = ({ children }) => {
   }, [lang]);
 
   const showToast = (message, type = 'info') => {
-    setToastMessage({ message, type, id: Date.now() });
+    const id = Date.now();
+    setToastMessage({ message, type, id });
     setTimeout(() => {
-      setToastMessage(prev => (prev?.id === toastMessage?.id ? null : prev));
-    }, 3500);
+      setToastMessage(prev => (prev?.id === id ? null : prev));
+    }, 2800);
   };
 
   const value = {
@@ -98,8 +100,81 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={value}>
       {children}
       {toastMessage && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(45, 212, 191, 0.5)', color: '#2dd4bf', padding: '12px 18px', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', fontSize: '0.86rem', fontWeight: '700' }}>
-          <span>{toastMessage.message}</span>
+        <div
+          onClick={() => setToastMessage(null)}
+          title="ক্লিক করে বন্ধ করুন (Click to dismiss)"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '24px',
+            zIndex: 99999,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '10px',
+            background:
+              toastMessage.type === 'error'
+                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.96), rgba(153, 27, 27, 0.96))'
+                : toastMessage.type === 'success'
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.96), rgba(6, 95, 70, 0.96))'
+                : toastMessage.type === 'warning'
+                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.96), rgba(180, 83, 9, 0.96))'
+                : 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96))',
+            border:
+              toastMessage.type === 'error'
+                ? '1.5px solid #f87171'
+                : toastMessage.type === 'success'
+                ? '1.5px solid #34d399'
+                : toastMessage.type === 'warning'
+                ? '1.5px solid #fbbf24'
+                : '1.5px solid rgba(45, 212, 191, 0.65)',
+            color: '#ffffff',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2)',
+            fontSize: '0.85rem',
+            fontWeight: '800',
+            maxWidth: 'min(480px, calc(100vw - 32px))',
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {toastMessage.type === 'error' ? (
+            <AlertCircle size={17} color="#ffffff" style={{ flexShrink: 0 }} />
+          ) : toastMessage.type === 'success' ? (
+            <CheckCircle2 size={17} color="#ffffff" style={{ flexShrink: 0 }} />
+          ) : toastMessage.type === 'warning' ? (
+            <AlertTriangle size={17} color="#ffffff" style={{ flexShrink: 0 }} />
+          ) : (
+            <Sparkles size={17} color="#2dd4bf" style={{ flexShrink: 0 }} />
+          )}
+          <span style={{ flex: 1, lineHeight: 1.35 }}>{toastMessage.message}</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setToastMessage(null);
+            }}
+            title="Dismiss"
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#ffffff',
+              padding: 0,
+              flexShrink: 0,
+              marginLeft: '4px'
+            }}
+          >
+            <X size={12} />
+          </button>
         </div>
       )}
     </AppContext.Provider>

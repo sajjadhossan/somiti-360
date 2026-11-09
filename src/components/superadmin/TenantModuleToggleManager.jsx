@@ -16,6 +16,7 @@ import {
   getEffectiveSamityLogo,
   compressImageFile
 } from '../../services/samityLogoService';
+import { pushSamityCloudState } from '../../services/samityCloudStateSync';
 import {
   Building2,
   Users,
@@ -174,11 +175,30 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
     setIsAddModalOpen(true);
   };
 
-  const handleDesignateOwnSamity = (tenantId, tenantName) => {
-    if (window.confirm(isEn ? `Designate "${tenantName}" as your primary Own Samity?` : `"${tenantName}"-কে কি আপনার নিজস্ব প্রধান সমিতি হিসেবে নির্ধারণ করতে চান?`)) {
+  const handleDesignateOwnSamity = async (tenantId, tenantName) => {
+    try {
       setOwnSamity(tenantId);
-      setTenants(getTenantsList());
-      showNotice(isEn ? `Designated "${tenantName}" as Own Samity` : `"${tenantName}" সফলভাবে নিজস্ব সমিতি নির্ধারিত হয়েছে!`, 'success');
+      const updatedList = getTenantsList();
+      setTenants(updatedList);
+      
+      // Persist to Neon Postgres cloud database & broadcast to Realtime Mesh
+      await pushSamityCloudState({
+        tenantId,
+        isOwnSamity: true
+      }).catch(() => {});
+
+      showNotice(
+        isEn
+          ? `Designated "${tenantName}" as Super Admin Own Samity`
+          : `"${tenantName}" সফলভাবে সুপার অ্যাডমিনের নিজস্ব প্রধান সমিতি নির্ধারিত হয়েছে!`,
+        'success'
+      );
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('somiti_workspace_switched', { detail: { tenantId } }));
+      }
+    } catch (err) {
+      showNotice(err.message, 'error');
     }
   };
 
@@ -616,7 +636,7 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
         </div>
 
         {/* Content Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '20px 24px' }}>
           {/* TAB 1: CLIENT TENANTS LIST & SWITCHBOARDS */}
           {activeTab === 'clients' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -760,7 +780,7 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
                         </div>
 
                         {/* Action Buttons */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                           <button
                             onClick={() => handleSwitchWorkspace(tenant.id)}
                             title={isEn ? 'Open workspace for this samity' : 'এই সমিতির সফটওয়্যার ওপেন করুন'}
@@ -931,7 +951,7 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
 
                           <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))',
                             gap: '10px'
                           }}>
                             {SAAS_MODULES.map((mod) => {
@@ -1025,6 +1045,61 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
               border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
               padding: '24px'
             }}>
+              {/* Dedicated Super Admin Own Samity Designation Selector */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.18))',
+                border: '1.5px solid rgba(245, 158, 11, 0.45)',
+                borderRadius: '16px',
+                padding: '16px 20px',
+                marginBottom: '20px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '14px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Crown size={20} color="#f59e0b" />
+                    <span style={{ fontSize: '0.92rem', fontWeight: '900', color: '#f59e0b' }}>
+                      {isEn ? 'Super Admin: Select Your Own Samity' : 'সুপার অ্যাডমিন: আপনার নিজস্ব সমিতি নির্ধারণ করুন'}
+                    </span>
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: isLight ? '#78350f' : '#fde68a' }}>
+                    {isEn
+                      ? 'You decide which organization is your primary headquarters. All data and menus adapt accordingly.'
+                      : 'সুপার অ্যাডমিন নিজেই ঠিক করবেন কোন সমিতিটি তার নিজস্ব। তালিকা থেকে যেকোনো সমিতি বাছাই করে তাৎক্ষণিক নিজস্ব সমিতি হিসেবে সেট করুন।'}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <select
+                    value={mySamity?.id || ''}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      const target = tenants.find(t => t.id === selectedId);
+                      if (target) handleDesignateOwnSamity(target.id, target.name);
+                    }}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      background: isLight ? '#ffffff' : '#1e293b',
+                      color: isLight ? '#0f172a' : '#f8fafc',
+                      border: '1.5px solid #f59e0b',
+                      fontWeight: '800',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {tenants.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} {t.isOwnSamity ? (isEn ? '👑 (Current Own Samity)' : '👑 (বর্তমান নিজস্ব)') : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

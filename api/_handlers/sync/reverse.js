@@ -3,7 +3,7 @@
  * Triggers bidirectional replication cycle from Neon WAL deltas to Supabase Realtime Mesh
  */
 
-import { runReverseSyncCycle, getReverseSyncStatus } from '../_lib/reverseSyncEngine.js';
+import { runReverseSyncCycle, getReverseSyncStatus } from '../../_lib/reverseSyncEngine.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

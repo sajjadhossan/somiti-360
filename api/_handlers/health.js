@@ -1,4 +1,4 @@
-import { checkDualEngineHealth } from './_lib/dualEngineDb.js';
+import { checkDualEngineHealth } from '../_lib/dualEngineDb.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,8 +15,8 @@ export default async function handler(req, res) {
     success: true,
     status: dualHealth.providers.supabase.status === 'healthy' ? 'UP' : 'DEGRADED',
     app: 'Somiti 360',
-    version: '2.4.0',
-    buildNumber: 24,
+    version: '2.5.0',
+    buildNumber: 25,
     timestamp: dualHealth.timestamp,
     engineMode: dualHealth.engineMode,
     isNeonActive: dualHealth.isNeonActive,

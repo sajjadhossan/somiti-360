@@ -44,7 +44,6 @@ export const RenderPublishHubModal = ({
   - type: web
     name: somiti-360-web
     runtime: static
-    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     routes:
@@ -57,6 +56,7 @@ export const RenderPublishHubModal = ({
     name: somiti-360-service
     runtime: node
     plan: free
+    region: oregon
     buildCommand: npm install && npm run render:build
     startCommand: npm run render:start
     envVars:

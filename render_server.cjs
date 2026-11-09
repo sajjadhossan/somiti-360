@@ -31,6 +31,77 @@ const MIME_TYPES = {
   '.wasm': 'application/wasm'
 };
 
+async function handleApiRoute(req, res, parsedUrl) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  let bodyBuffer = '';
+  req.on('data', chunk => { bodyBuffer += chunk; });
+  req.on('end', async () => {
+    let body = {};
+    if (bodyBuffer) {
+      try {
+        body = JSON.parse(bodyBuffer);
+      } catch {
+        body = bodyBuffer;
+      }
+    }
+
+    req.body = body;
+    req.query = Object.fromEntries(parsedUrl.searchParams.entries());
+
+    // Express/Vercel compatibility helpers
+    res.status = function(code) {
+      this.statusCode = code;
+      return this;
+    };
+    res.json = function(data) {
+      this.setHeader('Content-Type', 'application/json; charset=UTF-8');
+      this.end(JSON.stringify(data));
+      return this;
+    };
+    res.send = function(data) {
+      if (typeof data === 'object') return this.json(data);
+      this.end(data);
+      return this;
+    };
+
+    // Locate matching api file in _handlers or api root
+    const subPath = parsedUrl.pathname.replace(/^\/api\/?/, '');
+    let apiFilePath = path.join(__dirname, 'api', '_handlers', subPath + '.js');
+    if (!fs.existsSync(apiFilePath)) {
+      apiFilePath = path.join(__dirname, 'api', '_handlers', subPath, 'index.js');
+    }
+    if (!fs.existsSync(apiFilePath)) {
+      apiFilePath = path.join(__dirname, 'api', subPath + '.js');
+    }
+    if (!fs.existsSync(apiFilePath)) {
+      apiFilePath = path.join(__dirname, 'api', subPath, 'index.js');
+    }
+
+    if (fs.existsSync(apiFilePath)) {
+      try {
+        const fileUrl = 'file://' + apiFilePath.replace(/\\/g, '/');
+        const mod = await import(fileUrl);
+        const handler = mod.default || mod;
+        await handler(req, res);
+      } catch (err) {
+        console.error(`[API Error in ${parsedUrl.pathname}]:`, err);
+        res.status(500).json({ success: false, error: err.message });
+      }
+    } else {
+      res.status(404).json({ success: false, error: `API endpoint not found: ${parsedUrl.pathname}` });
+    }
+  });
+}
+
 function serveStatic(req, res) {
   try {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -54,7 +125,7 @@ function serveStatic(req, res) {
           uptime: process.uptime(),
           platform: 'render',
           timestamp: new Date().toISOString(),
-          version: '2.4.0',
+          version: '2.5.0',
           dualEngine: healthData
         }, null, 2));
       }).catch(err => {
@@ -66,10 +137,16 @@ function serveStatic(req, res) {
           uptime: process.uptime(),
           platform: 'render',
           timestamp: new Date().toISOString(),
-          version: '2.4.0',
+          version: '2.5.0',
           fallback: true
         }));
       });
+      return;
+    }
+
+    // Dynamic API Router for all other /api/* endpoints (Vercel Serverless Function Compatibility)
+    if (pathname.startsWith('/api/')) {
+      handleApiRoute(req, res, parsedUrl);
       return;
     }
 

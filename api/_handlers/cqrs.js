@@ -3,7 +3,7 @@
  * Handles Command (Writes via Neon Pooler) and Query (Reads with In-Memory Caching)
  */
 
-import { dispatchCqrsCommand, dispatchCqrsQuery } from './_lib/cqrsManager.js';
+import { dispatchCqrsCommand, dispatchCqrsQuery } from '../_lib/cqrsManager.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

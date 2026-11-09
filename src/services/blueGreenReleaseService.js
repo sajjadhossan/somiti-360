@@ -15,15 +15,15 @@ const STORAGE_KEY_ROLLBACK = 'somiti360_ota_rollback_snapshot';
 // Default initial release configuration
 export const DEFAULT_RELEASE_CONFIG = {
   currentSlot: 'blue', // 'blue' (stable) | 'green' (canary/next)
-  version: '2.4.0',
-  buildNumber: 24,
+  version: '2.5.0',
+  buildNumber: 25,
   releaseDate: new Date().toISOString(),
   forceUpdate: false,
   minSupportedVersion: '2.1.0',
   apkDownloadUrl: 'https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360.apk',
   releaseNotes: {
-    bn: 'সমিতি ৩৬০ v2.4.0 — ইন-প্লেস এপিকে স্মুথ আপডেট v2.4.0, রেন্ডার ব্লুপ্রিন্ট স্ট্যান্ডার্ডাইজেশন, সেন্ট্রালাইজড লোগো ইঞ্জিন ও সুপার অ্যাডমিন নিজস্ব সমিতি কন্ট্রোল।',
-    en: 'Somiti 360 v2.4.0 — In-place seamless APK update v2.4.0, Render Blueprint standardization, centralized logo engine & Super Admin Own Samity control.'
+    bn: 'সমিতি ৩৬০ v2.5.0 — ক্রস-প্ল্যাটফর্ম লোগো, সদস্য ছবি ও হেডার প্যাড পার্মানেন্ট ক্লাউড সিঙ্ক এবং ইউনিভার্সাল এপিআই গেটওয়ে আপডেট।',
+    en: 'Somiti 360 v2.5.0 — Cross-platform persistent logo, member photos & letterhead cloud sync and universal serverless API gateway.'
   },
   publishedBy: 'সুপার এডমিন (Headquarters)',
   broadcastCount: 1

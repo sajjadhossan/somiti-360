@@ -28,15 +28,17 @@ function runTests() {
 
   // 1. Version Parity Check
   const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-  assert(pkg.version === '2.4.0', 'package.json version is 2.4.0');
+  assert(pkg.version === '2.5.0', 'package.json version is 2.5.0');
 
   const gradle = fs.readFileSync('android/app/build.gradle', 'utf8');
-  assert(gradle.includes('versionCode 24'), 'android/app/build.gradle versionCode is 24');
-  assert(gradle.includes('versionName "2.4.0"'), 'android/app/build.gradle versionName is "2.4.0"');
+  assert(gradle.includes('versionCode 25'), 'android/app/build.gradle versionCode is 25');
+  assert(gradle.includes('versionName "2.5.0"'), 'android/app/build.gradle versionName is "2.5.0"');
   assert(gradle.includes('v1SigningEnabled true') && gradle.includes('v2SigningEnabled true'), 'android/app/build.gradle enforces consistent v1 & v2 signing for in-place updates');
 
-  const versionApi = fs.readFileSync('api/app/version.js', 'utf8');
-  assert(versionApi.includes('"2.4.0"') && versionApi.includes('buildNumber: 24'), 'api/app/version.js specifies v2.4.0 Build 24');
+  const versionFile = fs.existsSync('api/_handlers/app/version.js') ? 'api/_handlers/app/version.js' : 'api/app/version.js';
+  const versionApi = fs.readFileSync(versionFile, 'utf8');
+  assert(versionApi.includes('"2.5.0"') && versionApi.includes('buildNumber: 25'), 'api/app/version.js specifies v2.5.0 Build 25');
+  assert(fs.existsSync('api/[...slug].js'), 'Universal Serverless API Gateway [...slug].js exists for Vercel Hobby plan');
 
   // 2. PWA & Service Worker
   assert(fs.existsSync('public/manifest.json'), 'PWA manifest.json exists');
@@ -46,7 +48,7 @@ function runTests() {
 
   assert(fs.existsSync('public/sw.js'), 'PWA sw.js exists');
   const sw = fs.readFileSync('public/sw.js', 'utf8');
-  assert(sw.includes('somiti360-shell-v2.4.0'), 'Service worker has correct cache version (v2.4.0)');
+  assert(sw.includes('somiti360-shell-v2.5.0'), 'Service worker has correct cache version (v2.5.0)');
   assert(sw.includes('/api/'), 'Service worker explicitly skips /api/ routes to prevent leaking private cache');
 
   // 2b. Enterprise Zero-Demo & Multi-Platform Logo Service Checks
@@ -224,7 +226,8 @@ function runTests() {
   const dualDb = fs.readFileSync('api/_lib/dualEngineDb.js', 'utf8');
   assert(dualDb.includes('isNeonConfigured'), 'dualEngineDb exports isNeonConfigured');
   assert(dualDb.includes('checkDualEngineHealth'), 'dualEngineDb exports checkDualEngineHealth');
-  const healthApi = fs.readFileSync('api/health.js', 'utf8');
+  const healthFile = fs.existsSync('api/_handlers/health.js') ? 'api/_handlers/health.js' : 'api/health.js';
+  const healthApi = fs.readFileSync(healthFile, 'utf8');
   assert(healthApi.includes('checkDualEngineHealth'), 'api/health.js monitors dual-engine health status');
   const envExample = fs.readFileSync('.env.example', 'utf8');
   assert(envExample.includes('NEON_DATABASE_URL'), '.env.example configures Neon Serverless Postgres');
@@ -261,8 +264,8 @@ function runTests() {
   assert(fs.existsSync('api/_lib/reverseSyncEngine.js'), 'reverseSyncEngine.js exists');
   const revSyncEngine = fs.readFileSync('api/_lib/reverseSyncEngine.js', 'utf8');
   assert(revSyncEngine.includes('runReverseSyncCycle') && revSyncEngine.includes('samity_live_mesh'), 'reverseSyncEngine broadcasts WAL deltas to Supabase mesh');
-  assert(fs.existsSync('api/sync/reverse.js'), 'api/sync/reverse.js reverse sync endpoint exists');
-  assert(fs.existsSync('api/cqrs.js'), 'api/cqrs.js CQRS command/query router endpoint exists');
+  assert(fs.existsSync('api/_handlers/sync/reverse.js') || fs.existsSync('api/sync/reverse.js'), 'api/sync/reverse.js reverse sync endpoint exists');
+  assert(fs.existsSync('api/_handlers/cqrs.js') || fs.existsSync('api/cqrs.js'), 'api/cqrs.js CQRS command/query router endpoint exists');
   assert(fs.existsSync('src/services/cqrsService.js'), 'cqrsService.js client service exists');
   assert(fs.existsSync('scripts/test_cqrs_and_wal.cjs'), 'CQRS and WAL automated verification test exists');
 

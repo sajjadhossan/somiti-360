@@ -58,7 +58,7 @@ jobs:
         run: |
           mkdir -p artifacts
           cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360.apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360-v2.4.0-build24-android.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360-v2.5.0-build25-android.apk
 
       - name: Backup Upload Artifact
         uses: actions/upload-artifact@v4
@@ -67,7 +67,7 @@ jobs:
           name: Somiti-360-Android-APK
           path: |
             artifacts/Somiti-360.apk
-            artifacts/Somiti-360-v2.4.0-build24-android.apk
+            artifacts/Somiti-360-v2.5.0-build25-android.apk
           retention-days: 7
 
   build-windows:
@@ -239,14 +239,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Somiti 360 Unified Multi-Platform Release (v2.4.0)"
+          name: "Somiti 360 Unified Multi-Platform Release (v2.5.0)"
           body: |
-            ### 🛡️ সমিতি ৩৬০ (Somiti 360) সর্বজনীন মাল্টি-প্ল্যাটফর্ম রিলিজ (v2.4.0, Build 24)
-            ইন-প্লেস এপিকে স্মুথ আপডেট v2.4.0, রেন্ডার ব্লুপ্রিন্ট স্ট্যান্ডার্ডাইজেশন, সেন্ট্রালাইজড লোগো ইঞ্জিন ও সুপার অ্যাডমিন নিজস্ব সমিতি কন্ট্রোল।
+            ### 🛡️ সমিতি ৩৬০ (Somiti 360) সর্বজনীন মাল্টি-প্ল্যাটফর্ম রিলিজ (v2.5.0, Build 25)
+            ক্রস-প্ল্যাটফর্ম লোগো, সদস্য ছবি ও হেডার প্যাড পার্মানেন্ট ক্লাউড সিঙ্ক এবং ইউনিভার্সাল এপিআই গেটওয়ে আপডেট।
 
             | প্ল্যাটফর্ম (Platform) | ফাইল নেম (File Name) | বিবরণ |
             | :--- | :--- | :--- |
-            | 📱 **Android Mobile** | `Somiti-360.apk` / `Somiti-360-v2.4.0-build24-android.apk` | স্মার্টফোনে সরাসরি ডাউনলোড ও ইন্সটল করুন |
+            | 📱 **Android Mobile** | `Somiti-360.apk` / `Somiti-360-v2.5.0-build25-android.apk` | স্মার্টফোনে সরাসরি ডাউনলোড ও ইন্সটল করুন |
             | 💻 **Windows PC Setup** | `Somiti-360-Setup.exe` | উইন্ডোজ পিসি অ্যাপ ইন্সটলার |
             | ⚡ **Windows Portable** | `Somiti-360-PC.exe` | পোর্টেবল উইন্ডোজ অ্যাপ |
             | 🍏 **MacBook Apple Silicon** | `Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg` / `.zip` | M1/M2/M3/M4 ম্যাকবুক অ্যাপ |

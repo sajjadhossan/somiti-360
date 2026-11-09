@@ -33,7 +33,7 @@ services:
     name: somiti-360-service
     runtime: node
     plan: free
-    region: singapore
+    region: oregon
     branch: main
     buildCommand: npm install && npm run render:build
     startCommand: npm run render:start

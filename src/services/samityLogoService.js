@@ -6,6 +6,7 @@
 
 import { getTenantsList, saveTenantsList, getActiveWorkspaceId, getTenantById } from './tenantManagerService';
 import { loadSamityData, saveSamityData } from './samityService';
+import { pushSamityCloudState } from './samityCloudStateSync';
 
 const GLOBAL_LOGO_STORAGE_KEY = 'somiti360_active_samity_logo';
 export const DEFAULT_FALLBACK_LOGO = '/somiti-emblem.png';
@@ -161,20 +162,12 @@ export const setGlobalSamityLogo = async (logoDataUrl, targetTenantId = null) =>
       }));
     }
 
-    // 5. Asynchronously persist to Neon Postgres Cloud Database via CQRS endpoint
+    // 5. Asynchronously persist to Neon Postgres Cloud Database & Realtime Mesh
     try {
-      if (typeof fetch !== 'undefined') {
-        fetch('/api/cqrs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'UPDATE_TENANT_LOGO',
-            tenantId: activeTenantId,
-            sql: `UPDATE public.samity_tenants SET logo_url = $1, updated_at = now() WHERE id = $2`,
-            params: [logoDataUrl, activeTenantId]
-          })
-        }).catch(() => {});
-      }
+      pushSamityCloudState({
+        tenantId: activeTenantId,
+        logoUrl: logoDataUrl
+      }).catch(err => console.debug('[samityLogoService] Cloud push deferred:', err));
     } catch (neonErr) {
       console.warn('[samityLogoService] Neon cloud sync warning (cached locally):', neonErr?.message);
     }

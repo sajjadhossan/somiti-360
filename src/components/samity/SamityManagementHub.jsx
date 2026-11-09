@@ -159,6 +159,7 @@ import {
   format12HourTime,
 } from "../../services/somitiCloudSyncService";
 import { setGlobalSamityLogo, getEffectiveSamityLogo } from "../../services/samityLogoService";
+import { pushSamityCloudState } from "../../services/samityCloudStateSync";
 const SamityInternalChatHub = lazy(() => import("./SamityInternalChatHub").then(m => ({ default: m.SamityInternalChatHub })));
 const DeviceMeshStatusModal = lazy(() => import("./DeviceMeshStatusModal").then(m => ({ default: m.DeviceMeshStatusModal })));
 const SupervisorLiveRadarModal = lazy(() => import("./SupervisorLiveRadarModal").then(m => ({ default: m.SupervisorLiveRadarModal })));
@@ -1794,6 +1795,11 @@ export const SamityManagementHub = ({ onClose }) => {
       } catch (broadcastErr) {
         console.debug("[SamityRealtime] Broadcast notice:", broadcastErr);
       }
+
+      // Omni-Device Persistent Cloud State Sync (Neon Postgres + Supabase)
+      try {
+        pushSamityCloudState().catch(() => {});
+      } catch {}
 
       // Legacy fallback broadcast
       try {

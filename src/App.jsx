@@ -10,6 +10,7 @@ import { AppUpdateModal } from './components/common/AppUpdateModal';
 import { checkForAppUpdate } from './services/appUpdateService';
 import { getTenantsList, getActiveWorkspaceId, getTenantById, checkTenantSubscriptionStatus } from './services/tenantManagerService';
 import { getEffectiveSamityLogo, setGlobalSamityLogo, compressImageFile } from './services/samityLogoService';
+import { pullSamityCloudState, initCloudStateRealtimeListener } from './services/samityCloudStateSync';
 import { initSoundboxBroadcastListener } from './services/voiceSoundboxService';
 import { initNativeBackHandling, registerBackAction } from './services/nativeAppService';
 import { requestPersistentStorage } from './services/somitiOfflineStore';
@@ -817,6 +818,10 @@ function MainView() {
     const handleTriggerSoundbox = () => setIsSoundboxModalOpen(true);
     const handleTriggerRenderPublish = () => setIsRenderPublishModalOpen(true);
     initSoundboxBroadcastListener();
+
+    // Omni-Device Cloud State & Brand Auto-Hydration (Web <-> APK <-> PC)
+    pullSamityCloudState().catch(() => {});
+    const cloudRealtimeChannel = initCloudStateRealtimeListener();
     window.addEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
     window.addEventListener('somiti_trigger_soundbox_modal', handleTriggerSoundbox);
     window.addEventListener('somiti_trigger_render_publish', handleTriggerRenderPublish);
@@ -850,6 +855,7 @@ function MainView() {
       window.removeEventListener('somiti_trigger_soundbox_modal', handleTriggerSoundbox);
       window.removeEventListener('somiti_trigger_render_publish', handleTriggerRenderPublish);
       window.removeEventListener('keydown', handleGlobalKeyDown);
+      try { cloudRealtimeChannel?.unsubscribe?.(); } catch {}
     };
   }, []);
 

@@ -4,13 +4,56 @@ on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'বিল্ড টার্গেট নির্বাচন করুন (Select build target)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - android
+          - windows
+          - macos
 
 permissions:
   contents: write
 
 jobs:
+  # -------------------------------------------------------------
+  # Job 1: ⚡ Fast Web Build & Vercel Connection Verification
+  # -------------------------------------------------------------
+  web-sync-verify:
+    name: 🌐 Verify Web Build & Vercel Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install --legacy-peer-deps
+
+      - name: Build Web Production Assets
+        run: npm run build
+
+      - name: Verify Live Vercel Connectivity
+        run: |
+          echo "Pinging Somiti 360 Production Vercel Domain: https://somiti360.vercel.app"
+          curl -sI https://somiti360.vercel.app | head -n 5 || true
+
+  # -------------------------------------------------------------
+  # Job 2: 📱 Build Android APK (Capacitor Native App)
+  # -------------------------------------------------------------
   build-android:
     name: 📱 Build Android APK
+    needs: [web-sync-verify]
+    if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'android'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
@@ -33,7 +76,7 @@ jobs:
           echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-36" || true
 
       - name: Install Dependencies
-        run: npm ci || npm install
+        run: npm ci || npm install --legacy-peer-deps
 
       - name: Build Web Production Assets
         run: npm run build
@@ -54,24 +97,30 @@ jobs:
           cd android
           ./gradlew assembleDebug --no-daemon --stacktrace > gradle_build.log 2>&1 || (tail -n 60 gradle_build.log && exit 1)
 
-      - name: Prepare APK Asset
+      - name: Prepare Dynamic Versioned APK Assets
         run: |
+          APP_VER=$(node -p "require('./package.json').version")
+          BUILD_NUM=$(grep 'versionCode' android/app/build.gradle | head -1 | tr -dc '0-9')
           mkdir -p artifacts
           cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360.apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360-v2.5.0-build25-android.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk "artifacts/Somiti-360-v${APP_VER}-build${BUILD_NUM}-android.apk"
+          echo "Built APK: Somiti-360-v${APP_VER}-build${BUILD_NUM}-android.apk"
 
       - name: Backup Upload Artifact
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
           name: Somiti-360-Android-APK
-          path: |
-            artifacts/Somiti-360.apk
-            artifacts/Somiti-360-v2.5.0-build25-android.apk
+          path: artifacts/*.apk
           retention-days: 7
 
+  # -------------------------------------------------------------
+  # Job 3: 💻 Build Windows PC Desktop App (.exe)
+  # -------------------------------------------------------------
   build-windows:
     name: 💻 Build Windows PC Desktop App
+    needs: [web-sync-verify]
+    if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'windows'
     runs-on: windows-latest
     steps:
       - name: Checkout Source Code
@@ -84,7 +133,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci || npm install
+        run: npm ci || npm install --legacy-peer-deps
 
       - name: Build Web Assets
         run: npm run build
@@ -112,8 +161,13 @@ jobs:
           path: artifacts/*.exe
           retention-days: 7
 
+  # -------------------------------------------------------------
+  # Job 4: 🍏 Build macOS App (Intel & Apple Silicon M-Series)
+  # -------------------------------------------------------------
   build-macos:
     name: 🍏 Build macOS App (Intel & Apple Silicon M-Series)
+    needs: [web-sync-verify]
+    if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'macos'
     runs-on: macos-latest
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
@@ -129,53 +183,32 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci || npm install
+        run: npm ci || npm install --legacy-peer-deps
 
-      - name: Build Web Production Assets
+      - name: Build Web Assets
         run: npm run build
 
-      - name: Enable Rosetta and Prepare Apple Native ICNS Icon
-        run: |
-          # Install Rosetta 2 for seamless cross-compilation on Apple Silicon runners
-          if [ "$(uname -m)" = "arm64" ]; then
-            softwareupdate --install-rosetta --agree-to-license 2>/dev/null || true
-          fi
-
-          mkdir -p build/icon.iconset
-          sips -z 16 16     public/logo-512.png --out build/icon.iconset/icon_16x16.png || true
-          sips -z 32 32     public/logo-512.png --out build/icon.iconset/icon_16x16@2x.png || true
-          sips -z 32 32     public/logo-512.png --out build/icon.iconset/icon_32x32.png || true
-          sips -z 64 64     public/logo-512.png --out build/icon.iconset/icon_32x32@2x.png || true
-          sips -z 128 128   public/logo-512.png --out build/icon.iconset/icon_128x128.png || true
-          sips -z 256 256   public/logo-512.png --out build/icon.iconset/icon_128x128@2x.png || true
-          sips -z 256 256   public/logo-512.png --out build/icon.iconset/icon_256x256.png || true
-          sips -z 512 512   public/logo-512.png --out build/icon.iconset/icon_256x256@2x.png || true
-          sips -z 512 512   public/logo-512.png --out build/icon.iconset/icon_512x512.png || true
-          iconutil -c icns build/icon.iconset -o build/icon.icns || true
-
-      - name: Package macOS Multi-Architecture Binaries (Intel x64 & Apple Silicon arm64)
+      - name: Build Universal macOS Binaries (arm64 + x64)
         run: |
           mkdir -p artifacts
+          echo "Starting macOS build for both Apple Silicon (arm64) and Intel (x64)..."
+          
+          npx electron-builder --mac --arm64 --x64 --publish never || true
 
-          # 1. Build Apple Silicon (arm64 - native architecture of GitHub macos-14 runner)
-          npx electron-builder --mac --arm64 -c.mac.identity=null -c.mac.forceCodeSigning=false -c.dmg.sign=false --publish never || true
-
-          # 2. Build Intel Mac (x64)
-          npx electron-builder --mac --x64 -c.mac.identity=null -c.mac.forceCodeSigning=false -c.dmg.sign=false --publish never || true
-
-          # 3. Create guaranteed native .zip application bundles using macOS ditto
+          # Create ZIP bundles for portable gatekeeper bypass
           if [ -d "dist-electron/mac/Somiti 360.app" ]; then
             ditto -c -k --keepParent "dist-electron/mac/Somiti 360.app" "artifacts/Somiti-360-Mac-Intel-x64.zip" || true
           fi
+
           if [ -d "dist-electron/mac-arm64/Somiti 360.app" ]; then
             ditto -c -k --keepParent "dist-electron/mac-arm64/Somiti 360.app" "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.zip" || true
           fi
 
-          # 4. Search and collect any generated DMGs and ZIPs
+          # Search and collect any generated DMGs and ZIPs
           find dist-electron -name "*.dmg" -exec cp {} artifacts/ \; 2>/dev/null || true
           find dist-electron -name "*.zip" -exec cp {} artifacts/ \; 2>/dev/null || true
 
-          # 5. Standardize friendly artifact names
+          # Standardize friendly artifact names
           for f in artifacts/*arm64*.dmg; do
             if [ -f "$f" ] && [ "$f" != "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg" ]; then
               cp "$f" "artifacts/Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg" || true
@@ -202,12 +235,23 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  # -------------------------------------------------------------
+  # Job 5: 🚀 Publish Unified Multi-Platform Release
+  # -------------------------------------------------------------
   publish-all-releases:
     name: 🚀 Publish Unified Multi-Platform Release
     runs-on: ubuntu-latest
     needs: [build-android, build-windows, build-macos]
     if: always() && !cancelled()
     steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Download Android Artifacts
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -229,24 +273,29 @@ jobs:
           name: Somiti-360-macOS-Apps
           path: all-releases
 
-      - name: Display All Collected Release Binaries
+      - name: Determine Dynamic Version and Publish Release
         run: |
           mkdir -p all-releases
-          echo "=== All Collected Platform Binaries for GitHub Release ==="
+          APP_VER=$(node -p "require('./package.json').version")
+          BUILD_NUM=$(grep 'versionCode' android/app/build.gradle | head -1 | tr -dc '0-9')
+          echo "APP_VERSION=v${APP_VER}" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=${BUILD_NUM}" >> $GITHUB_ENV
+          echo "=== All Collected Platform Binaries ==="
           ls -lh all-releases/
 
       - name: Publish Unified Release to GitHub
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Somiti 360 Unified Multi-Platform Release (v2.5.0)"
+          name: "Somiti 360 Unified Multi-Platform Release (${{ env.APP_VERSION }})"
           body: |
-            ### 🛡️ সমিতি ৩৬০ (Somiti 360) সর্বজনীন মাল্টি-প্ল্যাটফর্ম রিলিজ (v2.5.0, Build 25)
-            ক্রস-প্ল্যাটফর্ম লোগো, সদস্য ছবি ও হেডার প্যাড পার্মানেন্ট ক্লাউড সিঙ্ক এবং ইউনিভার্সাল এপিআই গেটওয়ে আপডেট।
+            ### 🛡️ সমিতি ৩৬০ (Somiti 360) সর্বজনীন মাল্টি-প্ল্যাটফর্ম রিলিজ (${{ env.APP_VERSION }}, Build ${{ env.BUILD_NUMBER }})
+            সেন্ট্রাল প্রোডাকশন ডোমেন: https://somiti360.vercel.app
+            লোগো, সদস্য ছবি ও হেডার প্যাড পার্মানেন্ট ক্লাউড সিঙ্ক এবং ইউনিভার্সাল এপিআই গেটওয়ে সক্রিয়।
 
             | প্ল্যাটফর্ম (Platform) | ফাইল নেম (File Name) | বিবরণ |
             | :--- | :--- | :--- |
-            | 📱 **Android Mobile** | `Somiti-360.apk` / `Somiti-360-v2.5.0-build25-android.apk` | স্মার্টফোনে সরাসরি ডাউনলোড ও ইন্সটল করুন |
+            | 📱 **Android Mobile** | `Somiti-360.apk` / `Somiti-360-${{ env.APP_VERSION }}-build${{ env.BUILD_NUMBER }}-android.apk` | স্মার্টফোনে সরাসরি ডাউনলোড ও ইন্সটল করুন |
             | 💻 **Windows PC Setup** | `Somiti-360-Setup.exe` | উইন্ডোজ পিসি অ্যাপ ইন্সটলার |
             | ⚡ **Windows Portable** | `Somiti-360-PC.exe` | পোর্টেবল উইন্ডোজ অ্যাপ |
             | 🍏 **MacBook Apple Silicon** | `Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg` / `.zip` | M1/M2/M3/M4 ম্যাকবুক অ্যাপ |

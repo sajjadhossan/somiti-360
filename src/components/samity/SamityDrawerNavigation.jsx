@@ -177,6 +177,7 @@ export const SamityDrawerNavigation = ({
             descEn: "Name, slogan & registration info",
             icon: Building2,
             targetTab: "samity_setup",
+            subAction: "basic",
           },
           {
             id: "samity_address_contact",

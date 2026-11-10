@@ -985,14 +985,28 @@ export const SamityManagementHub = ({ onClose }) => {
       setIsSaaSGuideModalOpen(true);
     } else if (actionKey === "open_role_modal" || actionKey === "rbac_modal" || actionKey === "roles_permissions") {
       setIsRoleModalOpen(true);
+    } else if (actionKey === "basic" || actionKey === "sub_action:basic") {
+      setActiveTab("samity_setup");
+      setSamityNavSubTab("basic");
+    } else if (actionKey === "location" || actionKey === "sub_action:location") {
+      setActiveTab("samity_setup");
+      setSamityNavSubTab("contact");
+      handleOpenEditSamityModal(currentSamity, "location");
     } else if (actionKey === "contact" || actionKey === "sub_action:contact") {
       setActiveTab("samity_setup");
-      setSamityFormActiveTab("contact");
-      handleOpenEditSamityModal(currentSamity);
+      setSamityNavSubTab("contact");
+      handleOpenEditSamityModal(currentSamity, "contact");
     } else if (actionKey === "bank" || actionKey === "sub_action:bank") {
       setActiveTab("samity_setup");
-      setSamityFormActiveTab("bank");
-      handleOpenEditSamityModal(currentSamity);
+      setSamityNavSubTab("bank");
+      handleOpenEditSamityModal(currentSamity, "bank");
+    } else if (actionKey === "policy" || actionKey === "sub_action:policy") {
+      setActiveTab("samity_setup");
+      setSamityNavSubTab("basic");
+      handleOpenEditSamityModal(currentSamity, "policy");
+    } else if (actionKey === "branches" || actionKey === "sub_action:branches") {
+      setActiveTab("samity_setup");
+      setSamityNavSubTab("branches");
     } else if (actionKey === "new_samity") {
       handleOpenNewSamityModal();
     } else if (actionKey.startsWith("sub_tab:")) {
@@ -1429,6 +1443,7 @@ export const SamityManagementHub = ({ onClose }) => {
   const [isSamityModalOpen, setIsSamityModalOpen] = useState(false);
   const [editingSamity, setEditingSamity] = useState(null);
   const [samityFormActiveTab, setSamityFormActiveTab] = useState("basic"); // 'basic' | 'location' | 'contact' | 'bank' | 'policy'
+  const [samityNavSubTab, setSamityNavSubTab] = useState("basic"); // 'basic' | 'contact' | 'bank' | 'branches'
   const [samitySearchQuery, setSamitySearchQuery] = useState("");
   const [samityStatusFilter, setSamityStatusFilter] = useState("all");
   const [samityForm, setSamityForm] = useState(() => ({
@@ -2890,7 +2905,7 @@ export const SamityManagementHub = ({ onClose }) => {
       updatedBy: "Super Admin",
       updatedAt: new Date().toISOString(),
     });
-    setSamityFormActiveTab("basic");
+    setSamityFormActiveTab(defaultTab || "basic");
     setIsSamityModalOpen(true);
   };
 
@@ -2985,11 +3000,13 @@ export const SamityManagementHub = ({ onClose }) => {
   const handleSaveSamity = (e) => {
     e.preventDefault();
     if (!samityForm.nameBn.trim() || !samityForm.nameEn.trim()) {
-      showToast?.("সমিতির বাংলা ও ইংরেজি উভয় নাম আবশ্যক", "error");
+      setSamityFormActiveTab("basic");
+      showToast?.("সমিতির বাংলা ও ইংরেজি উভয় নাম আবশ্যক (সাধারণ পরিচিতি ট্যাবে চেক করুন)", "error");
       return;
     }
     if (!samityForm.mobile.trim()) {
-      showToast?.("সমিতির অফিসিয়াল মোবাইল নম্বর আবশ্যক", "error");
+      setSamityFormActiveTab("contact");
+      showToast?.("সমিতির অফিসিয়াল মোবাইল নম্বর আবশ্যক (যোগাযোগ ট্যাবে চেক করুন)", "error");
       return;
     }
 
@@ -5577,8 +5594,13 @@ ${samityTitle}
       {/* 0. PROFESSIONAL FULL-SCREEN LEFT-SIDE DRAWER & COLLAPSIBLE SIDEBAR */}
       <SamityDrawerNavigation
         activeTab={activeTab}
-        activeSubTab={samityFormActiveTab}
-        setActiveTab={setActiveTab}
+        activeSubTab={activeTab === "samity_setup" ? samityNavSubTab : samityFormActiveTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === "samity_setup") {
+            setSamityNavSubTab("basic");
+          }
+        }}
         currentSamity={currentSamity}
         samities={data.samities || []}
         activeSamityId={activeSamityId}
@@ -8011,31 +8033,95 @@ ${samityTitle}
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     type="button"
-                    onClick={() => handleOpenEditSamityModal(currentSamity, "bank")}
+                    onClick={() => handleOpenEditSamityModal(currentSamity, "basic")}
                     style={{
                       background: "rgba(45, 212, 191, 0.15)",
                       color: "#2dd4bf",
                       border: "1px solid rgba(45, 212, 191, 0.4)",
-                      padding: "8px 14px",
-                      borderRadius: "10px",
-                      fontSize: "0.78rem",
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      fontSize: "0.76rem",
                       fontWeight: "800",
                       display: "flex",
                       alignItems: "center",
-                      gap: "6px",
+                      gap: "5px",
                       cursor: "pointer",
                     }}
+                    title="নাম, লোগো ও সাধারণ তথ্য পরিবর্তন"
                   >
-                    <Edit3 size={15} />
-                    <span>প্রোফাইল ও ব্যাংক তথ্য সম্পাদনা</span>
+                    <Edit3 size={13} />
+                    <span>🏛️ পরিচিতি এডিট</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditSamityModal(currentSamity, "location")}
+                    style={{
+                      background: "rgba(167, 139, 250, 0.15)",
+                      color: "#c4b5fd",
+                      border: "1px solid rgba(167, 139, 250, 0.4)",
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      fontSize: "0.76rem",
+                      fontWeight: "800",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      cursor: "pointer",
+                    }}
+                    title="অফিস ঠিকানা পরিবর্তন করুন"
+                  >
+                    <Globe size={13} />
+                    <span>📍 ঠিকানা এডিট</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditSamityModal(currentSamity, "contact")}
+                    style={{
+                      background: "rgba(56, 189, 248, 0.15)",
+                      color: "#38bdf8",
+                      border: "1px solid rgba(56, 189, 248, 0.4)",
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      fontSize: "0.76rem",
+                      fontWeight: "800",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      cursor: "pointer",
+                    }}
+                    title="মোবাইল, ফোন ও সোশ্যাল মিডিয়া পরিবর্তন"
+                  >
+                    <Phone size={13} />
+                    <span>📞 মোবাইল ও যোগাযোগ</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditSamityModal(currentSamity, "bank")}
+                    style={{
+                      background: "rgba(236, 72, 153, 0.15)",
+                      color: "#f472b6",
+                      border: "1px solid rgba(236, 72, 153, 0.4)",
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      fontSize: "0.76rem",
+                      fontWeight: "800",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      cursor: "pointer",
+                    }}
+                    title="ব্যাংক হিসাব ও বিকাশ/নগদ পরিবর্তন করুন"
+                  >
+                    <Landmark size={13} />
+                    <span>🏦 ব্যাংক ও বিকাশ/নগদ</span>
                   </button>
                 </div>
               </div>
 
-              {/* Comprehensive Details Matrix */}
+              {/* Comprehensive Details Matrix (Clickable Cards with direct edit action) */}
               <div
                 style={{
                   display: "grid",
@@ -8045,19 +8131,56 @@ ${samityTitle}
               >
                 {/* 1. Bank Details Card */}
                 <div
+                  onClick={() => handleOpenEditSamityModal(currentSamity, "bank")}
                   style={{
                     background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    border: "1.5px solid rgba(56, 189, 248, 0.25)",
                     borderRadius: "12px",
                     padding: "12px 14px",
                     display: "flex",
                     flexDirection: "column",
                     gap: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#38bdf8";
+                    e.currentTarget.style.background = "rgba(56, 189, 248, 0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(56, 189, 248, 0.25)";
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                  }}
+                  title="ক্লিক করে ব্যাংক হিসাবের তথ্য পরিবর্তন করুন"
                 >
-                  <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#38bdf8", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <Landmark size={14} />
-                    <span>অফিসিয়াল ব্যাংক একাউন্ট</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#38bdf8", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Landmark size={14} />
+                      <span>অফিসিয়াল ব্যাংক একাউন্ট</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditSamityModal(currentSamity, "bank");
+                      }}
+                      style={{
+                        background: "rgba(56, 189, 248, 0.15)",
+                        color: "#38bdf8",
+                        border: "1px solid rgba(56, 189, 248, 0.4)",
+                        borderRadius: "6px",
+                        padding: "2px 8px",
+                        fontSize: "0.68rem",
+                        fontWeight: "800",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "3px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Edit3 size={11} />
+                      <span>পরিবর্তন</span>
+                    </button>
                   </div>
                   <div style={{ fontSize: "0.92rem", fontWeight: "900", color: "#f8fafc" }}>
                     {currentSamity.bankDetails?.accNo || currentSamity.bankAccountNo || "১২০.১১০.৯৮৭৬৫"}
@@ -8072,19 +8195,56 @@ ${samityTitle}
 
                 {/* 2. Mobile Banking (MFS) Card */}
                 <div
+                  onClick={() => handleOpenEditSamityModal(currentSamity, "bank")}
                   style={{
                     background: "rgba(236, 72, 153, 0.05)",
-                    border: "1px solid rgba(236, 72, 153, 0.2)",
+                    border: "1.5px solid rgba(236, 72, 153, 0.25)",
                     borderRadius: "12px",
                     padding: "12px 14px",
                     display: "flex",
                     flexDirection: "column",
                     gap: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#ec4899";
+                    e.currentTarget.style.background = "rgba(236, 72, 153, 0.12)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(236, 72, 153, 0.25)";
+                    e.currentTarget.style.background = "rgba(236, 72, 153, 0.05)";
+                  }}
+                  title="ক্লিক করে বিকাশ/নগদ/রকেট মোবাইল ব্যাংকিং পরিবর্তন করুন"
                 >
-                  <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#f472b6", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span>📱</span>
-                    <span>মোবাইল ব্যাংকিং (MFS)</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#f472b6", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>📱</span>
+                      <span>মোবাইল ব্যাংকিং (MFS)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditSamityModal(currentSamity, "bank");
+                      }}
+                      style={{
+                        background: "rgba(236, 72, 153, 0.15)",
+                        color: "#f472b6",
+                        border: "1px solid rgba(236, 72, 153, 0.4)",
+                        borderRadius: "6px",
+                        padding: "2px 8px",
+                        fontSize: "0.68rem",
+                        fontWeight: "800",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "3px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Edit3 size={11} />
+                      <span>পরিবর্তন</span>
+                    </button>
                   </div>
                   <div style={{ fontSize: "0.92rem", fontWeight: "900", color: "#fff" }}>
                     {currentSamity.mobileBanking?.number || currentSamity.mobileBankingNumber || currentSamity.mobile || "০১৭১২-৩৪৫৬৭৮"}
@@ -8097,48 +8257,141 @@ ${samityTitle}
                   </div>
                 </div>
 
-                {/* 3. Official Address Card */}
+                {/* 3. Official Address & Contact Card */}
                 <div
+                  onClick={() => handleOpenEditSamityModal(currentSamity, "location")}
                   style={{
                     background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    border: "1.5px solid rgba(167, 139, 250, 0.25)",
                     borderRadius: "12px",
                     padding: "12px 14px",
                     display: "flex",
                     flexDirection: "column",
                     gap: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#a78bfa";
+                    e.currentTarget.style.background = "rgba(167, 139, 250, 0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(167, 139, 250, 0.25)";
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                  }}
+                  title="ক্লিক করে অফিস ঠিকানা ও যোগাযোগের নম্বর পরিবর্তন করুন"
                 >
-                  <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#a78bfa", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <Globe size={14} />
-                    <span>অফিস ঠিকানা ও অবস্থান</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#a78bfa", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Globe size={14} />
+                      <span>অফিস ঠিকানা ও অবস্থান</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditSamityModal(currentSamity, "location");
+                        }}
+                        style={{
+                          background: "rgba(167, 139, 250, 0.15)",
+                          color: "#c4b5fd",
+                          border: "1px solid rgba(167, 139, 250, 0.4)",
+                          borderRadius: "6px",
+                          padding: "2px 6px",
+                          fontSize: "0.68rem",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                        }}
+                        title="ঠিকানা এডিট করুন"
+                      >
+                        📍 ঠিকানা
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditSamityModal(currentSamity, "contact");
+                        }}
+                        style={{
+                          background: "rgba(56, 189, 248, 0.15)",
+                          color: "#38bdf8",
+                          border: "1px solid rgba(56, 189, 248, 0.4)",
+                          borderRadius: "6px",
+                          padding: "2px 6px",
+                          fontSize: "0.68rem",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                        }}
+                        title="মোবাইল ও ফোন নম্বর এডিট করুন"
+                      >
+                        📞 মোবাইল
+                      </button>
+                    </div>
                   </div>
                   <div style={{ fontSize: "0.82rem", fontWeight: "800", color: "#f8fafc", lineHeight: 1.3 }}>
                     {currentSamity.address || `${currentSamity.village || ""}, ${currentSamity.upazila || ""}, ${currentSamity.district || ""}, ${currentSamity.division || ""}` || "মিরপুর-১০, ঢাকা-১২১৬"}
                   </div>
                   <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
-                    ডাকঘর: {currentSamity.postOffice || "মিরপুর"} • থানা/উপজেলা: {currentSamity.upazila || "মিরপুর"}
+                    ডাকঘর: {currentSamity.postOffice || "মিরপুর"} • উপজেলা: {currentSamity.upazila || "মিরপুর"} • জেলা: {currentSamity.district || "ঢাকা"}
                   </div>
-                  <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
-                    জেলা: {currentSamity.district || "ঢাকা"} • বিভাগ: {currentSamity.division || "ঢাকা"}
+                  <div style={{ fontSize: "0.72rem", color: "#38bdf8", fontWeight: "700" }}>
+                    অফিসিয়াল মোবাইল: {currentSamity.mobile || currentSamity.phone || "০১৭১২-৩৪৫৬৭৮"} {currentSamity.email ? `• ${currentSamity.email}` : ""}
                   </div>
                 </div>
 
                 {/* 4. Registration & Policy Card */}
                 <div
+                  onClick={() => handleOpenEditSamityModal(currentSamity, "policy")}
                   style={{
                     background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    border: "1.5px solid rgba(52, 211, 153, 0.25)",
                     borderRadius: "12px",
                     padding: "12px 14px",
                     display: "flex",
                     flexDirection: "column",
                     gap: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#34d399";
+                    e.currentTarget.style.background = "rgba(52, 211, 153, 0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(52, 211, 153, 0.25)";
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                  }}
+                  title="ক্লিক করে রেজিস্ট্রেশন ও মাসিক চাঁদা পলিসি পরিবর্তন করুন"
                 >
-                  <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#34d399", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span>⚖️</span>
-                    <span>রেজিস্ট্রেশন ও পলিসি</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#34d399", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>⚖️</span>
+                      <span>রেজিস্ট্রেশন ও পলিসি</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditSamityModal(currentSamity, "policy");
+                      }}
+                      style={{
+                        background: "rgba(52, 211, 153, 0.15)",
+                        color: "#34d399",
+                        border: "1px solid rgba(52, 211, 153, 0.4)",
+                        borderRadius: "6px",
+                        padding: "2px 8px",
+                        fontSize: "0.68rem",
+                        fontWeight: "800",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "3px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Edit3 size={11} />
+                      <span>পরিবর্তন</span>
+                    </button>
                   </div>
                   <div style={{ fontSize: "0.82rem", fontWeight: "800", color: "#f8fafc" }}>
                     সরকারি রেজি নং: {currentSamity.regNo || "REG-2026/DHK-482"}

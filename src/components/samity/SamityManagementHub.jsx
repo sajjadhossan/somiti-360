@@ -984,12 +984,16 @@ export const SamityManagementHub = ({ onClose }) => {
       setIsSaaSGuideModalOpen(true);
     } else if (actionKey === "open_role_modal" || actionKey === "rbac_modal" || actionKey === "roles_permissions") {
       setIsRoleModalOpen(true);
-    } else if (actionKey === "contact") {
+    } else if (actionKey === "contact" || actionKey === "sub_action:contact") {
       setActiveTab("samity_setup");
       setSamityFormActiveTab("contact");
-    } else if (actionKey === "bank") {
+      handleOpenEditSamityModal(currentSamity);
+    } else if (actionKey === "bank" || actionKey === "sub_action:bank") {
       setActiveTab("samity_setup");
       setSamityFormActiveTab("bank");
+      handleOpenEditSamityModal(currentSamity);
+    } else if (actionKey === "new_samity") {
+      handleOpenNewSamityModal();
     } else if (actionKey.startsWith("sub_tab:")) {
       const sub = actionKey.replace("sub_tab:", "");
       setActiveTab("reminders");
@@ -7938,6 +7942,217 @@ ${samityTitle}
               </div>
             </div>
 
+                        {/* Executive Active Samity Details & Bank Profile Hero Card */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)",
+                border: "1.5px solid rgba(45, 212, 191, 0.35)",
+                borderRadius: "16px",
+                padding: "20px 24px",
+                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "14px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                  paddingBottom: "12px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div
+                    style={{
+                      width: "56px",
+                      height: "56px",
+                      borderRadius: "14px",
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "2px solid rgba(45, 212, 191, 0.5)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                      padding: "4px",
+                    }}
+                  >
+                    <img
+                      src={currentSamity.logo || "/shopnochoa-logo.svg"}
+                      alt={currentSamity.nameBn}
+                      onError={(e) => { e.currentTarget.src = "/shopnochoa-logo.svg"; }}
+                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: "900", color: "#f8fafc" }}>
+                        {currentSamity.nameBn}
+                      </h3>
+                      <span style={{ fontSize: "0.68rem", fontWeight: "800", background: "rgba(16, 185, 129, 0.2)", color: "#34d399", padding: "2px 8px", borderRadius: "10px", border: "1px solid rgba(16, 185, 129, 0.4)" }}>
+                        🟢 সচল প্রধান শাখা
+                      </span>
+                      <span style={{ fontSize: "0.68rem", fontWeight: "800", background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", padding: "2px 8px", borderRadius: "10px" }}>
+                        {currentSamity.type || "Savings Samity"}
+                      </span>
+                    </div>
+                    {currentSamity.nameEn && (
+                      <div style={{ fontSize: "0.78rem", color: "#94a3b8", fontWeight: "600", marginTop: "2px" }}>
+                        {currentSamity.nameEn}
+                      </div>
+                    )}
+                    <div style={{ fontSize: "0.74rem", color: "#2dd4bf", fontStyle: "italic", marginTop: "2px" }}>
+                      "{currentSamity.sloganBn || "স্বপ্ন সাজাই, ভবিষ্যৎ গড়ি"}"
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditSamityModal(currentSamity)}
+                    style={{
+                      background: "rgba(45, 212, 191, 0.15)",
+                      color: "#2dd4bf",
+                      border: "1px solid rgba(45, 212, 191, 0.4)",
+                      padding: "8px 14px",
+                      borderRadius: "10px",
+                      fontSize: "0.78rem",
+                      fontWeight: "800",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Edit3 size={15} />
+                    <span>প্রোফাইল ও ব্যাংক তথ্য সম্পাদনা</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Comprehensive Details Matrix */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                {/* 1. Bank Details Card */}
+                <div
+                  style={{
+                    background: "rgba(255, 255, 255, 0.04)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#38bdf8", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Landmark size={14} />
+                    <span>অফিসিয়াল ব্যাংক একাউন্ট</span>
+                  </div>
+                  <div style={{ fontSize: "0.92rem", fontWeight: "900", color: "#f8fafc" }}>
+                    {currentSamity.bankDetails?.accNo || currentSamity.bankAccountNo || "১২০.১১০.৯৮৭৬৫"}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#cbd5e1" }}>
+                    ব্যাংক: <strong>{currentSamity.bankDetails?.bankName || currentSamity.bankName || "ডাচ্-বাংলা ব্যাংক"}</strong>
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                    শাখা: {currentSamity.bankDetails?.branchName || currentSamity.bankBranchName || "মিরপুর শাখা"} • রাউটিং: {currentSamity.bankDetails?.routingNo || currentSamity.bankRoutingNo || "০৯০২৭১২৩৪"}
+                  </div>
+                </div>
+
+                {/* 2. Mobile Banking (MFS) Card */}
+                <div
+                  style={{
+                    background: "rgba(236, 72, 153, 0.05)",
+                    border: "1px solid rgba(236, 72, 153, 0.2)",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#f472b6", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>📱</span>
+                    <span>মোবাইল ব্যাংকিং (MFS)</span>
+                  </div>
+                  <div style={{ fontSize: "0.92rem", fontWeight: "900", color: "#fff" }}>
+                    {currentSamity.mobileBanking?.number || currentSamity.mobileBankingNumber || currentSamity.mobile || "০১৭১২-৩৪৫৬৭৮"}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#fbcfe8" }}>
+                    সার্ভিস: <strong>{currentSamity.mobileBanking?.provider || "bKash (বিকাশ)"}</strong>
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#fda4af" }}>
+                    হিসাবের ধরন: {currentSamity.mobileBanking?.accountType || "মার্চেন্ট (Merchant)"}
+                  </div>
+                </div>
+
+                {/* 3. Official Address Card */}
+                <div
+                  style={{
+                    background: "rgba(255, 255, 255, 0.04)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#a78bfa", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Globe size={14} />
+                    <span>অফিস ঠিকানা ও অবস্থান</span>
+                  </div>
+                  <div style={{ fontSize: "0.82rem", fontWeight: "800", color: "#f8fafc", lineHeight: 1.3 }}>
+                    {currentSamity.address || `${currentSamity.village || ""}, ${currentSamity.upazila || ""}, ${currentSamity.district || ""}, ${currentSamity.division || ""}` || "মিরপুর-১০, ঢাকা-১২১৬"}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                    ডাকঘর: {currentSamity.postOffice || "মিরপুর"} • থানা/উপজেলা: {currentSamity.upazila || "মিরপুর"}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                    জেলা: {currentSamity.district || "ঢাকা"} • বিভাগ: {currentSamity.division || "ঢাকা"}
+                  </div>
+                </div>
+
+                {/* 4. Registration & Policy Card */}
+                <div
+                  style={{
+                    background: "rgba(255, 255, 255, 0.04)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "12px",
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "#34d399", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>⚖️</span>
+                    <span>রেজিস্ট্রেশন ও পলিসি</span>
+                  </div>
+                  <div style={{ fontSize: "0.82rem", fontWeight: "800", color: "#f8fafc" }}>
+                    সরকারি রেজি নং: {currentSamity.regNo || "REG-2026/DHK-482"}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#cbd5e1" }}>
+                    মাসিক চাঁদা: <strong style={{ color: "#34d399" }}>৳{currentSamity.monthlySubscription || 500}</strong>
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                    চাঁদা জমার শেষ তারিখ: প্রতি মাসের {currentSamity.subscriptionDueDay || 10} তারিখ
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Search & Filter Toolbar */}
             <div
               style={{
@@ -8300,14 +8515,28 @@ ${samityTitle}
                           </div>
                           <div>
                             <span style={{ color: "var(--text-muted)" }}>
-                              ব্যাংক:{" "}
+                              ব্যাংক হিসাব:{" "}
                             </span>
-                            <strong style={{ color: "#e2e8f0" }}>
-                              {samity.bankDetails?.bankName ||
-                                samity.bankName ||
-                                "N/A"}
+                            <strong style={{ color: "#38bdf8" }}>
+                              {samity.bankDetails?.accNo || samity.bankAccountNo || "একাউন্ট নেই"}
                             </strong>
+                            <div style={{ fontSize: "0.68rem", color: "#94a3b8" }}>
+                              {samity.bankDetails?.bankName || samity.bankName || ""} {samity.bankDetails?.branchName ? `(${samity.bankDetails.branchName})` : ""}
+                            </div>
                           </div>
+                          {(samity.mobileBanking?.number || samity.mobileBankingNumber) && (
+                            <div style={{ gridColumn: "span 2", background: "rgba(236, 72, 153, 0.08)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(236, 72, 153, 0.2)" }}>
+                              <span style={{ color: "#f472b6", fontWeight: "700" }}>
+                                📱 MFS: {samity.mobileBanking?.provider || "বিকাশ/নগদ"}:
+                              </span>{" "}
+                              <strong style={{ color: "#fff" }}>
+                                {samity.mobileBanking?.number || samity.mobileBankingNumber}
+                              </strong>{" "}
+                              <span style={{ fontSize: "0.65rem", color: "#f472b6" }}>
+                                ({samity.mobileBanking?.accountType || "মার্চেন্ট"})
+                              </span>
+                            </div>
+                          )}
                           <div
                             style={{
                               gridColumn: "span 2",

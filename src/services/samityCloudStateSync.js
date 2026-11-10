@@ -129,8 +129,39 @@ export const pullSamityCloudState = async (customTenantId = null) => {
 
             return {
               ...s,
+              ...(fullState || {}),
               name: profile?.name || fullState?.name || s.name,
+              nameBn: fullState?.nameBn || s.nameBn || profile?.name || s.name,
+              nameEn: fullState?.nameEn || s.nameEn,
               phone: profile?.phone || fullState?.phone || s.phone,
+              mobile: fullState?.mobile || s.mobile || profile?.phone,
+              address: fullState?.address || s.address,
+              division: fullState?.division || s.division,
+              district: fullState?.district || s.district,
+              upazila: fullState?.upazila || s.upazila,
+              postOffice: fullState?.postOffice || s.postOffice,
+              village: fullState?.village || s.village,
+              bankName: fullState?.bankName || s.bankName,
+              bankBranchName: fullState?.bankBranchName || s.bankBranchName,
+              bankAccountNo: fullState?.bankAccountNo || s.bankAccountNo,
+              bankAccountName: fullState?.bankAccountName || s.bankAccountName,
+              bankRoutingNo: fullState?.bankRoutingNo || s.bankRoutingNo,
+              bankDetails: {
+                ...(s.bankDetails || {}),
+                ...(fullState?.bankDetails || {}),
+                accName: fullState?.bankDetails?.accName || fullState?.bankAccountName || s.bankDetails?.accName || s.nameBn,
+                bankName: fullState?.bankDetails?.bankName || fullState?.bankName || s.bankDetails?.bankName,
+                branchName: fullState?.bankDetails?.branchName || fullState?.bankBranchName || s.bankDetails?.branchName,
+                accNo: fullState?.bankDetails?.accNo || fullState?.bankAccountNo || s.bankDetails?.accNo,
+                routingNo: fullState?.bankDetails?.routingNo || fullState?.bankRoutingNo || s.bankDetails?.routingNo
+              },
+              mobileBanking: {
+                ...(s.mobileBanking || {}),
+                ...(fullState?.mobileBanking || {}),
+                provider: fullState?.mobileBanking?.provider || fullState?.mobileBankingProvider || s.mobileBanking?.provider || 'bKash',
+                number: fullState?.mobileBanking?.number || fullState?.mobileBankingNumber || s.mobileBanking?.number,
+                accountType: fullState?.mobileBanking?.accountType || fullState?.mobileBankingAccountType || s.mobileBanking?.accountType || 'Merchant'
+              },
               logo: logoUrl || fullState?.logo || s.logo,
               letterhead: effectiveLetterhead,
               members: mergedMembers,
@@ -139,6 +170,7 @@ export const pullSamityCloudState = async (customTenantId = null) => {
               documents: (Array.isArray(fullState?.documents) && fullState.documents.length > 0) ? fullState.documents : s.documents,
               settings: {
                 ...(s.settings || {}),
+                ...(fullState?.settings || {}),
                 letterhead: effectiveLetterhead,
                 logo: logoUrl || s.settings?.logo
               },

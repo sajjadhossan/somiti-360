@@ -203,7 +203,9 @@ import { parseBioDataFile } from "../../services/bioDataDocumentParser";
 import {
   downloadDocumentPdf,
   shareDocumentPdfWhatsApp,
-  generatePdfQrDataUrl
+  generatePdfQrDataUrl,
+  downloadDocumentImage,
+  shareDocumentImage
 } from "../../services/pdfGeneratorService";
 
 // Bilingual Numeral Formatter (English when lang='en', Bengali otherwise)
@@ -40198,13 +40200,12 @@ ${samityTitle}
               <div style={{ display: "flex", gap: "8px" }}>
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => handlePrintElement("samity-consolidated-bulk-report-sheet")}
                   style={{
-                    background:
-                      "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                     color: "#fff",
                     border: "none",
-                    padding: "6px 14px",
+                    padding: "7px 14px",
                     borderRadius: "8px",
                     fontSize: "0.8rem",
                     fontWeight: "800",
@@ -40215,7 +40216,135 @@ ${samityTitle}
                   }}
                 >
                   <Printer size={15} />
-                  <span>প্রিন্ট রিপোর্ট</span>
+                  <span>প্যাডে প্রিন্ট করুন</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    playButtonClick?.();
+                    await downloadDocumentPdf({
+                      elementId: "samity-consolidated-bulk-report-sheet",
+                      fileName: `multi-member-receipt-${activeConsolidatedReport.bankReceiptNo || activeConsolidatedReport.id}.pdf`,
+                      docType: "bulk_receipt",
+                      docNumber: activeConsolidatedReport.bankReceiptNo || activeConsolidatedReport.id,
+                      showToast,
+                    });
+                  }}
+                  style={{
+                    background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "7px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Download size={15} />
+                  <span>📄 PDF ডাউনলোড</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    playButtonClick?.();
+                    await downloadDocumentImage({
+                      elementId: "samity-consolidated-bulk-report-sheet",
+                      fileName: `multi-member-receipt-${activeConsolidatedReport.bankReceiptNo || activeConsolidatedReport.id}.png`,
+                      showToast,
+                    });
+                  }}
+                  style={{
+                    background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "7px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <ImageIcon size={15} />
+                  <span>🖼️ ছবি ডাউনলোড</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    playButtonClick?.();
+                    const items = activeConsolidatedReport.items || [];
+                    const samityName = currentSamity?.nameBn || currentSamity?.nameEn || "সমিতি ৩৬০";
+                    const vUrl = createSamityBulkDepositVerificationUrl(
+                      activeConsolidatedReport,
+                      currentSamity,
+                    );
+                    const totalAmt = Number(
+                      activeConsolidatedReport.totalSlipAmount ||
+                        activeConsolidatedReport.allocatedAmount ||
+                        0,
+                    );
+
+                    const membersListText = items
+                      .map(
+                        (it, idx) =>
+                          `${idx + 1}. ${it.memberName || "সদস্য"} (${it.memberId || "ID"}) ➔ ৳ ${Number(it.amount || 0).toLocaleString()}/- (${it.paymentMonth || it.month || "চলতি মাস"})`,
+                      )
+                      .join("\n");
+
+                    const message = `🧾 *${samityName} — সম্মিলিত ব্যাংক জমা মেমো*
+------------------------------------------------
+🏛️ ব্যাংক: ${activeConsolidatedReport.bankName || "ব্যাংক জমা"} (${activeConsolidatedReport.branchName || "প্রধান শাখা"})
+📄 ব্যাংক স্লিপ নং: ${activeConsolidatedReport.bankReceiptNo || "—"} | ভাউচার: #${activeConsolidatedReport.bulkVoucherNo || activeConsolidatedReport.id}
+📅 তারিখ: ${activeConsolidatedReport.depositDate || new Date().toISOString().split("T")[0]}
+👤 জমাদানকারী: ${activeConsolidatedReport.depositorName || "কোষাধ্যক্ষ"}${activeConsolidatedReport.depositorPhone ? ` (${activeConsolidatedReport.depositorPhone})` : ""}
+
+👥 *জমাকৃত সদস্যদের বিবরণ (${items.length} জন):*
+${membersListText}
+------------------------------------------------
+💰 *সর্বমোট ব্যাংক জমা:* ৳ ${totalAmt.toLocaleString()}/-
+(কথায়: ${numberToBanglaWords(totalAmt)} টাকা মাত্র)
+
+📎 *রসিদ ও আসল ব্যাংক স্লিপের ভেরিফাইড কপি দেখতে ক্লিক করুন:*
+👉 ${vUrl}
+
+_সমিতি ৩৬০ — ডিজিটাল সমবায় ক্লাউড প্ল্যাটফর্ম_`;
+
+                    await shareDocumentImage({
+                      elementId: "samity-consolidated-bulk-report-sheet",
+                      fileName: `multi-member-receipt-${activeConsolidatedReport.bankReceiptNo || activeConsolidatedReport.id}.png`,
+                      shareMessage: message,
+                      docNumber:
+                        activeConsolidatedReport.bankReceiptNo ||
+                        activeConsolidatedReport.id,
+                      showToast,
+                    });
+                  }}
+                  style={{
+                    background: "linear-gradient(135deg, #10b981 0%, #047857 100%)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "7px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    boxShadow: "0 2px 8px rgba(16, 185, 129, 0.4)",
+                  }}
+                >
+                  <Send size={15} />
+                  <span>📲 WhatsApp এ পাঠান</span>
                 </button>
                 <button
                   type="button"
@@ -40240,6 +40369,7 @@ ${samityTitle}
 
             {/* Printable Document Sheet */}
             <div
+              id="samity-consolidated-bulk-report-sheet"
               style={{
                 background: "#ffffff",
                 color: "#0f172a",
@@ -40593,6 +40723,60 @@ ${samityTitle}
                   </tfoot>
                 </table>
               </div>
+
+              {/* Official Bank Deposit Slip Photo Section */}
+              {(activeConsolidatedReport.slipImage || activeConsolidatedReport.bankReceiptImage) && (
+                <div
+                  style={{
+                    marginTop: "16px",
+                    marginBottom: "20px",
+                    padding: "14px",
+                    background: "#f8fafc",
+                    border: "1.5px dashed #0284c7",
+                    borderRadius: "10px",
+                    pageBreakInside: "avoid"
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "10px",
+                      fontSize: "0.82rem",
+                      fontWeight: "800",
+                      color: "#0369a1"
+                    }}
+                  >
+                    <span>📎 সংযুক্ত ব্যাংক ডিপোজিট স্লিপের মূল ছবি (Bank Deposit Slip Attachment)</span>
+                    <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                      ব্যাংক স্লিপ নং: {activeConsolidatedReport.bankReceiptNo}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      background: "#ffffff",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: "1px solid #e2e8f0"
+                    }}
+                  >
+                    <img
+                      src={activeConsolidatedReport.slipImage || activeConsolidatedReport.bankReceiptImage}
+                      alt="Bank Deposit Slip Proof"
+                      style={{
+                        maxHeight: "260px",
+                        maxWidth: "100%",
+                        objectFit: "contain",
+                        borderRadius: "6px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Digital Verification QR Code Block */}
               <div

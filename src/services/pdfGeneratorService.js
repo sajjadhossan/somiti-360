@@ -211,3 +211,137 @@ export const shareDocumentPdfWhatsApp = async ({
     return { success: false, error: err.message };
   }
 };
+
+/**
+ * Downloads a high-resolution PNG image directly from a DOM element (Pad / Receipt).
+ */
+export const downloadDocumentImage = async ({
+  elementId,
+  fileName = 'receipt-pad-image.png',
+  showToast = null
+}) => {
+  try {
+    showToast?.('🖼️ প্যাডের ছবি তৈরি হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...', 'info');
+    const element = elementId ? document.getElementById(elementId) : null;
+    if (!element) throw new Error(`এলিমেন্ট (${elementId}) পাওয়া যায়নি।`);
+
+    // Ensure all images are loaded
+    const imgElements = Array.from(element.querySelectorAll('img'));
+    await Promise.all(
+      imgElements.map((img) => {
+        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          setTimeout(resolve, 2000);
+        });
+      })
+    );
+
+    const canvas = await html2canvas(element, {
+      scale: 2.5,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+
+    const imgUrl = canvas.toDataURL('image/png', 1.0);
+    const link = document.createElement('a');
+    link.href = imgUrl;
+    link.download = fileName.endsWith('.png') ? fileName : `${fileName}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast?.('✓ রসিদ ও প্যাডের ছবি সফলভাবে ডাউনলোড হয়েছে!', 'success');
+    return { success: true, imgUrl };
+  } catch (err) {
+    console.error('Download document image error:', err);
+    showToast?.('ছবি ডাউনলোড করতে সমস্যা হয়েছে।', 'error');
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Shares the rendered Pad / Receipt as an actual IMAGE file (.png) + formatted text to WhatsApp.
+ */
+export const shareDocumentImage = async ({
+  elementId,
+  fileName = 'receipt-pad-image.png',
+  shareMessage = '',
+  docNumber = 'DOC-001',
+  showToast = null
+}) => {
+  try {
+    showToast?.('🖼️ WhatsApp এর জন্য ছবি প্রস্তুত হচ্ছে...', 'info');
+    const element = elementId ? document.getElementById(elementId) : null;
+    if (!element) throw new Error(`এলিমেন্ট (${elementId}) পাওয়া যায়নি।`);
+
+    // Ensure images are loaded
+    const imgElements = Array.from(element.querySelectorAll('img'));
+    await Promise.all(
+      imgElements.map((img) => {
+        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          setTimeout(resolve, 2000);
+        });
+      })
+    );
+
+    const canvas = await html2canvas(element, {
+      scale: 2.2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+
+    return new Promise((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          showToast?.('ছবি তৈরি করা সম্ভব হয়নি।', 'error');
+          return resolve({ success: false });
+        }
+
+        const cleanFileName = fileName.endsWith('.png') ? fileName : `${fileName}.png`;
+        const imageFile = new File([blob], cleanFileName, { type: 'image/png' });
+
+        // 1. Mobile & Web Share API Level 2 (Direct WhatsApp Attachment)
+        if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+          try {
+            await navigator.share({
+              files: [imageFile],
+              title: cleanFileName,
+              text: shareMessage
+            });
+            showToast?.('✓ WhatsApp এ রসিদের ছবি ও বিবরণ সফলভাবে পাঠানো হয়েছে!', 'success');
+            return resolve({ success: true, method: 'file' });
+          } catch (shareErr) {
+            if (shareErr.name === 'AbortError') return resolve({ success: false, aborted: true });
+          }
+        }
+
+        // 2. Desktop Fallback: Download image and open WhatsApp with formatted message
+        const imgUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = imgUrl;
+        link.download = cleanFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+        showToast?.('✓ রসিদের ছবি ডাউনলোড হয়েছে এবং WhatsApp চ্যাট খোলা হয়েছে!', 'success');
+        resolve({ success: true, method: 'desktop_download' });
+      }, 'image/png', 0.95);
+    });
+  } catch (err) {
+    console.error('Share document image error:', err);
+    showToast?.('ছবি শেয়ার করতে সমস্যা হয়েছে।', 'error');
+    return { success: false, error: err.message };
+  }
+};

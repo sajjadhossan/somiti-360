@@ -15,8 +15,8 @@ import { loadSamityData, saveSamityData } from './samityService';
 
 const GLOBAL_LOGO_KEY = 'somiti360_active_samity_logo';
 const SERVER_URL_KEY = 'somiti360_server_api_url';
-export const VERCEL_FALLBACK_URL = 'https://somiti-360.vercel.app';
-export const CLOUDFLARE_TUNNEL_URL = 'https://somiti-360.vercel.app';
+export const VERCEL_FALLBACK_URL = 'https://somiti360.vercel.app';
+export const CLOUDFLARE_TUNNEL_URL = 'https://somiti360.vercel.app';
 
 /**
  * Smart API Base URL Resolver

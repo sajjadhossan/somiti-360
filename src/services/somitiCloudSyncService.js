@@ -5,7 +5,7 @@
  * 1. Android APK (Capacitor Mobile App)
  * 2. Apple macOS / iOS
  * 3. Windows PC Desktop (.exe / Localhost)
- * 4. Web Browser (somiti-360.vercel.app)
+ * 4. Web Browser (somiti360.vercel.app)
  * 
  * Features:
  * - Supabase Realtime WebSocket Pub/Sub Broadcast Mesh (<150ms latency)

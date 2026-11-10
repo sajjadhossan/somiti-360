@@ -16,7 +16,7 @@
 | ⚡ **Windows Portable** | [Somiti-360-PC.exe](https://github.com/sajjadhossan/somiti-360/releases/latest) | ইনস্টল ছাড়া পোর্টেবল সংস্করণ |
 | 🍏 **MacBook Apple Silicon** | [Somiti-360-Mac-AppleSilicon.dmg](https://github.com/sajjadhossan/somiti-360/releases/latest) | M1/M2/M3/M4 অ্যাপল সিলিকন |
 | 🍏 **MacBook Intel** | [Somiti-360-Mac-Intel.dmg](https://github.com/sajjadhossan/somiti-360/releases/latest) | ইন্টেল প্রসেসর ম্যাকবুক |
-| 🌐 **Vercel Web PWA** | [https://somiti-360.vercel.app](https://somiti-360.vercel.app) | প্রোগ্রেসিভ ওয়েব অ্যাপ (অফলাইন শেল ক্যাশড) |
+| 🌐 **Vercel Web PWA** | [https://somiti360.vercel.app](https://somiti360.vercel.app) | প্রোগ্রেসিভ ওয়েব অ্যাপ (অফলাইন শেল ক্যাশড) |
 | 🚀 **Render.com Cloud Web** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy) | রেন্ডার ক্লাউডে ১-ক্লিক অটোমেটিক ডিপ্লয়মেন্ট ও গ্লোবাল সিডিএন |
 
 ---

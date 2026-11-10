@@ -277,7 +277,7 @@ export const signInWithNeonAuth = async (email, password, remember = true) => {
     throw new Error('ইমেইল ও পাসওয়ার্ড প্রদান করা বাধ্যতামূলক।');
   }
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://somiti-360.vercel.app';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://somiti360.vercel.app';
 
   const res = await fetch(`${NEON_AUTH_BASE_URL}/sign-in/email`, {
     method: 'POST',
@@ -331,7 +331,7 @@ export const signUpWithNeonAuth = async ({ email, password, fullName, samityName
     throw new Error('ইমেইল ও পাসওয়ার্ড প্রদান করা বাধ্যতামূলক।');
   }
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://somiti-360.vercel.app';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://somiti360.vercel.app';
 
   const res = await fetch(`${NEON_AUTH_BASE_URL}/sign-up/email`, {
     method: 'POST',

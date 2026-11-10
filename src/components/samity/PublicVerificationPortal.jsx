@@ -117,7 +117,7 @@ export const PublicVerificationPortal = ({ initialParams = {}, onBackToApp = nul
           </h2>
         </div>
         <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8' }}>
-          somiti-360.vercel.app • গণপ্রজাতন্ত্রী বাংলাদেশ সরকার নিবন্ধিত সমবায় ডিজিটাল প্ল্যাটফর্ম
+          somiti360.vercel.app • গণপ্রজাতন্ত্রী বাংলাদেশ সরকার নিবন্ধিত সমবায় ডিজিটাল প্ল্যাটফর্ম
         </p>
       </div>
 
@@ -615,7 +615,7 @@ export const PublicVerificationPortal = ({ initialParams = {}, onBackToApp = nul
 
       {/* Footer Branding with Live Version Display */}
       <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.70rem', color: '#94a3b8' }}>
-        <span>সমিতি ৩৬০ • ডিজিটাল ক্লাউড সমবায় প্ল্যাটফর্ম • somiti-360.vercel.app ({APP_VERSION_NAME})</span>
+        <span>সমিতি ৩৬০ • ডিজিটাল ক্লাউড সমবায় প্ল্যাটফর্ম • somiti360.vercel.app ({APP_VERSION_NAME})</span>
       </div>
     </div>
   );

@@ -497,18 +497,18 @@ export const formatVendorSupportWhatsAppMessage = (userInfo, shopName, appVersio
 /**
  * Standard Production Verification Base URL (Fixed globally)
  */
-export const SOMITI_PRODUCTION_DOMAIN = 'https://somiti-360.vercel.app';
+export const SOMITI_PRODUCTION_DOMAIN = 'https://somiti360.vercel.app';
 
 /**
  * Builds an Ultra-Short, high-performance Verification URL for Somiti 360 documents.
  * Strictly guarantees URL length ~100-160 characters (never overflows, zero Base64 blobs).
  * Format:
- * https://somiti-360.vercel.app/verify?c={verificationCode}&r={receiptOrDocNo}&t={docType}&a={amount}&d={date}&n={memberName}&m={depositorName}&p={monthYear}
+ * https://somiti360.vercel.app/verify?c={verificationCode}&r={receiptOrDocNo}&t={docType}&a={amount}&d={date}&n={memberName}&m={depositorName}&p={monthYear}
  */
 /**
  * Builds an Ultra-Short, 404-free Root Query Verification URL for Somiti 360 documents.
  * Format per exact user specification:
- * https://somiti-360.vercel.app/?v=1&c={verificationCode}&r={receiptNo}&t={docType}&a={amount}&n={memberName}&dp={depositor}&m={monthYear}&dt={date}&s={samityName}
+ * https://somiti360.vercel.app/?v=1&c={verificationCode}&r={receiptNo}&t={docType}&a={amount}&n={memberName}&dp={depositor}&m={monthYear}&dt={date}&s={samityName}
  */
 export const createUltraShortVerificationUrl = ({
   verificationCode = '',

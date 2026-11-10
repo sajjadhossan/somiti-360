@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       .eq('id', receiptId)
       .maybeSingle();
 
-    const domain = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://somiti-360.vercel.app';
+    const domain = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://somiti360.vercel.app';
     const rcptNo = dep?.receipt_no || `RCPT-${receiptId}`;
     const shortCode = dep?.short_verification_code || `S360-${String(receiptId).slice(0, 6).toUpperCase()}`;
 

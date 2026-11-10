@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const domain = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://somiti-360.vercel.app';
+    const domain = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://somiti360.vercel.app';
     const shortCode = body.shortVerificationCode || generateShortCode(receiptId, receiptNo);
     const verificationUrl = `${domain}/verify/receipt/${encodeURIComponent(receiptId)}?token=${encodeURIComponent(token)}&code=${encodeURIComponent(shortCode)}`;
 

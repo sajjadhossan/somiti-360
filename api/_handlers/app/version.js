@@ -10,13 +10,13 @@ export default function handler(req, res) {
   return res.status(200).json({
     success: true,
     data: {
-      latestVersion: "2.5.0",
-      buildNumber: 25,
+      latestVersion: "2.5.1",
+      buildNumber: 26,
       minimumSupportedVersion: "2.1.0",
       apkDownloadUrl: "https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360.apk",
       releaseNotes: {
-        bn: "সমিতি ৩৬০ v2.5.0 (Build 25) — ক্রস-প্ল্যাটফর্ম লোগো, সদস্য ছবি ও হেডার প্যাড পার্মানেন্ট ক্লাউড সিঙ্ক এবং ইউনিভার্সাল এপিআই গেটওয়ে আপডেট।",
-        en: "Somiti 360 v2.5.0 (Build 25) — Cross-platform persistent logo, member photos & letterhead cloud sync and universal serverless API gateway."
+        bn: "সমিতি ৩৬০ v2.5.1 (Build 26) — somiti360.vercel.app প্রোডাকশন ডোমেন সিঙ্ক, সদস্য ছবি ও প্যাড হেডার ইউনিভার্সাল ক্লাউড ইন্টিগ্রেশন।",
+        en: "Somiti 360 v2.5.1 (Build 26) — somiti360.vercel.app production domain sync, member photos & letterhead universal cloud integration."
       },
       forceUpdate: false,
       releaseDate: new Date().toISOString()

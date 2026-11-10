@@ -11,7 +11,7 @@ import { SOMITI_PRODUCTION_DOMAIN } from '../../services/qrService';
  * - High-contrast 120x120px QR Code image with offline in-memory canvas + cloud fallback
  * - Displays short verification code: S360-XXXXXX
  * - Displays receipt or document number: RCPT-XXXX
- * - Displays clickable clean link: somiti-360.vercel.app/verify
+ * - Displays clickable clean link: somiti360.vercel.app/verify
  */
 export const DocumentQRVerification = ({
   verificationCode = '',
@@ -154,7 +154,7 @@ export const DocumentQRVerification = ({
               gap: '2px'
             }}
           >
-            <span>somiti-360.vercel.app</span>
+            <span>somiti360.vercel.app</span>
             <ExternalLink size={10} />
           </a>
         </div>

@@ -72,7 +72,7 @@ export const UniversalQrVerifierModal = ({
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const activeOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://somiti-360.vercel.app';
+  const activeOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://somiti360.vercel.app';
   const effectiveBaseUrl = getGlobalVerificationBaseUrl(currentSamity);
 
   // Pre-generate sample QR codes for the 1-click test buttons
@@ -1454,13 +1454,13 @@ export const UniversalQrVerifierModal = ({
 
                   <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
-                      কাস্টম প্রোডাকশন / Vercel ডোমেন (যেমন: https://somiti-360.vercel.app অথবা আপনার নিজস্ব ডোমেন):
+                      কাস্টম প্রোডাকশন / Vercel ডোমেন (যেমন: https://somiti360.vercel.app অথবা আপনার নিজস্ব ডোমেন):
                     </label>
                     <input
                       type="text"
                       value={customDomain}
                       onChange={(e) => setCustomDomain(e.target.value)}
-                      placeholder="https://somiti-360.vercel.app"
+                      placeholder="https://somiti360.vercel.app"
                       style={{
                         width: '100%',
                         boxSizing: 'border-box',

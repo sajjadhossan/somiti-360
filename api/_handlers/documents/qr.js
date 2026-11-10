@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const documentType = req.query.documentType || req.body?.documentType || 'receipt';
   const documentId = req.query.documentId || req.body?.documentId || '';
   const token = req.query.token || req.body?.token || '';
-  const baseUrl = (process.env.VITE_VERIFICATION_BASE_URL || 'https://somiti-360.vercel.app').replace(/\/$/, '');
+  const baseUrl = (process.env.VITE_VERIFICATION_BASE_URL || 'https://somiti360.vercel.app').replace(/\/$/, '');
 
   if (!documentId) {
     return res.status(400).json({ success: false, message: 'Document ID is required' });

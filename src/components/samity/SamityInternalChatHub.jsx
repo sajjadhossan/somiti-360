@@ -17,7 +17,9 @@ import {
   CheckCheck,
   AlertTriangle,
   X,
-  ShieldAlert
+  ShieldAlert,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { playButtonClick, playSuccessChime } from '../../services/soundFeedback';
 import { hapticFeedback } from '../../services/nativeAppService';
@@ -75,6 +77,97 @@ export const SamityInternalChatHub = ({
       if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, []);
+
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  // Initialize Bangla Voice Speech-to-Text Recognition
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'bn-BD';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        hapticFeedback?.selection?.();
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript) {
+          setMessageText(prev => {
+            const trimmed = prev.trim();
+            return trimmed ? `${trimmed} ${transcript}` : transcript;
+          });
+        }
+      };
+
+      recognition.onerror = (e) => {
+        console.warn('Speech recognition error:', e.error);
+        setIsListening(false);
+        if (e.error === 'not-allowed') {
+          showToast?.(t('মাইক্রোফোন ব্যবহারের অনুমতি দিন', 'Please allow microphone access'), 'error');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    } catch (err) {
+      console.warn('Speech recognition init error:', err);
+    }
+
+    return () => {
+      try {
+        recognitionRef.current?.stop();
+      } catch {}
+    };
+  }, []);
+
+  const handleToggleVoice = () => {
+    playButtonClick?.();
+    const SpeechRecognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+    if (!SpeechRecognition) {
+      showToast?.(t('আপনার ব্রাউজারে ভয়েস সাপোর্ট নেই। গুগল ক্রোম বা এজ ব্রাউজার ব্যবহার করুন।', 'Voice input is not supported in this browser. Please use Chrome or Edge.'), 'warning');
+      return;
+    }
+
+    if (isListening) {
+      try {
+        recognitionRef.current?.stop();
+      } catch {}
+      setIsListening(false);
+      showToast?.(t('ভয়েস রেকর্ড সম্পন্ন হয়েছে', 'Voice input stopped'), 'info');
+    } else {
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+        showToast?.(t('🎙️ কথা বলুন... সরাসরি বাংলায় টাইপ হচ্ছে', '🎙️ Listening... Speak now in Bangla'), 'success');
+      } catch (err) {
+        console.warn('Speech start error, attempting restart:', err);
+        try {
+          recognitionRef.current?.stop();
+          setTimeout(() => {
+            try {
+              recognitionRef.current?.start();
+              setIsListening(true);
+            } catch {}
+          }, 200);
+        } catch {}
+      }
+    }
+  };
 
   // Send new message / notice
   const handleSendMessage = (e) => {
@@ -763,6 +856,25 @@ export const SamityInternalChatHub = ({
             </div>
           )}
 
+          {/* Active Voice Listening Banner */}
+          {isListening && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.25) 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              fontSize: '0.8rem',
+              color: '#ef4444',
+              fontWeight: '700'
+            }}>
+              <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
+              <span>{t('🎙️ কথা বলুন... সরাসরি বাংলায় রূপান্তর হচ্ছে (বন্ধ করতে মাইক বাটনে চাপুন)', '🎙️ Listening... Speaking converts to text directly (Tap mic to finish)')}</span>
+            </div>
+          )}
+
           {/* Text Area & Submit Bar */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
             {/* Attachment Button */}
@@ -792,6 +904,34 @@ export const SamityInternalChatHub = ({
               }}
             >
               <Paperclip size={18} />
+            </button>
+
+            {/* Smart Bangla Voice Input / Mic Button */}
+            <button
+              type="button"
+              onClick={handleToggleVoice}
+              title={isListening ? t('ভয়েস রেকর্ড বন্ধ করুন', 'Stop listening') : t('ভয়েস দিয়ে মুখে বলুন (বাংলা স্পিচ)', 'Voice typing in Bangla')}
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                background: isListening
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                  : (isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.8)'),
+                border: isListening
+                  ? '2px solid #ef4444'
+                  : (isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)'),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isListening ? '#ffffff' : (isLight ? '#475569' : '#cbd5e1'),
+                cursor: 'pointer',
+                flexShrink: 0,
+                boxShadow: isListening ? '0 0 14px rgba(239, 68, 68, 0.65)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
             </button>
 
             {/* Input Text Field */}

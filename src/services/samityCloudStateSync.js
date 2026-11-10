@@ -15,8 +15,8 @@ import { loadSamityData, saveSamityData } from './samityService';
 
 const GLOBAL_LOGO_KEY = 'somiti360_active_samity_logo';
 const SERVER_URL_KEY = 'somiti360_server_api_url';
-export const CLOUDFLARE_TUNNEL_URL = 'https://hardware-duty-comparisons-configuring.trycloudflare.com';
 export const VERCEL_FALLBACK_URL = 'https://somiti-360.vercel.app';
+export const CLOUDFLARE_TUNNEL_URL = 'https://somiti-360.vercel.app';
 
 /**
  * Smart API Base URL Resolver
@@ -24,21 +24,21 @@ export const VERCEL_FALLBACK_URL = 'https://somiti-360.vercel.app';
  */
 export const getApiBaseUrl = () => {
   if (typeof window !== 'undefined') {
-    // 1. Explicitly configured server URL
+    // 1. Explicitly configured server URL in settings
     try {
       const saved = localStorage.getItem(SERVER_URL_KEY);
       if (saved && saved.startsWith('http')) return saved.replace(/\/$/, '');
     } catch {}
 
-    // 2. If running on public Web Domain (Cloudflare Quick Tunnel, Render or Vercel)
+    // 2. If running on public Web Domain (Vercel, Render, or Custom Domain)
     const origin = window.location.origin;
-    if (origin && !origin.includes('localhost') && !origin.includes('capacitor') && !origin.includes('//app')) {
+    if (origin && !origin.includes('localhost') && !origin.includes('capacitor') && !origin.includes('//app') && !origin.includes('127.0.0.1')) {
       return origin;
     }
   }
 
-  // 3. Fallback for Android APK & Desktop: Active Cloudflare Tunnel
-  return CLOUDFLARE_TUNNEL_URL;
+  // 3. Robust Default Production Endpoint for Android APK, Windows, and macOS
+  return VERCEL_FALLBACK_URL;
 };
 
 /**

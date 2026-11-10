@@ -6,8 +6,24 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/api/app/version",
+      "destination": "/api/app/version.js"
+    },
+    {
+      "source": "/api/samity/cloud-state",
+      "destination": "/api/samity/cloud-state.js"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health.js"
+    },
+    {
+      "source": "/api/public/verify",
+      "destination": "/api/public/verify.js"
+    },
+    {
       "source": "/api/(.*)",
-      "destination": "/api/[...slug]"
+      "destination": "/api/[...slug].js"
     },
     {
       "source": "/(.*)",

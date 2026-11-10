@@ -10,7 +10,7 @@
  * 3. Automatic old cache cleanup on activation
  */
 
-const CACHE_NAME = 'somiti360-shell-v2.5.0';
+const CACHE_NAME = 'somiti360-shell-v2.5.1';
 
 const PRECACHE_ASSETS = [
   '/',

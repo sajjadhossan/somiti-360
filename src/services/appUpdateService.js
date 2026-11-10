@@ -4,6 +4,7 @@
  */
 
 import { APP_VERSION, APP_BUILD_NUMBER, APP_VERSION_NAME } from '../config/version';
+import { getApiBaseUrl } from './samityCloudStateSync';
 
 const LAST_CHECK_KEY = 'somiti360_last_version_check';
 const DISMISSED_VERSION_KEY = 'somiti360_dismissed_update_version';
@@ -23,10 +24,11 @@ export const checkForAppUpdate = async (forceManual = false) => {
 
     localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
 
-    // 1. Primary check via backend API /api/app/version
+    // 1. Primary check via backend API /api/app/version (Resolves absolute production URL for APK & Desktop)
     let updateData = null;
     try {
-      const apiRes = await fetch('/api/app/version', {
+      const baseUrl = getApiBaseUrl();
+      const apiRes = await fetch(`${baseUrl}/api/app/version`, {
         headers: { 'Cache-Control': 'no-cache' }
       });
       if (apiRes.ok) {
@@ -36,7 +38,16 @@ export const checkForAppUpdate = async (forceManual = false) => {
         }
       }
     } catch (apiErr) {
-      console.debug('Local /api/app/version unreachable, checking fallback:', apiErr);
+      console.debug('Backend /api/app/version unreachable, trying local relative fetch:', apiErr);
+      try {
+        const localRes = await fetch('/api/app/version', { headers: { 'Cache-Control': 'no-cache' } });
+        if (localRes.ok) {
+          const json = await localRes.json();
+          if (json?.success && json?.data) updateData = json.data;
+        }
+      } catch (localErr) {
+        console.debug('Relative /api/app/version also unreachable:', localErr);
+      }
     }
 
     // 2. Secondary fallback check via public GitHub Releases API

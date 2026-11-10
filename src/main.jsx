@@ -44,11 +44,24 @@ if (isVerificationRequest && rootElement) {
   );
 }
 
-// Register PWA Service Worker for Offline-First Capability
+// Register PWA Service Worker for Offline-First Capability & Instant Auto-Update
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV !== 'development') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then((reg) => {
       console.info('[PWA] Service Worker registered with scope:', reg.scope);
+      // Immediately check for update
+      reg.update().catch(() => {});
+      reg.onupdatefound = () => {
+        const installingWorker = reg.installing;
+        if (installingWorker) {
+          installingWorker.onstatechange = () => {
+            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.info('[PWA] New version ready, refreshing caches...');
+              window.location.reload();
+            }
+          };
+        }
+      };
     }).catch((err) => {
       console.debug('[PWA] Service Worker registration failed:', err);
     });

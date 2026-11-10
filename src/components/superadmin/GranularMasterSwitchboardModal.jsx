@@ -39,7 +39,8 @@ const CATEGORY_ICON_MAP = {
   Building2: Building2,
   PieChart: PieChart,
   ShieldCheck: ShieldCheck,
-  Send: Send
+  Send: Send,
+  Sparkles: Sparkles
 };
 
 export const GranularMasterSwitchboardModal = ({
@@ -55,16 +56,11 @@ export const GranularMasterSwitchboardModal = ({
 
   const [featuresState, setFeaturesState] = useState(() => getTenantGranularFeatures(tenantId));
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState(() => ({
-    field_collection: true,
-    member_portal: true,
-    savings_deposits: true,
-    microloan_ops: true,
-    cash_banking: true,
-    audit_reports: true,
-    admin_governance: true,
-    automation_comms: true
-  }));
+  const [expandedCategories, setExpandedCategories] = useState(() => {
+    const all = {};
+    (GRANULAR_FEATURE_CATEGORIES || []).forEach(c => { all[c.id] = true; });
+    return all;
+  });
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
@@ -470,8 +466,11 @@ export const GranularMasterSwitchboardModal = ({
 
         {/* Scrollable Categories & Features Area */}
         <div style={{
-          flex: 1,
+          flex: '1 1 auto',
+          minHeight: '360px',
+          maxHeight: '62vh',
           overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
           padding: '20px 24px',
           display: 'flex',
           flexDirection: 'column',

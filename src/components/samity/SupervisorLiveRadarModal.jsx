@@ -438,7 +438,7 @@ export const SupervisorLiveRadarModal = ({
               {t('আজকের ফিল্ড কালেকশন', "Today's Field Cash")}
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#10b981', marginTop: '2px' }}>
-              ৳{kpis.todayTotal.toLocaleString('bn-BD')}
+              ৳{Number(kpis?.todayTotal || 0).toLocaleString('bn-BD')}
             </div>
             <div style={{ fontSize: '0.68rem', color: isLight ? '#94a3b8' : '#64748b', marginTop: '1px' }}>
               {t(`আজকের মোট: ${kpis.todayCount}টি রসিদ`, `${kpis.todayCount} receipts today`)}
@@ -762,7 +762,7 @@ export const SupervisorLiveRadarModal = ({
                   {/* Center: Amount & Timing */}
                   <div style={{ textAlign: 'center', minWidth: '130px' }}>
                     <div style={{ fontSize: '1.2rem', fontWeight: '900', color: '#10b981' }}>
-                      ৳{amount.toLocaleString('bn-BD')}
+                      ৳{Number(amount || 0).toLocaleString('bn-BD')}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : '#94a3b8' }}>
                       🕒 {format12HourTime(depositTime, activeLang)}

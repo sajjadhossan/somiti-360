@@ -182,7 +182,11 @@ export const pullSamityCloudState = async (customTenantId = null) => {
 
         saveSamityData({
           ...currentSamityData,
-          samities: updatedSamities
+          samities: updatedSamities,
+          members: (Array.isArray(fullState?.members) && fullState.members.length > 0) ? fullState.members : currentSamityData.members,
+          deposits: (Array.isArray(fullState?.deposits) && fullState.deposits.length > 0) ? fullState.deposits : currentSamityData.deposits,
+          expenses: (Array.isArray(fullState?.expenses) && fullState.expenses.length > 0) ? fullState.expenses : currentSamityData.expenses,
+          bulkDeposits: (Array.isArray(fullState?.bulkDeposits) && fullState.bulkDeposits.length > 0) ? fullState.bulkDeposits : currentSamityData.bulkDeposits
         }, { action: 'CLOUD_HYDRATION_APPLIED' });
       }
 
@@ -260,7 +264,14 @@ export const pushSamityCloudState = async (customPayload = {}) => {
       logoUrl,
       letterhead,
       profile,
-      fullState: { ...activeSamity, letterhead },
+      fullState: {
+        ...activeSamity,
+        letterhead,
+        members: Array.isArray(customPayload.fullState?.members) ? customPayload.fullState.members : (Array.isArray(currentSamityData?.members) ? currentSamityData.members : activeSamity.members),
+        deposits: Array.isArray(customPayload.fullState?.deposits) ? customPayload.fullState.deposits : (Array.isArray(currentSamityData?.deposits) ? currentSamityData.deposits : activeSamity.deposits),
+        expenses: Array.isArray(customPayload.fullState?.expenses) ? customPayload.fullState.expenses : (Array.isArray(currentSamityData?.expenses) ? currentSamityData.expenses : activeSamity.expenses),
+        bulkDeposits: Array.isArray(customPayload.fullState?.bulkDeposits) ? customPayload.fullState.bulkDeposits : (Array.isArray(currentSamityData?.bulkDeposits) ? currentSamityData.bulkDeposits : activeSamity.bulkDeposits)
+      },
       name: profile.name,
       phone: profile.phone,
       isOwnSamity,

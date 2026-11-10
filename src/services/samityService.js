@@ -591,8 +591,14 @@ export const triggerCloudStateSync = (data, customTenantId = null) => {
       
       await pushSamityCloudState({
         tenantId,
-        fullState: activeSamity,
-        profile: { name: activeSamity.name || '', phone: activeSamity.phone || '' },
+        fullState: {
+          ...activeSamity,
+          members: Array.isArray(data?.members) ? data.members : activeSamity.members,
+          deposits: Array.isArray(data?.deposits) ? data.deposits : activeSamity.deposits,
+          expenses: Array.isArray(data?.expenses) ? data.expenses : activeSamity.expenses,
+          bulkDeposits: Array.isArray(data?.bulkDeposits) ? data.bulkDeposits : activeSamity.bulkDeposits
+        },
+        profile: { name: activeSamity.name || activeSamity.nameBn || '', phone: activeSamity.phone || activeSamity.mobile || '' },
         logoUrl: activeSamity.logo || null,
         letterhead: activeSamity.letterhead || {}
       });

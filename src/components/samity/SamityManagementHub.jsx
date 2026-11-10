@@ -2824,11 +2824,11 @@ export const SamityManagementHub = ({ onClose }) => {
       updatedBy: "Super Admin",
       updatedAt: new Date().toISOString(),
     });
-    setSamityFormActiveTab("basic");
+    setSamityFormActiveTab(defaultTab || "basic");
     setIsSamityModalOpen(true);
   };
 
-  const handleOpenEditSamityModal = (samity) => {
+  const handleOpenEditSamityModal = (samity, defaultTab = "basic") => {
     playButtonClick?.();
     triggerHaptic();
     setEditingSamity(samity);
@@ -8014,7 +8014,7 @@ ${samityTitle}
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button
                     type="button"
-                    onClick={() => handleOpenEditSamityModal(currentSamity)}
+                    onClick={() => handleOpenEditSamityModal(currentSamity, "bank")}
                     style={{
                       background: "rgba(45, 212, 191, 0.15)",
                       color: "#2dd4bf",
@@ -9093,6 +9093,28 @@ ${samityTitle}
                 }}
               >
                 <button
+                  onClick={() => setActiveTab("bulk_deposit")}
+                  className="btn"
+                  title="একাধিক সদস্যের টাকা এক ব্যাংক রসিদে যৌথভাবে জমা করুন"
+                  style={{
+                    background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "800",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(2, 132, 199, 0.35)"
+                  }}
+                >
+                  <Layers size={15} />
+                  <span>👥 মাল্টি-মেম্বার ডিপোজিট (এক রসিদে যৌথ জমা)</span>
+                </button>
+                <button
                   onClick={() => handleOpenMemberModal()}
                   className="btn"
                   style={{
@@ -10055,8 +10077,8 @@ ${samityTitle}
                   <Layers size={15} />
                   <span>
                     {activeLang === "en"
-                      ? "📑 Bulk Deposit Entry"
-                      : "📑 বাল্ক জমা এন্ট্রি"}
+                      ? "👥 Multi-Member Deposit (One Receipt)"
+                      : "👥 মাল্টি-মেম্বার ডিপোজিট (এক রসিদে ২-৩ জনের যৌথ জমা)"}
                   </span>
                 </button>
                 <button
@@ -10193,7 +10215,7 @@ ${samityTitle}
                       color: "#10b981",
                     }}
                   >
-                    ৳ {depositMetrics.totalAmount.toLocaleString()}
+                    ৳ {Number(depositMetrics?.totalAmount || 0).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -10235,7 +10257,7 @@ ${samityTitle}
                       color: "#38bdf8",
                     }}
                   >
-                    ৳ {depositMetrics.currentMonthAmount.toLocaleString()}
+                    ৳ {Number(depositMetrics?.currentMonthAmount || 0).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -43053,9 +43075,21 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
                         flexWrap: "wrap",
                       }}
                     >
-                      {/* 29 & 30. Treasurer Signature (Mandatory) */}
-                      <div style={{ textAlign: "center", minWidth: "95px" }}>
-                        <div style={{ height: "32px" }}></div>
+                      {/* 29 & 30. Dynamic Approver / Treasurer Signature Block */}
+                      <div style={{ textAlign: "center", minWidth: "110px" }}>
+                        {dep.approvalSignature || treasurer.signatureImage ? (
+                          <div style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "2px" }}>
+                            <img
+                              src={dep.approvalSignature || treasurer.signatureImage}
+                              alt="অনুমোদনকারী স্বাক্ষর"
+                              style={{ maxHeight: "32px", maxWidth: "90px", objectFit: "contain" }}
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontStyle: "italic", fontSize: "0.75rem", color: "#1e40af", fontWeight: "700" }}>
+                            {dep.approvedBy || treasurer.name}
+                          </div>
+                        )}
                         <div
                           style={{
                             borderTop: "1px solid #0f172a",
@@ -43065,10 +43099,10 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
                             color: "#0f172a",
                           }}
                         >
-                          {treasurer.name}
+                          {dep.approvedBy || treasurer.name}
                         </div>
                         <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
-                          {treasurer.designationBn}
+                          {dep.approvedBy ? "অনুমোদনকারী কর্মকর্তা" : treasurer.designationBn}
                         </div>
                         <div
                           style={{
@@ -43077,7 +43111,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
                             fontWeight: "700",
                           }}
                         >
-                          [অনুমোদিত ও সইকৃত]
+                          [অনুমোদিত ও ডিজিটাল সত্যায়িত]
                         </div>
                       </div>
 
@@ -43119,6 +43153,28 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Mandatory Bank Slip Verification Disclaimer Note */}
+                  <div
+                    style={{
+                      margin: "16px 0 8px 0",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      background: "#fef3c7",
+                      border: "1px solid #f59e0b",
+                      color: "#92400e",
+                      fontSize: "0.75rem",
+                      fontWeight: "800",
+                      textAlign: "center",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <span>⚠️</span>
+                    <span>মানি রিসিট দেওয়া হলো ডিপোজিট রিসিটের উপর ভিত্তি করে, এখনো ব্যাংক স্টেটমেন্ট চেক করা হয়নি।</span>
                   </div>
 
                   {/* 35. Footer with Samity Contact Details & Legal Guarantee */}
@@ -48085,6 +48141,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
       )}
 
       {/* Role-Based Access Control (RBAC) Modal */}
+      <Suspense fallback={null}>
       <SamityRolePermissionManagerModal
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
@@ -48100,6 +48157,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
         activeUserRole={activeUserRole}
         onSwitchUserRole={(roleKey) => handleSwitchUserRole(roleKey)}
       />
+      </Suspense>
 
       {/* SaaS & Commercial Reselling Architecture Guide Modal */}
       {isSaaSGuideModalOpen && (
@@ -48566,7 +48624,8 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
 
       {/* 4-Platform Live Device Mesh & Telegram Backup Status Modal */}
       {isDeviceMeshModalOpen && (
-        <DeviceMeshStatusModal
+        <Suspense fallback={null}>
+          <DeviceMeshStatusModal
           isOpen={isDeviceMeshModalOpen}
           onClose={() => setIsDeviceMeshModalOpen(false)}
           isLight={isLight}
@@ -48574,10 +48633,12 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
           showToast={showToast}
           t={t}
         />
+        </Suspense>
       )}
 
       {/* Live Field Supervisor Audit & Collection Radar Modal */}
       {isSupervisorRadarOpen && (
+        <Suspense fallback={null}>
         <SupervisorLiveRadarModal
           isOpen={isSupervisorRadarOpen}
           onClose={() => setIsSupervisorRadarOpen(false)}
@@ -48589,6 +48650,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
           playSuccessSound={playSuccessSound}
           triggerHaptic={triggerHaptic}
         />
+        </Suspense>
       )}
 
       {/* Universal Floating Executive Internal Chat & Notice Board Modal */}
@@ -48642,6 +48704,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
       )}
 
       {/* 9. SMART AI VOICE & ACTION ASSISTANT MODAL */}
+      <Suspense fallback={null}>
       <SamityAIAssistantModal
         isOpen={isAIAssistantOpen}
         onClose={() => setIsAIAssistantOpen(false)}
@@ -48656,6 +48719,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
         t={t}
         isLight={isLight}
       />
+      </Suspense>
 
       {/* 10. CONFIRM DELETE DEPOSIT MODAL (MOVE TO RECYCLE BIN) */}
       {deleteDepositTarget && (
@@ -49815,6 +49879,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
       </div> {/* end samity-main-workspace */}
 
       {/* Universal QR Code Document Verifier & Test Center Modal */}
+      <Suspense fallback={null}>
       <UniversalQrVerifierModal
         isOpen={isUniversalVerifierOpen}
         onClose={() => setIsUniversalVerifierOpen(false)}
@@ -49833,8 +49898,10 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
         }}
         showToast={showToast}
       />
+      </Suspense>
 
       {/* AI Deposit Scanner & One-Command Pre-filler Modal */}
+      <Suspense fallback={null}>
       <AiDepositScannerModal
         isOpen={isAiDepositScannerOpen}
         onClose={() => {
@@ -49850,6 +49917,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
         }}
         showToast={showToast}
       />
+      </Suspense>
 
       {/* 11. Bluetooth Thermal POS Printer Modal (58mm/80mm) */}
       <Suspense fallback={null}>

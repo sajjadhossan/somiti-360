@@ -822,6 +822,16 @@ function MainView() {
     // Omni-Device Cloud State & Brand Auto-Hydration (Web <-> APK <-> PC)
     pullSamityCloudState().catch(() => {});
     const cloudRealtimeChannel = initCloudStateRealtimeListener();
+
+    // Auto-refresh cloud state when tab/app becomes visible or comes back online
+    const handleVisibilitySync = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        pullSamityCloudState().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilitySync);
+    window.addEventListener('focus', handleVisibilitySync);
+    window.addEventListener('online', handleVisibilitySync);
     window.addEventListener('somiti_trigger_diagnostic', handleTriggerDiagnostic);
     window.addEventListener('somiti_trigger_soundbox_modal', handleTriggerSoundbox);
     window.addEventListener('somiti_trigger_render_publish', handleTriggerRenderPublish);
@@ -855,6 +865,9 @@ function MainView() {
       window.removeEventListener('somiti_trigger_soundbox_modal', handleTriggerSoundbox);
       window.removeEventListener('somiti_trigger_render_publish', handleTriggerRenderPublish);
       window.removeEventListener('keydown', handleGlobalKeyDown);
+      document.removeEventListener('visibilitychange', handleVisibilitySync);
+      window.removeEventListener('focus', handleVisibilitySync);
+      window.removeEventListener('online', handleVisibilitySync);
       try { cloudRealtimeChannel?.unsubscribe?.(); } catch {}
     };
   }, []);

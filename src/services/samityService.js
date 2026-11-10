@@ -578,6 +578,30 @@ export const loadSamityData = (customTenantId = null) => {
 };
 
 // Persist data with dual localStorage + IndexedDB non-blocking durability
+let cloudStateSyncDebounceTimer = null;
+
+export const triggerCloudStateSync = (data, customTenantId = null) => {
+  if (typeof window === 'undefined') return;
+  if (cloudStateSyncDebounceTimer) clearTimeout(cloudStateSyncDebounceTimer);
+  cloudStateSyncDebounceTimer = setTimeout(async () => {
+    try {
+      const { pushSamityCloudState } = await import('./samityCloudStateSync.js');
+      const tenantId = customTenantId || getTenantStorageKey(customTenantId).replace('hk360_samity_hub_data_', '').replace('hk360_samity_hub_data', 'tenant_master_headquarters');
+      const activeSamity = (data?.samities || []).find(s => s.id === tenantId) || data?.samities?.[0] || {};
+      
+      await pushSamityCloudState({
+        tenantId,
+        fullState: activeSamity,
+        profile: { name: activeSamity.name || '', phone: activeSamity.phone || '' },
+        logoUrl: activeSamity.logo || null,
+        letterhead: activeSamity.letterhead || {}
+      });
+    } catch (err) {
+      console.debug('[SamityService] Background cloud push skipped:', err?.message);
+    }
+  }, 300);
+};
+
 export const saveSamityData = (data, actionMeta = {}, customTenantId = null) => {
   const enrichedMeta = {
     ...actionMeta,
@@ -607,6 +631,11 @@ export const saveSamityData = (data, actionMeta = {}, customTenantId = null) => 
     broadcastSamityStateUpdate(data, enrichedMeta);
   } catch (syncErr) {
     console.debug('[SamityService] Cloud broadcast error:', syncErr);
+  }
+
+  // Persistent Cloud Sync to Neon Postgres (Guarantees multi-device cross-platform sync)
+  if (actionMeta?.action !== 'CLOUD_HYDRATION_APPLIED') {
+    triggerCloudStateSync(data, customTenantId);
   }
 
   // Enqueue to Pending Offline Sync Queue for Zero Data-Loss Guarantee

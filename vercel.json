@@ -6,8 +6,40 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/[...slug].js"
+      "source": "/api/samity/cloud-state",
+      "destination": "/api/samity/cloud-state"
+    },
+    {
+      "source": "/api/app/version",
+      "destination": "/api/app/version"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/api/public/verify",
+      "destination": "/api/public/verify"
+    },
+    {
+      "source": "/api/receipts/pdf",
+      "destination": "/api/receipts/pdf"
+    },
+    {
+      "source": "/api/receipts/qr",
+      "destination": "/api/receipts/qr"
+    },
+    {
+      "source": "/api/sync/pull",
+      "destination": "/api/sync/pull"
+    },
+    {
+      "source": "/api/sync/push",
+      "destination": "/api/sync/push"
+    },
+    {
+      "source": "/api/:match*",
+      "destination": "/api/:match*"
     },
     {
       "source": "/(.*)",

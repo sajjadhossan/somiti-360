@@ -932,7 +932,7 @@ export const SamityManagementHub = ({ onClose }) => {
     };
 
     const handleStorageChange = (e) => {
-      if (e.key === "hk360_samity_hub_data") {
+      if (e?.key && (e.key === "hk360_samity_hub_data" || e.key.startsWith("hk360_samity_hub_data_"))) {
         const d = loadSamityData();
         setData(d);
         dataRef.current = d;

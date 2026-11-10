@@ -559,27 +559,37 @@ const handleMeshSyncRequest = async (payload) => {
   if (!payload || payload.senderDeviceId === getLocalDeviceId()) return;
 
   try {
-    const localTs = Number(localStorage.getItem(LAST_SYNC_TS_KEY)) || 0;
-    // If our state is newer or valid, send our snapshot
-    if (localTs >= (payload.timestamp || 0)) {
-      const localRaw = localStorage.getItem(getActiveStorageKey());
-      if (!localRaw) return;
-      const data = JSON.parse(localRaw);
-      
-      const origin = getDeviceOrigin();
-      await meshChannel?.send({
-        type: 'broadcast',
-        event: 'RESPONSE_SAMITY_MESH_SYNC',
-        payload: {
-          senderDeviceId: getLocalDeviceId(),
-          senderPlatform: origin.platform,
-          senderDeviceName: origin.name,
-          timestamp: Date.now(),
-          targetDeviceId: payload.senderDeviceId,
-          data
-        }
-      });
+    const localRaw = localStorage.getItem(getActiveStorageKey());
+    if (!localRaw) return;
+    const data = JSON.parse(localRaw);
+    
+    // Check if we actually have meaningful data to share
+    const hasMembers = (data?.members?.length > 0) || (data?.samities?.some(s => s?.members?.length > 0));
+    const hasDeposits = (data?.deposits?.length > 0) || (data?.samities?.some(s => s?.deposits?.length > 0));
+    const hasTenants = data?.samities?.length > 0;
+
+    if (!hasMembers && !hasDeposits && !hasTenants) {
+      // Empty node - do not overwrite a peer with empty state
+      return;
     }
+
+    const localTs = Number(localStorage.getItem(LAST_SYNC_TS_KEY)) || 0;
+    const reqTs = Number(payload.timestamp) || 0;
+
+    // Send our state if we have data and our timestamp is reasonable
+    const origin = getDeviceOrigin();
+    await meshChannel?.send({
+      type: 'broadcast',
+      event: 'RESPONSE_SAMITY_MESH_SYNC',
+      payload: {
+        senderDeviceId: getLocalDeviceId(),
+        senderPlatform: origin.platform,
+        senderDeviceName: origin.name,
+        timestamp: Date.now(),
+        targetDeviceId: payload.senderDeviceId,
+        data
+      }
+    });
   } catch (err) {
     console.debug('[SomitiSync] Failed responding to sync request:', err);
   }
@@ -595,10 +605,6 @@ export const requestMeshSyncFromPeers = async () => {
 
   const now = Date.now();
   const origin = getDeviceOrigin();
-  try {
-    localStorage.setItem(LAST_SYNC_TS_KEY, String(now));
-    localStorage.setItem(LAST_SYNC_DEVICE_KEY, origin.name);
-  } catch {}
 
   try {
     await meshChannel?.send({

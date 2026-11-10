@@ -47,7 +47,8 @@ import {
   Mail,
   Sparkles,
   Zap,
-  Rocket
+  Rocket,
+  Lock
 } from 'lucide-react';
 import { GranularMasterSwitchboardModal } from './GranularMasterSwitchboardModal';
 import { BlueGreenReleaseModal } from './BlueGreenReleaseModal';

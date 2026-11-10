@@ -55,6 +55,7 @@ import {
 
 export const SamityDrawerNavigation = ({
   activeTab,
+  activeSubTab = "basic",
   setActiveTab,
   currentSamity = {},
   samities = [],
@@ -1366,7 +1367,7 @@ export const SamityDrawerNavigation = ({
                   const item = allItems.find((i) => i.id === modId || i.targetTab === modId);
                   if (!item) return null;
                   const Icon = item.icon || Layers;
-                  const isCurrent = activeTab === item.targetTab;
+                  const isCurrent = activeTab === item.targetTab && (!item.subAction ? (!activeSubTab || activeSubTab === "basic") : (activeSubTab === item.subAction));
                   return (
                     <button
                       key={modId}
@@ -1506,7 +1507,7 @@ export const SamityDrawerNavigation = ({
                   >
                     {section.items.map((item) => {
                       const ItemIcon = item.icon || Layers;
-                      const isCurrent = activeTab === item.targetTab;
+                      const isCurrent = activeTab === item.targetTab && (!item.subAction ? (!activeSubTab || activeSubTab === "basic") : (activeSubTab === item.subAction));
                       const isPinned = pinnedModules.includes(item.id) || pinnedModules.includes(item.targetTab);
 
                       return (

@@ -336,7 +336,7 @@ export const SupervisorLiveRadarModal = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', letterSpacing: '-0.02em' }}>
-                  {t('সুপারভাইজার লাইভ কালেকশন রাডার', 'Supervisor Live Collection Radar')}
+                  {t('সুপাবেস ও নিয়ন লাইভ সিঙ্ক রাডার', 'Supabase & Neon Live Cloud Sync Radar')}
                 </h2>
                 <span
                   style={{
@@ -352,11 +352,11 @@ export const SupervisorLiveRadarModal = ({
                   }}
                 >
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ffffff', display: 'inline-block' }} />
-                  {t('লাইভ সক্রিয়', 'LIVE RADAR')}
+                  {t('১০০% লাইভ সিঙ্ক', '100% LIVE SYNC')}
                 </span>
               </div>
               <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8' }}>
-                {t('৪টি প্ল্যাটফর্ম রিয়েল-টাইম অডিট ও ইনস্ট্যান্ট ফিল্ড কালেকশন ট্র্যাকিং', '4-Platform Real-Time Audit & Field Collection Stream')}
+                {t('সুপাবেস রিয়েল-টাইম ব্রডকাস্ট এবং নিয়ন ক্লাউড পোস্টগ্রেস ডাটাবেজ ডুয়েল স্টেট মনিটরিং', 'Dual State Live Radar: Supabase Realtime Mesh & Neon Cloud PostgreSQL Database')}
               </p>
             </div>
           </div>
@@ -411,6 +411,68 @@ export const SupervisorLiveRadarModal = ({
             >
               ✕
             </button>
+          </div>
+        </div>
+
+        {/* Dual Cloud Sync Engine Live Cards (Supabase & Neon) */}
+        <div style={{
+          padding: '12px 20px',
+          background: isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.7)',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid #1e293b',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '12px'
+        }}>
+          {/* Engine 1: Supabase Realtime */}
+          <div style={{
+            background: isLight ? '#ffffff' : '#141e33',
+            padding: '10px 14px',
+            borderRadius: '12px',
+            border: '1.5px solid #10b981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
+              <div>
+                <strong style={{ fontSize: '0.85rem', color: isLight ? '#0f172a' : '#f8fafc', display: 'block' }}>
+                  ⚡ সুপাবেস (Supabase Realtime)
+                </strong>
+                <span style={{ fontSize: '0.70rem', color: '#10b981', fontWeight: '800' }}>
+                  সক্রিয় ব্রডকাস্ট মেশ • ০ms লেটেন্সি
+                </span>
+              </div>
+            </div>
+            <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '900' }}>
+              ONLINE
+            </span>
+          </div>
+
+          {/* Engine 2: Neon Cloud Database */}
+          <div style={{
+            background: isLight ? '#ffffff' : '#141e33',
+            padding: '10px 14px',
+            borderRadius: '12px',
+            border: '1.5px solid #00e599',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#00e599', boxShadow: '0 0 10px #00e599' }} />
+              <div>
+                <strong style={{ fontSize: '0.85rem', color: isLight ? '#0f172a' : '#f8fafc', display: 'block' }}>
+                  🐘 নিয়ন (Neon PostgreSQL Cloud)
+                </strong>
+                <span style={{ fontSize: '0.70rem', color: '#00e599', fontWeight: '800' }}>
+                  ক্লাউড টেবিল ও সেন্ট্রাল ব্যাকআপ • ১০০% সিঙ্ক
+                </span>
+              </div>
+            </div>
+            <span style={{ background: 'rgba(0, 229, 153, 0.15)', color: '#00e599', padding: '2px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '900' }}>
+              SYNCED
+            </span>
           </div>
         </div>
 

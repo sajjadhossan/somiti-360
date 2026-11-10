@@ -53,6 +53,7 @@ import {
   Lock,
   FileDown,
   MapPin,
+  Smartphone,
   Image as ImageIcon,
   Menu,
   Moon,
@@ -5576,6 +5577,7 @@ ${samityTitle}
       {/* 0. PROFESSIONAL FULL-SCREEN LEFT-SIDE DRAWER & COLLAPSIBLE SIDEBAR */}
       <SamityDrawerNavigation
         activeTab={activeTab}
+        activeSubTab={samityFormActiveTab}
         setActiveTab={setActiveTab}
         currentSamity={currentSamity}
         samities={data.samities || []}

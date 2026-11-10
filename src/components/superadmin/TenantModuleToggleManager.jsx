@@ -78,6 +78,16 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
   const [granularTenant, setGranularTenant] = useState(null);
   const [isOtaModalOpen, setIsOtaModalOpen] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    return sessionStorage.getItem('somiti360_superadmin_unlocked') === 'true';
+  });
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoverySent, setRecoverySent] = useState(false);
+
+  const SUPER_ADMIN_PIN = '159357';
 
   // Form State for New / Edit Tenant
   const [formData, setFormData] = useState({
@@ -111,6 +121,198 @@ export const TenantModuleToggleManager = ({ isOpen, onClose, isLight, lang = 'bn
   }, []);
 
   if (!isOpen) return null;
+
+  // Super Admin Secure PIN Protection Screen
+  if (!isUnlocked) {
+    const handlePinSubmit = (e) => {
+      e?.preventDefault();
+      if (pinInput.trim() === SUPER_ADMIN_PIN) {
+        setIsUnlocked(true);
+        sessionStorage.setItem('somiti360_superadmin_unlocked', 'true');
+        setPinError('');
+      } else {
+        setPinError('ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড লিখুন (159357)।');
+      }
+    };
+
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '16px'
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '420px',
+            background: isLight ? '#ffffff' : '#0f172a',
+            borderRadius: '20px',
+            border: isLight ? '1.5px solid #cbd5e1' : '1px solid rgba(245, 158, 11, 0.4)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(245, 158, 11, 0.2)',
+            padding: '28px',
+            textAlign: 'center',
+            color: isLight ? '#0f172a' : '#fff'
+          }}
+        >
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            boxShadow: '0 10px 20px rgba(245, 158, 11, 0.35)'
+          }}>
+            <Lock size={28} />
+          </div>
+
+          <h3 style={{ margin: '0 0 6px', fontSize: '1.25rem', fontWeight: '900' }}>
+            {isEn ? 'Super Admin Security Gateway' : '🔒 সুপার অ্যাডমিন সিকিউরিটি গেটওয়ে'}
+          </h3>
+          <p style={{ margin: '0 0 20px', fontSize: '0.8rem', color: isLight ? '#64748b' : '#94a3b8' }}>
+            {isEn ? 'Enter your 6-digit master access PIN to manage platform rules and samities.' : 'প্ল্যাটফর্মের মূল নিয়ন্ত্রণ ও সমিতি কনফিগারেশনে প্রবেশের জন্য ৬-ডিজিট মাস্টার পাসওয়ার্ড দিন।'}
+          </p>
+
+          <form onSubmit={handlePinSubmit}>
+            <input
+              type="password"
+              autoFocus
+              maxLength={10}
+              placeholder="পাসওয়ার্ড লিখুন..."
+              value={pinInput}
+              onChange={(e) => {
+                setPinInput(e.target.value);
+                setPinError('');
+              }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: pinError ? '2px solid #ef4444' : (isLight ? '1.5px solid #cbd5e1' : '1.5px solid #334155'),
+                background: isLight ? '#f8fafc' : '#1e293b',
+                color: isLight ? '#0f172a' : '#fff',
+                fontSize: '1.15rem',
+                textAlign: 'center',
+                letterSpacing: '4px',
+                fontWeight: '900',
+                outline: 'none',
+                boxSizing: 'border-box',
+                marginBottom: '10px'
+              }}
+            />
+
+            {pinError && (
+              <div style={{ color: '#ef4444', fontSize: '0.78rem', fontWeight: '800', marginBottom: '14px' }}>
+                {pinError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '0.95rem',
+                fontWeight: '900',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+                marginBottom: '12px'
+              }}
+            >
+              {isEn ? 'Unlock Control Hub' : '🔓 আনলক করে প্রবেশ করুন'}
+            </button>
+          </form>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#38bdf8',
+                fontSize: '0.76rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+            >
+              {isEn ? 'Forgot Password?' : 'পাসওয়ার্ড ভুলে গেছেন?'}
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: isLight ? '#64748b' : '#94a3b8',
+                fontSize: '0.76rem',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              {isEn ? 'Cancel' : 'বাতিল করুন'}
+            </button>
+          </div>
+
+          {/* Forgot Password Modal */}
+          {showForgotModal && (
+            <div style={{
+              marginTop: '16px',
+              padding: '14px',
+              borderRadius: '12px',
+              background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid #10b981',
+              textAlign: 'left'
+            }}>
+              <strong style={{ fontSize: '0.82rem', color: isLight ? '#047857' : '#34d399', display: 'block', marginBottom: '6px' }}>
+                🔑 মাস্টার পাসওয়ার্ড রিকভারি নির্দেশিকা:
+              </strong>
+              <p style={{ margin: '0 0 8px', fontSize: '0.74rem', color: isLight ? '#475569' : '#cbd5e1', lineHeight: '1.4' }}>
+                সুপার অ্যাডমিনের ডিফল্ট পাসওয়ার্ড হলো <strong>159357</strong>। এটি ভুলে গেলে আপনার রেজিস্টার্ড ইমেইল (admin@somiti360.com)-এ ওটিপি পাঠিয়ে পাসওয়ার্ড রিসেট করতে পারবেন।
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setPinInput('159357');
+                  setShowForgotModal(false);
+                  setPinError('');
+                }}
+                style={{
+                  background: '#10b981',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  fontSize: '0.72rem',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
+              >
+                ডিফল্ট পাসওয়ার্ড ব্যবহার করুন (159357)
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const showNotice = (msg, type = 'success') => {
     setNotification({ msg, type });

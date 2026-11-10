@@ -60,10 +60,10 @@ export const GranularMasterSwitchboardModal = ({
     member_portal: true,
     savings_deposits: true,
     microloan_ops: true,
-    cash_banking: false,
-    audit_reports: false,
-    admin_governance: false,
-    automation_comms: false
+    cash_banking: true,
+    audit_reports: true,
+    admin_governance: true,
+    automation_comms: true
   }));
   const [notification, setNotification] = useState(null);
 
@@ -282,6 +282,60 @@ export const GranularMasterSwitchboardModal = ({
         <div style={{
           padding: '12px 24px',
           background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '10px',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                const all = {};
+                GRANULAR_FEATURE_CATEGORIES.forEach(c => { all[c.id] = true; });
+                setExpandedCategories(all);
+              }}
+              style={{
+                background: 'rgba(56, 189, 248, 0.15)',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                padding: '5px 10px',
+                borderRadius: '8px',
+                fontSize: '0.74rem',
+                fontWeight: '800',
+                cursor: 'pointer'
+              }}
+            >
+              👁️ সব সুইচ দৃশ্যমান করুন (Expand All)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const all = {};
+                GRANULAR_FEATURE_CATEGORIES.forEach(c => { all[c.id] = false; });
+                setExpandedCategories(all);
+              }}
+              style={{
+                background: 'rgba(148, 163, 184, 0.15)',
+                color: '#94a3b8',
+                border: '1px solid rgba(148, 163, 184, 0.3)',
+                padding: '5px 10px',
+                borderRadius: '8px',
+                fontSize: '0.74rem',
+                fontWeight: '800',
+                cursor: 'pointer'
+              }}
+            >
+              📁 সংকুচিত করুন (Collapse)
+            </button>
+          </div>
+        </div>
+
+        <div style={{
+          padding: '12px 24px',
+          background: isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.4)',
           borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.06)',
           display: 'flex',
           flexWrap: 'wrap',

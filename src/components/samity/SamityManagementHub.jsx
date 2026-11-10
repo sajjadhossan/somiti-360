@@ -2314,9 +2314,7 @@ export const SamityManagementHub = ({ onClose }) => {
         membershipEndDate: member.membershipEndDate || "",
         monthlySubscription:
           member.customSubscription ||
-          member.monthlySubscription ||
-          currentSamity.monthlySubscription ||
-          500,
+          (member.hasCustomSubscription ? member.monthlySubscription : (currentSamity.monthlySubscription || 10000)),
         customSubscription:
           member.customSubscription !== undefined &&
           member.customSubscription !== null &&
@@ -9807,9 +9805,7 @@ ${samityTitle}
                             >
                               ৳{" "}
                               {member.customSubscription ||
-                                member.monthlySubscription ||
-                                currentSamity.monthlySubscription ||
-                                500}
+                                (member.hasCustomSubscription ? member.monthlySubscription : (currentSamity.monthlySubscription || 10000))}
                               /-
                             </div>
                             <div

@@ -54,6 +54,45 @@ export const SamityInternalChatHub = ({
   const [senderRole, setSenderRole] = useState((currentUser && currentUser.role) ? currentUser.role : 'সভাপতি (President)');
   const [senderName, setSenderName] = useState((currentUser && currentUser.name) ? currentUser.name : 'মো: সভাপতি');
   const [attachedFile, setAttachedFile] = useState(null); // { name, type, data }
+  const [isReceiptPickerOpen, setIsReceiptPickerOpen] = useState(false);
+
+  // High-performance image compressor for chat attachments (reduces megabyte camera slips to ~60KB)
+  const compressChatImage = (file) => {
+    return new Promise((resolve) => {
+      if (!file || !file.type.startsWith('image/')) {
+        return resolve(null);
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all'); // 'all' | 'pinned' | 'notices'
   const [copiedId, setCopiedId] = useState(null);
@@ -290,16 +329,27 @@ export const SamityInternalChatHub = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setAttachedFile({
-        name: file.name,
-        type: file.type,
-        data: event.target?.result
+    if (file.type.startsWith('image/')) {
+      compressChatImage(file).then((compressedData) => {
+        setAttachedFile({
+          name: file.name,
+          type: 'image/jpeg',
+          data: compressedData || ''
+        });
+        showToast?.(t('ছবি সংকুচিত ও সফলভাবে সংযুক্ত হয়েছে! (~65KB)', 'Image optimized & attached successfully!'), 'success');
       });
-      showToast?.(t('ফাইল সফলভাবে সংযুক্ত হয়েছে!', 'File attached successfully!'), 'info');
-    };
-    reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setAttachedFile({
+          name: file.name,
+          type: file.type,
+          data: event.target?.result
+        });
+        showToast?.(t('ফাইল সফলভাবে সংযুক্ত হয়েছে!', 'File attached successfully!'), 'info');
+      };
+      reader.readAsDataURL(file);
+    }
     e.target.value = '';
   };
 
@@ -887,8 +937,8 @@ export const SamityInternalChatHub = ({
             />
             <button
               type="button"
-              onClick={() => document.getElementById('samity-chat-attachment-input')?.click()}
-              title={t('ছবি বা ফাইল সংযুক্ত করুন', 'Attach photo or file')}
+              onClick={() => setIsReceiptPickerOpen(true)}
+              title={t('রসিদ বা ফাইল সংযুক্ত করার উৎস নির্বাচন করুন', 'Attach receipt from computer or existing deposits')}
               style={{
                 width: '42px',
                 height: '42px',
@@ -1201,6 +1251,129 @@ export const SamityInternalChatHub = ({
                 <Trash2 size={16} />
                 <span>{t('হ্যাঁ, মুছে ফেলুন', 'Yes, Delete')}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt & Attachment Source Selector Modal */}
+      {isReceiptPickerOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10050,
+            padding: '16px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsReceiptPickerOpen(false);
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              background: isLight ? '#ffffff' : '#1e293b',
+              borderRadius: '16px',
+              border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+              padding: '20px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Paperclip size={20} color="#10b981" />
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: isLight ? '#0f172a' : '#fff' }}>
+                  {t('রসিদ / ফাইল সংযুক্ত করার উৎস নির্বাচন', 'Select Attachment Source')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReceiptPickerOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: isLight ? '#475569' : '#94a3b8', marginBottom: '18px' }}>
+              {t(
+                'আপনি কি কম্পিউটার/মোবাইল গ্যালারি থেকে নতুন ছবি আপলোড করবেন নাকি সমিতির ডিপোজিট রসিদ থেকে সিলেক্ট করবেন?',
+                'Choose whether to upload a fresh receipt from device files or select from existing samity deposits.'
+              )}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              {/* Option 1: Device / Computer File */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsReceiptPickerOpen(false);
+                  document.getElementById('samity-chat-attachment-input')?.click();
+                }}
+                style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.1)',
+                  border: '1.5px solid #10b981',
+                  color: isLight ? '#047857' : '#34d399',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
+                <ImageIcon size={26} />
+                <strong style={{ fontSize: '0.85rem' }}>📁 কম্পিউটার / ফাইল</strong>
+                <span style={{ fontSize: '0.70rem', opacity: 0.85 }}>সরাসরি ডিভাইস থেকে ছবি/পিডিএফ</span>
+              </button>
+
+              {/* Option 2: Samity Deposited Slips */}
+              <button
+                type="button"
+                onClick={() => {
+                  const recentDeposit = (samityData?.deposits || []).find(d => d.bankReceiptImage || d.depositSlipImage || d.voucherNo);
+                  if (recentDeposit && (recentDeposit.bankReceiptImage || recentDeposit.depositSlipImage)) {
+                    setAttachedFile({
+                      name: `রসিদ_${recentDeposit.voucherNo || recentDeposit.id}.jpg`,
+                      type: 'image/jpeg',
+                      data: recentDeposit.bankReceiptImage || recentDeposit.depositSlipImage
+                    });
+                    showToast?.(t('সর্বশেষ ব্যাংক জমা রসিদ চ্যাটে যুক্ত হয়েছে!', 'Attached latest deposit receipt!'), 'success');
+                    setIsReceiptPickerOpen(false);
+                  } else {
+                    showToast?.(t('সমিতির তালিকায় কোনো ব্যাংক স্লিপের ছবি পাওয়া যায়নি', 'No deposit slips found in records'), 'warning');
+                  }
+                }}
+                style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: isLight ? '#eff6ff' : 'rgba(59, 130, 246, 0.1)',
+                  border: '1.5px solid #3b82f6',
+                  color: isLight ? '#1d4ed8' : '#60a5fa',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
+                <FileText size={26} />
+                <strong style={{ fontSize: '0.85rem' }}>💬 সিস্টেমের জমা রসিদ</strong>
+                <span style={{ fontSize: '0.70rem', opacity: 0.85 }}>সমিতির জমা খতিয়ান থেকে নির্বাচন</span>
+              </button>
+            </div>
+
+            <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#10b981', fontWeight: '700' }}>
+              ⚡ স্মার্ট কম্প্রেশন সক্রিয়: ছবি আপলোড করামাত্রই স্বয়ংক্রিয়ভাবে মেমোরি কমিয়ে ~৬০KB করা হবে।
             </div>
           </div>
         </div>

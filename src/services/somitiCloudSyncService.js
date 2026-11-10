@@ -692,7 +692,8 @@ export const broadcastSamityStateUpdate = async (data, actionMeta = {}) => {
       initSomitiCloudSync();
     }
 
-    if (meshChannel && isChannelSubscribed) {
+    const sendBroadcast = () => {
+      if (!meshChannel || !isChannelSubscribed) return;
       const delta = extractDeltaFromAction(data, actionMeta);
       const dataStr = JSON.stringify(data);
       // If dataset exceeds 100KB, send delta-only to prevent 256KB WebSocket overflow
@@ -714,6 +715,15 @@ export const broadcastSamityStateUpdate = async (data, actionMeta = {}) => {
         event: 'SAMITY_DATA_SYNC',
         payload: broadcastPayload
       }).catch(err => console.debug('[SomitiSync] Broadcast failed:', err));
+    };
+
+    if (isChannelSubscribed) {
+      sendBroadcast();
+    } else {
+      // If channel is still connecting, retry sending once subscribed
+      setTimeout(() => {
+        if (isChannelSubscribed) sendBroadcast();
+      }, 500);
     }
   } catch (err) {
     console.debug('[SomitiSync] Realtime send error:', err);

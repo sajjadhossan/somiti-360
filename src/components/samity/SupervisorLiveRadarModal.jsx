@@ -289,6 +289,15 @@ export const SupervisorLiveRadarModal = ({
     const now = Date.now();
     const origin = getDeviceOrigin();
 
+    // Trigger real bidirectional cloud state sync (Push local & Pull cloud from Neon Postgres)
+    try {
+      const { pushSamityCloudState, pullSamityCloudState } = await import('../../services/samityCloudStateSync');
+      await pushSamityCloudState();
+      await pullSamityCloudState();
+    } catch (cloudSyncErr) {
+      console.debug('[Radar] Cloud sync error:', cloudSyncErr);
+    }
+
     // Trigger state change broadcast across the live mesh
     try {
       await broadcastSamityStateChange(data, {

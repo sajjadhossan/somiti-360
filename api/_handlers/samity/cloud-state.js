@@ -127,7 +127,57 @@ export default async function handler(req, res) {
       const sql = getNeonSql();
       const samityName = name || profile?.name || 'সমিতি ৩৬০';
 
-      // 1. Upsert public.samity_cloud_state
+      // Deep-merge incoming state with existing cloud state to guarantee zero data loss
+      let mergedFullState = { ...(fullState || {}) };
+      try {
+        const existingRows = await sql`
+          SELECT full_state FROM public.samity_cloud_state WHERE tenant_id = ${tenantId} LIMIT 1;
+        `;
+        if (existingRows.length > 0 && existingRows[0]?.full_state) {
+          const cloudState = existingRows[0].full_state;
+
+          // Union of deposits by ID
+          const depMap = new Map();
+          (cloudState.deposits || []).forEach(d => { if (d && d.id) depMap.set(String(d.id), d); });
+          (fullState?.deposits || []).forEach(d => {
+            if (d && d.id) {
+              const existing = depMap.get(String(d.id));
+              depMap.set(String(d.id), { ...existing, ...d });
+            }
+          });
+          mergedFullState.deposits = Array.from(depMap.values());
+
+          // Union of members by ID or accountNumber
+          const memMap = new Map();
+          (cloudState.members || []).forEach(m => {
+            const key = String(m?.id || m?.accountNumber || '');
+            if (key) memMap.set(key, m);
+          });
+          (fullState?.members || []).forEach(m => {
+            const key = String(m?.id || m?.accountNumber || '');
+            if (key) {
+              const existing = memMap.get(key);
+              memMap.set(key, { ...existing, ...m });
+            }
+          });
+          mergedFullState.members = Array.from(memMap.values());
+
+          // Union of expenses by ID
+          const expMap = new Map();
+          (cloudState.expenses || []).forEach(e => { if (e && e.id) expMap.set(String(e.id), e); });
+          (fullState?.expenses || []).forEach(e => {
+            if (e && e.id) {
+              const existing = expMap.get(String(e.id));
+              expMap.set(String(e.id), { ...existing, ...e });
+            }
+          });
+          mergedFullState.expenses = Array.from(expMap.values());
+        }
+      } catch (mergeErr) {
+        console.debug('[CloudState Merge Warning]:', mergeErr.message);
+      }
+
+      // 1. Upsert public.samity_cloud_state with merged state
       await sql`
         INSERT INTO public.samity_cloud_state (
           tenant_id, logo_url, letterhead, profile, full_state, updated_at
@@ -136,7 +186,7 @@ export default async function handler(req, res) {
           ${logoUrl || null},
           ${JSON.stringify(letterhead)},
           ${JSON.stringify(profile)},
-          ${JSON.stringify(fullState)},
+          ${JSON.stringify(mergedFullState)},
           now()
         )
         ON CONFLICT (tenant_id) DO UPDATE SET
@@ -156,7 +206,7 @@ export default async function handler(req, res) {
           ${samityName},
           ${phone || profile?.phone || ''},
           ${logoUrl || null},
-          ${JSON.stringify({ letterhead, ...fullState })},
+          ${JSON.stringify({ letterhead, ...mergedFullState })},
           ${JSON.stringify(modules)},
           ${Boolean(isOwnSamity)},
           now()

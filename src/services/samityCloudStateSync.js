@@ -127,6 +127,30 @@ export const pullSamityCloudState = async (customTenantId = null) => {
 
             const effectiveLetterhead = letterhead || fullState?.letterhead || s.letterhead;
 
+            // Deep-merge deposits to guarantee zero data loss
+            const depMap = new Map();
+            (s.deposits || []).forEach(d => { if (d?.id) depMap.set(String(d.id), d); });
+            (currentSamityData.deposits || []).forEach(d => { if (d?.id) depMap.set(String(d.id), d); });
+            (fullState?.deposits || []).forEach(d => {
+              if (d?.id) {
+                const ex = depMap.get(String(d.id));
+                depMap.set(String(d.id), { ...ex, ...d });
+              }
+            });
+            const mergedDeposits = Array.from(depMap.values());
+
+            // Deep-merge expenses
+            const expMap = new Map();
+            (s.expenses || []).forEach(e => { if (e?.id) expMap.set(String(e.id), e); });
+            (currentSamityData.expenses || []).forEach(e => { if (e?.id) expMap.set(String(e.id), e); });
+            (fullState?.expenses || []).forEach(e => {
+              if (e?.id) {
+                const ex = expMap.get(String(e.id));
+                expMap.set(String(e.id), { ...ex, ...e });
+              }
+            });
+            const mergedExpenses = Array.from(expMap.values());
+
             return {
               ...s,
               ...(fullState || {}),
@@ -165,8 +189,8 @@ export const pullSamityCloudState = async (customTenantId = null) => {
               logo: logoUrl || fullState?.logo || s.logo,
               letterhead: effectiveLetterhead,
               members: mergedMembers,
-              deposits: (Array.isArray(fullState?.deposits) && fullState.deposits.length > 0) ? fullState.deposits : s.deposits,
-              expenses: (Array.isArray(fullState?.expenses) && fullState.expenses.length > 0) ? fullState.expenses : s.expenses,
+              deposits: mergedDeposits,
+              expenses: mergedExpenses,
               documents: (Array.isArray(fullState?.documents) && fullState.documents.length > 0) ? fullState.documents : s.documents,
               settings: {
                 ...(s.settings || {}),

@@ -851,9 +851,17 @@ function MainView() {
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
 
+    // Periodic background sync with Neon cloud database every 45s
+    const cloudIntervalTimer = setInterval(() => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        pullSamityCloudState().catch(() => {});
+      }
+    }, 45000);
+
     return () => {
       unsub();
       clearTimeout(updateTimer);
+      clearInterval(cloudIntervalTimer);
       window.removeEventListener('online', updateNetwork);
       window.removeEventListener('offline', updateNetwork);
       window.removeEventListener('somiti_offline_queue_changed', handleQueueChange);

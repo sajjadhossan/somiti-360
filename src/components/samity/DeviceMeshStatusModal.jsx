@@ -229,8 +229,11 @@ export const DeviceMeshStatusModal = ({ isOpen, onClose, isLight = false, samity
 
   const handleInstantMeshSync = async () => {
     setIsMeshSyncing(true);
-    showToast?.(t('৪টি প্ল্যাটফর্ম মেশে লাইভ ডেটা স্ক্যান পাঠানো হচ্ছে...', 'Broadcasting live scan across 4 platforms...'), 'info');
+    showToast?.(t('৪টি প্ল্যাটফর্ম ও ক্লাউড ডাটাবেজে লাইভ সিঙ্ক চলছে...', 'Syncing across 4 platforms & Neon cloud database...'), 'info');
     try {
+      const { pushSamityCloudState, pullSamityCloudState } = await import('../../services/samityCloudStateSync');
+      await pushSamityCloudState();
+      await pullSamityCloudState();
       await requestMeshSyncFromPeers();
       const now = Date.now();
       setMeshState(prev => ({
@@ -241,7 +244,7 @@ export const DeviceMeshStatusModal = ({ isOpen, onClose, isLight = false, samity
       setTimeout(() => {
         setIsMeshSyncing(false);
         const time12 = format12HourTime(now, t('bn', 'en'));
-        showToast?.(t(`✅ লাইভ মেশ স্ক্যান সম্পন্ন! সময়: ${time12}`, `✅ Live mesh scan completed! Time: ${time12}`), 'success');
+        showToast?.(t(`✅ লাইভ ক্লাউড ও মেশ সিঙ্ক সম্পন্ন! সময়: ${time12}`, `✅ Live cloud & mesh sync completed! Time: ${time12}`), 'success');
       }, 600);
     } catch (e) {
       setIsMeshSyncing(false);

@@ -48,7 +48,9 @@ ensureEnvLoaded();
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://ygigujzrnghxtcwykhjo.supabase.co';
 const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaWd1anpybmdoeHRjd3lraGpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2NzQxOTEsImV4cCI6MjEwODI1MDE5MX0.BsVJwFbKv3LUzgZZkwubbX5jl2-mOv_p1umNJ9fxn5E';
 
-const NEON_DATABASE_URL = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || '';
+export const PERMANENT_NEON_DATABASE_URL = 'postgresql://neondb_owner:npg_rMOUety68ufY@ep-wispy-unit-aodnt6pk-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require';
+
+const NEON_DATABASE_URL = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || PERMANENT_NEON_DATABASE_URL;
 
 /**
  * Checks if Neon Serverless Postgres is configured

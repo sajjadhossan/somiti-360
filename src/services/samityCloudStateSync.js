@@ -222,6 +222,9 @@ export const pullSamityCloudState = async (customTenantId = null) => {
           }));
         }
         window.dispatchEvent(new CustomEvent('hk360_samity_updated', {
+          detail: loadSamityData()
+        }));
+        window.dispatchEvent(new CustomEvent('somiti_cloud_hydrated', {
           detail: { tenantId, cloudData }
         }));
       }

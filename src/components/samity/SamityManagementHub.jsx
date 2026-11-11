@@ -911,9 +911,14 @@ export const SamityManagementHub = ({ onClose }) => {
 
     // 3. Listen to local and cloud update events
     const handleSyncUpdate = (e) => {
-      const incoming = e?.detail || loadSamityData();
-      setData(incoming);
-      dataRef.current = incoming;
+      let incoming = e?.detail;
+      if (!incoming || !Array.isArray(incoming.samities)) {
+        incoming = loadSamityData();
+      }
+      if (incoming && Array.isArray(incoming.samities)) {
+        setData(incoming);
+        dataRef.current = incoming;
+      }
     };
 
     const handleCloudNotification = (e) => {

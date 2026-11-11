@@ -563,6 +563,10 @@ export const loadSamityData = (customTenantId = null) => {
           ...s,
           logo: s.logo || '/logo.png'
         })),
+        members: Array.isArray(parsed.members) ? parsed.members : [],
+        deposits: Array.isArray(parsed.deposits) ? parsed.deposits : [],
+        expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
+        bulkDeposits: Array.isArray(parsed.bulkDeposits) ? parsed.bulkDeposits : [],
         signatures: parsed.signatures?.length ? parsed.signatures : DEFAULT_CLEAN_DATA.signatures,
         recycleBinMembers: Array.isArray(parsed.recycleBinMembers) ? parsed.recycleBinMembers : [],
         recycleBinDeposits: Array.isArray(parsed.recycleBinDeposits) ? parsed.recycleBinDeposits : [],

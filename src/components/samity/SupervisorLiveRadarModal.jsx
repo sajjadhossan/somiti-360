@@ -481,7 +481,8 @@ export const SupervisorLiveRadarModal = ({
             gap: '12px',
             background: isLight
               ? 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)'
-              : 'linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(15, 23, 42, 0.9) 100%)'
+              : 'linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            flexShrink: 0
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -594,7 +595,8 @@ export const SupervisorLiveRadarModal = ({
           borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid #1e293b',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '12px'
+          gap: '12px',
+          flexShrink: 0
         }}>
           {/* Engine 1: Supabase Realtime Engine */}
           <div style={{
@@ -694,7 +696,8 @@ export const SupervisorLiveRadarModal = ({
           gap: '8px',
           padding: '10px 20px',
           background: isLight ? '#f8fafc' : '#090d16',
-          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid #1e293b'
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid #1e293b',
+          flexShrink: 0
         }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -782,8 +785,10 @@ export const SupervisorLiveRadarModal = ({
         {/* TAB CONTENT 1: SYNC TIMETABLE & DETAILED SCHEDULE LOG */}
         {radarViewMode === 'sync_timetable' && (
           <div style={{
-            flex: 1,
+            flex: '1 1 auto',
+            minHeight: 0,
             overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
             padding: '16px 20px',
             display: 'flex',
             flexDirection: 'column',
@@ -983,7 +988,7 @@ export const SupervisorLiveRadarModal = ({
 
         {/* TAB CONTENT 2: FIELD COLLECTIONS AUDIT & VERIFICATION */}
         {radarViewMode === 'field_stream' && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Live Metrics Row */}
             <div
               style={{
@@ -992,7 +997,8 @@ export const SupervisorLiveRadarModal = ({
                 gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
                 gap: '10px',
                 borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid #1e293b',
-                background: isLight ? '#f8fafc' : '#090d16'
+                background: isLight ? '#f8fafc' : '#090d16',
+                flexShrink: 0
               }}
             >
               <div style={{
@@ -1072,7 +1078,8 @@ export const SupervisorLiveRadarModal = ({
               flexWrap: 'wrap',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '10px'
+              gap: '10px',
+              flexShrink: 0
             }}>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
@@ -1178,8 +1185,10 @@ export const SupervisorLiveRadarModal = ({
 
             {/* List */}
             <div style={{
-              flex: 1,
+              flex: '1 1 auto',
+              minHeight: 0,
               overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
               padding: '16px 20px',
               display: 'flex',
               flexDirection: 'column',

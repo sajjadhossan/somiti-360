@@ -141,7 +141,10 @@ export const GranularMasterSwitchboardModal = ({
   };
 
   const toggleCategoryExpand = (catId) => {
-    setExpandedCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
+    setExpandedCategories(prev => ({
+      ...prev,
+      [catId]: prev[catId] === false ? true : false
+    }));
   };
 
   // Metrics
@@ -214,7 +217,8 @@ export const GranularMasterSwitchboardModal = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px'
+          gap: '16px',
+          flexShrink: 0
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
@@ -283,7 +287,8 @@ export const GranularMasterSwitchboardModal = ({
           flexWrap: 'wrap',
           gap: '10px',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          flexShrink: 0
         }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
@@ -337,7 +342,8 @@ export const GranularMasterSwitchboardModal = ({
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '12px'
+          gap: '12px',
+          flexShrink: 0
         }}>
           {/* Presets */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -467,8 +473,7 @@ export const GranularMasterSwitchboardModal = ({
         {/* Scrollable Categories & Features Area */}
         <div style={{
           flex: '1 1 auto',
-          minHeight: '360px',
-          maxHeight: '62vh',
+          minHeight: 0,
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
           padding: '20px 24px',
@@ -484,7 +489,7 @@ export const GranularMasterSwitchboardModal = ({
           ) : (
             filteredCategories.map(cat => {
               const IconComp = CATEGORY_ICON_MAP[cat.icon] || Sliders;
-              const isExpanded = Boolean(expandedCategories[cat.id]);
+              const isExpanded = expandedCategories[cat.id] !== false;
               const catEnabledCount = cat.features.filter(f => featuresState[f.id]).length;
               const isAllCatEnabled = catEnabledCount === cat.features.length;
 
@@ -492,11 +497,14 @@ export const GranularMasterSwitchboardModal = ({
                 <div
                   key={cat.id}
                   style={{
+                    flexShrink: 0,
+                    width: '100%',
                     background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.5)',
                     borderRadius: '16px',
                     border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
                     overflow: 'hidden',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    boxSizing: 'border-box'
                   }}
                 >
                   {/* Category Header Bar */}
@@ -507,7 +515,8 @@ export const GranularMasterSwitchboardModal = ({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    flexShrink: 0
                   }}
                   onClick={() => toggleCategoryExpand(cat.id)}
                   >
@@ -594,7 +603,8 @@ export const GranularMasterSwitchboardModal = ({
                       display: 'grid',
                       gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
                       gap: '12px',
-                      background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.3)'
+                      background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.3)',
+                      flexShrink: 0
                     }}>
                       {cat.features.map(f => {
                         const isEnabled = Boolean(featuresState[f.id]);
@@ -617,6 +627,8 @@ export const GranularMasterSwitchboardModal = ({
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               gap: '10px',
+                              minHeight: '62px',
+                              boxSizing: 'border-box',
                               transition: 'all 0.15s ease'
                             }}
                           >
@@ -692,7 +704,8 @@ export const GranularMasterSwitchboardModal = ({
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '12px'
+          gap: '12px',
+          flexShrink: 0
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: isLight ? '#64748b' : '#94a3b8' }}>
             <ShieldCheck size={16} color="#10b981" />

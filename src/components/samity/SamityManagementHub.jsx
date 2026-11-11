@@ -48898,7 +48898,7 @@ _সমিতি ৩৬০ — ডিজিটাল সমবায় ক্�
           onUpdateSamityData={handleUpdateSamityData}
           showToast={showToast}
           t={t}
-          playSuccessSound={playSuccessSound}
+          playSuccessSound={playSuccessChime}
           triggerHaptic={triggerHaptic}
         />
         </Suspense>

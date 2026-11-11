@@ -430,6 +430,16 @@ export const SupervisorLiveRadarModal = ({
     } catch {}
   };
 
+  // 🛡️ Lock body scroll while modal is open to prevent background scrolling
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   // 🛡️ CRITICAL RULE OF HOOKS FIX:
   // Early return is placed AFTER all hooks have executed, never before!
   if (!isOpen) return null;
@@ -446,9 +456,12 @@ export const SupervisorLiveRadarModal = ({
         backdropFilter: 'blur(8px)',
         zIndex: 99999,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '12px',
+        padding: '16px',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain',
         boxSizing: 'border-box'
       }}
       onClick={onClose}
@@ -457,7 +470,7 @@ export const SupervisorLiveRadarModal = ({
         style={{
           width: '100%',
           maxWidth: '960px',
-          maxHeight: '94vh',
+          maxHeight: 'calc(100dvh - 32px)',
           backgroundColor: isLight ? '#ffffff' : '#0f172a',
           color: isLight ? '#0f172a' : '#f8fafc',
           borderRadius: '18px',
@@ -465,14 +478,20 @@ export const SupervisorLiveRadarModal = ({
           border: isLight ? '1.5px solid #cbd5e1' : '1.5px solid #1e293b',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          boxSizing: 'border-box'
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
+          boxSizing: 'border-box',
+          margin: 'auto'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
           style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 30,
             padding: '16px 20px',
             borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid #1e293b',
             display: 'flex',
@@ -481,7 +500,8 @@ export const SupervisorLiveRadarModal = ({
             gap: '12px',
             background: isLight
               ? 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)'
-              : 'linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(15, 23, 42, 0.9) 100%)',
+              : 'linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
+            backdropFilter: 'blur(10px)',
             flexShrink: 0
           }}
         >
@@ -785,10 +805,6 @@ export const SupervisorLiveRadarModal = ({
         {/* TAB CONTENT 1: SYNC TIMETABLE & DETAILED SCHEDULE LOG */}
         {radarViewMode === 'sync_timetable' && (
           <div style={{
-            flex: '1 1 auto',
-            minHeight: 0,
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
             padding: '16px 20px',
             display: 'flex',
             flexDirection: 'column',
@@ -988,7 +1004,7 @@ export const SupervisorLiveRadarModal = ({
 
         {/* TAB CONTENT 2: FIELD COLLECTIONS AUDIT & VERIFICATION */}
         {radarViewMode === 'field_stream' && (
-          <div style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {/* Live Metrics Row */}
             <div
               style={{
@@ -1185,10 +1201,6 @@ export const SupervisorLiveRadarModal = ({
 
             {/* List */}
             <div style={{
-              flex: '1 1 auto',
-              minHeight: 0,
-              overflowY: 'auto',
-              WebkitOverflowScrolling: 'touch',
               padding: '16px 20px',
               display: 'flex',
               flexDirection: 'column',

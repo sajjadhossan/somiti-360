@@ -69,6 +69,16 @@ export const GranularMasterSwitchboardModal = ({
     }
   }, [tenantId, isOpen]);
 
+  // 🛡️ Lock body scroll while modal is open
+  useEffect(() => {
+    if (!isOpen || !tenant) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, tenant]);
+
   const showToast = (msg) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
@@ -189,15 +199,19 @@ export const GranularMasterSwitchboardModal = ({
       background: 'rgba(0, 0, 0, 0.78)',
       backdropFilter: 'blur(8px)',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'center',
       zIndex: 100000,
-      padding: '16px'
+      padding: '16px',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      overscrollBehavior: 'contain',
+      boxSizing: 'border-box'
     }}>
       <div style={{
         width: '100%',
         maxWidth: '960px',
-        maxHeight: '92vh',
+        maxHeight: 'calc(100dvh - 32px)',
         background: isLight ? '#ffffff' : '#0f172a',
         borderRadius: '24px',
         boxShadow: '0 25px 60px -15px rgba(0,0,0,0.6), 0 0 0 1px rgba(245, 158, 11, 0.3)',
@@ -205,7 +219,10 @@ export const GranularMasterSwitchboardModal = ({
         flexDirection: 'column',
         overflow: 'hidden',
         color: isLight ? '#0f172a' : '#f8fafc',
-        border: '1.5px solid rgba(245, 158, 11, 0.4)'
+        border: '1.5px solid rgba(245, 158, 11, 0.4)',
+        overscrollBehavior: 'contain',
+        boxSizing: 'border-box',
+        margin: 'auto'
       }}>
         {/* Header Bar */}
         <div style={{

@@ -163,7 +163,7 @@ import { setGlobalSamityLogo, getEffectiveSamityLogo } from "../../services/sami
 import { pushSamityCloudState } from "../../services/samityCloudStateSync";
 const SamityInternalChatHub = lazy(() => import("./SamityInternalChatHub").then(m => ({ default: m.SamityInternalChatHub })));
 const DeviceMeshStatusModal = lazy(() => import("./DeviceMeshStatusModal").then(m => ({ default: m.DeviceMeshStatusModal })));
-const SupervisorLiveRadarModal = lazy(() => import("./SupervisorLiveRadarModal").then(m => ({ default: m.SupervisorLiveRadarModal })));
+const SupervisorLiveRadarModal = lazy(() => import("./SupervisorLiveRadarModal").then(m => ({ default: m.default || m.SupervisorLiveRadarModal })));
 const SamityAIAssistantModal = lazy(() => import("./SamityAIAssistantModal").then(m => ({ default: m.SamityAIAssistantModal })));
 const UniversalQrVerifierModal = lazy(() => import("./UniversalQrVerifierModal").then(m => ({ default: m.UniversalQrVerifierModal })));
 const AiDepositScannerModal = lazy(() => import("./AiDepositScannerModal").then(m => ({ default: m.AiDepositScannerModal })));

@@ -5,14 +5,16 @@
  */
 
 import { executeDepositCommand, executeMemberCreateCommand, executeDashboardMetricsQuery, executeMemberDirectoryQuery } from '../../api/_lib/cqrsManager.js';
+import { getApiBaseUrl } from './samityCloudStateSync.js';
 
 /**
  * Dispatches a Write Command (e.g. RECORD_DEPOSIT, CREATE_MEMBER)
  */
 export async function sendCommand(command, payload, options = {}) {
   try {
-    if (typeof window !== 'undefined' && window.location.origin) {
-      const res = await fetch('/api/cqrs', {
+    if (typeof window !== 'undefined') {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/cqrs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command, payload, ...options })
@@ -40,9 +42,10 @@ export async function sendCommand(command, payload, options = {}) {
  */
 export async function sendQuery(type, params = {}) {
   try {
-    if (typeof window !== 'undefined' && window.location.origin) {
+    if (typeof window !== 'undefined') {
+      const baseUrl = getApiBaseUrl();
       const qs = new URLSearchParams({ type, ...params }).toString();
-      const res = await fetch(`/api/cqrs?${qs}`);
+      const res = await fetch(`${baseUrl}/api/cqrs?${qs}`);
       if (res.ok) {
         const body = await res.json();
         return body.data;

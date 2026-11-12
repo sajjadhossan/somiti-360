@@ -5,6 +5,7 @@
 
 import { getActiveWorkspaceId, getTenantById } from './tenantManagerService';
 import { getPendingQueueCount } from './somitiOfflineStore';
+import { getApiBaseUrl } from './samityCloudStateSync';
 
 // In-memory diagnostic metrics cache
 let lastDiagnosticRun = null;
@@ -15,7 +16,8 @@ let lastDiagnosticRun = null;
 export const measureNetworkLatency = async () => {
   const start = performance.now();
   try {
-    const res = await fetch('/api/health?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' }).catch(() => null);
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/health?t=${Date.now()}`, { method: 'HEAD', cache: 'no-store' }).catch(() => null);
     const end = performance.now();
     return {
       status: res && res.ok ? 'optimal' : 'fallback',

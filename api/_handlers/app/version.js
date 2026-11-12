@@ -10,13 +10,13 @@ export default function handler(req, res) {
   return res.status(200).json({
     success: true,
     data: {
-      latestVersion: "2.6.4",
-      buildNumber: 39,
+      latestVersion: "2.6.5",
+      buildNumber: 40,
       minimumSupportedVersion: "2.1.0",
       apkDownloadUrl: "https://github.com/sajjadhossan/somiti-360/releases/download/latest/Somiti-360.apk",
       releaseNotes: {
-        bn: "সমিতি ৩৬০ v2.6.4 (Build 39) — এররবাউন্ডারি সাময়িক ত্রুটি সমাধান, ক্লাউড স্টেট সিঙ্ক ইভেন্ট পেলোড গার্ড এবং লোড সমিতি ডাটা এরে গ্যারান্টি সংযোজন।",
-        en: "Somiti 360 v2.6.4 (Build 39) — ErrorBoundary crash fix, cloud state sync event payload guarding, and guaranteed array structures in loadSamityData."
+        bn: "সমিতি ৩৬০ v2.6.5 (Build 40) — মোবাইল APK ও ওয়েব ইউনিভার্সাল পরম API পাথ সমাধান, তাৎক্ষণিক মিউটেশন পুশ, টু-ওয়ে রুট ডিপ-মার্জিং ও ১-ক্লিক ক্লাউড সিঙ্ক স্ট্যাটাস ব্যাজ সংযোজন।",
+        en: "Somiti 360 v2.6.5 (Build 40) — Universal absolute API paths for mobile APK & web parity, immediate mutation cloud push, two-way root level deep-merging, and 1-click live cloud sync badge."
       },
       forceUpdate: false,
       releaseDate: new Date().toISOString()

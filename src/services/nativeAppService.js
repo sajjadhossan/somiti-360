@@ -236,11 +236,16 @@ export const initNativeBackHandling = ({ onHomeExitNotice, onNavigateHome, onNav
     }
   }
 
-  // Capacitor Native Android Hardware/Gesture Back Button
+  // Capacitor Native Android Hardware/Gesture Back Button & Foreground Resume Sync
   if (isNativePlatform()) {
     try {
       App.addListener('backButton', () => {
         handleBackPress();
+      });
+      App.addListener('appStateChange', (state) => {
+        if (state?.isActive) {
+          import('./samityCloudStateSync.js').then(m => m.pullSamityCloudState?.()).catch(() => {});
+        }
       });
     } catch (err) {
       console.warn('[Native] Capacitor App.addListener failed:', err);

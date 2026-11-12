@@ -98,6 +98,10 @@ export const pullSamityCloudState = async (customTenantId = null) => {
       // Merge into local samity data
       const currentSamityData = loadSamityData();
       if (currentSamityData && currentSamityData.samities) {
+        let effectiveMergedMembers = Array.isArray(currentSamityData.members) ? currentSamityData.members : [];
+        let effectiveMergedDeposits = Array.isArray(currentSamityData.deposits) ? currentSamityData.deposits : [];
+        let effectiveMergedExpenses = Array.isArray(currentSamityData.expenses) ? currentSamityData.expenses : [];
+
         const updatedSamities = currentSamityData.samities.map(s => {
           if (s.id === tenantId || s.id === currentSamityData.activeSamityId) {
             // Deep merge members with photos
@@ -124,6 +128,7 @@ export const pullSamityCloudState = async (customTenantId = null) => {
                 }
               }
             }
+            effectiveMergedMembers = mergedMembers;
 
             const effectiveLetterhead = letterhead || fullState?.letterhead || s.letterhead;
 
@@ -138,6 +143,7 @@ export const pullSamityCloudState = async (customTenantId = null) => {
               }
             });
             const mergedDeposits = Array.from(depMap.values());
+            effectiveMergedDeposits = mergedDeposits;
 
             // Deep-merge expenses
             const expMap = new Map();
@@ -150,6 +156,7 @@ export const pullSamityCloudState = async (customTenantId = null) => {
               }
             });
             const mergedExpenses = Array.from(expMap.values());
+            effectiveMergedExpenses = mergedExpenses;
 
             return {
               ...s,
@@ -207,9 +214,9 @@ export const pullSamityCloudState = async (customTenantId = null) => {
         saveSamityData({
           ...currentSamityData,
           samities: updatedSamities,
-          members: (Array.isArray(fullState?.members) && fullState.members.length > 0) ? fullState.members : currentSamityData.members,
-          deposits: (Array.isArray(fullState?.deposits) && fullState.deposits.length > 0) ? fullState.deposits : currentSamityData.deposits,
-          expenses: (Array.isArray(fullState?.expenses) && fullState.expenses.length > 0) ? fullState.expenses : currentSamityData.expenses,
+          members: effectiveMergedMembers,
+          deposits: effectiveMergedDeposits,
+          expenses: effectiveMergedExpenses,
           bulkDeposits: (Array.isArray(fullState?.bulkDeposits) && fullState.bulkDeposits.length > 0) ? fullState.bulkDeposits : currentSamityData.bulkDeposits
         }, { action: 'CLOUD_HYDRATION_APPLIED' });
       }

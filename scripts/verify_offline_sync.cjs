@@ -28,16 +28,16 @@ function runTests() {
 
   // 1. Version Parity Check
   const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-  assert(pkg.version === '2.6.4', 'package.json version is 2.6.4');
+  assert(pkg.version === '2.6.5', 'package.json version is 2.6.5');
 
   const gradle = fs.readFileSync('android/app/build.gradle', 'utf8');
-  assert(gradle.includes('versionCode 39'), 'android/app/build.gradle versionCode is 39');
-  assert(gradle.includes('versionName "2.6.4"'), 'android/app/build.gradle versionName is "2.6.4"');
+  assert(gradle.includes('versionCode 40'), 'android/app/build.gradle versionCode is 40');
+  assert(gradle.includes('versionName "2.6.5"'), 'android/app/build.gradle versionName is "2.6.5"');
   assert(gradle.includes('v1SigningEnabled true') && gradle.includes('v2SigningEnabled true'), 'android/app/build.gradle enforces consistent v1 & v2 signing for in-place updates');
 
   const versionFile = fs.existsSync('api/_handlers/app/version.js') ? 'api/_handlers/app/version.js' : 'api/app/version.js';
   const versionApi = fs.readFileSync(versionFile, 'utf8');
-  assert(versionApi.includes('"2.6.4"') && versionApi.includes('buildNumber: 39'), 'api/app/version.js specifies v2.6.4 Build 39');
+  assert(versionApi.includes('"2.6.5"') && versionApi.includes('buildNumber: 40'), 'api/app/version.js specifies v2.6.5 Build 40');
   assert(fs.existsSync('api/[...slug].js'), 'Universal Serverless API Gateway [...slug].js exists for Vercel Hobby plan');
 
   // 2. PWA & Service Worker
@@ -48,7 +48,7 @@ function runTests() {
 
   assert(fs.existsSync('public/sw.js'), 'PWA sw.js exists');
   const sw = fs.readFileSync('public/sw.js', 'utf8');
-  assert(sw.includes('somiti360-shell-v2.6.4'), 'Service worker has correct cache version (v2.6.4)');
+  assert(sw.includes('somiti360-shell-v2.6.5'), 'Service worker has correct cache version (v2.6.5)');
   assert(sw.includes('/api/'), 'Service worker explicitly skips /api/ routes to prevent leaking private cache');
 
   // 2b. Enterprise Zero-Demo & Multi-Platform Logo Service Checks

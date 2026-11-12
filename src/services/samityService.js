@@ -584,10 +584,10 @@ export const loadSamityData = (customTenantId = null) => {
 // Persist data with dual localStorage + IndexedDB non-blocking durability
 let cloudStateSyncDebounceTimer = null;
 
-export const triggerCloudStateSync = (data, customTenantId = null) => {
+export const triggerCloudStateSync = (data, customTenantId = null, immediate = false) => {
   if (typeof window === 'undefined') return;
-  if (cloudStateSyncDebounceTimer) clearTimeout(cloudStateSyncDebounceTimer);
-  cloudStateSyncDebounceTimer = setTimeout(async () => {
+
+  const executePush = async () => {
     try {
       const { pushSamityCloudState } = await import('./samityCloudStateSync.js');
       const tenantId = customTenantId || getTenantStorageKey(customTenantId).replace('hk360_samity_hub_data_', '').replace('hk360_samity_hub_data', 'tenant_master_headquarters');
@@ -609,7 +609,15 @@ export const triggerCloudStateSync = (data, customTenantId = null) => {
     } catch (err) {
       console.debug('[SamityService] Background cloud push skipped:', err?.message);
     }
-  }, 300);
+  };
+
+  if (immediate) {
+    if (cloudStateSyncDebounceTimer) clearTimeout(cloudStateSyncDebounceTimer);
+    executePush().catch(() => {});
+  } else {
+    if (cloudStateSyncDebounceTimer) clearTimeout(cloudStateSyncDebounceTimer);
+    cloudStateSyncDebounceTimer = setTimeout(executePush, 300);
+  }
 };
 
 export const saveSamityData = (data, actionMeta = {}, customTenantId = null) => {
@@ -645,7 +653,8 @@ export const saveSamityData = (data, actionMeta = {}, customTenantId = null) => 
 
   // Persistent Cloud Sync to Neon Postgres (Guarantees multi-device cross-platform sync)
   if (actionMeta?.action !== 'CLOUD_HYDRATION_APPLIED') {
-    triggerCloudStateSync(data, customTenantId);
+    const isImmediateMutation = Boolean(actionMeta?.action || actionMeta?.isMutation || actionMeta?.details);
+    triggerCloudStateSync(data, customTenantId, isImmediateMutation);
   }
 
   // Enqueue to Pending Offline Sync Queue for Zero Data-Loss Guarantee

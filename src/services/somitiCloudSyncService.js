@@ -18,6 +18,7 @@
 import { getSupabase, isSupabaseReady } from './supabaseClient';
 import { getActiveWorkspaceId } from './tenantManagerService';
 import { backupToTelegram } from './somitiTelegramBackupService';
+import { getApiBaseUrl } from './samityCloudStateSync';
 import {
   generateUuidV7,
   createDeltaMutationPayload,
@@ -921,7 +922,8 @@ export const pushOfflineQueueToServer = async () => {
   }));
 
   try {
-    const res = await fetch('/api/sync/push', {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/sync/push`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -981,7 +983,8 @@ export const pushOfflineQueueToServer = async () => {
 export const pullServerUpdatesToLocal = async () => {
   const lastCursor = localStorage.getItem('somiti360_sync_cursor') || '';
   try {
-    const res = await fetch(`/api/sync/pull?since=${encodeURIComponent(lastCursor)}`);
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/api/sync/pull?since=${encodeURIComponent(lastCursor)}`);
     if (!res.ok) return null;
     const data = await res.json();
 

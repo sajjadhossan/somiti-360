@@ -160,7 +160,7 @@ import {
   format12HourTime,
 } from "../../services/somitiCloudSyncService";
 import { setGlobalSamityLogo, getEffectiveSamityLogo } from "../../services/samityLogoService";
-import { pushSamityCloudState } from "../../services/samityCloudStateSync";
+import { pushSamityCloudState, pullSamityCloudState } from "../../services/samityCloudStateSync";
 const SamityInternalChatHub = lazy(() => import("./SamityInternalChatHub").then(m => ({ default: m.SamityInternalChatHub })));
 const DeviceMeshStatusModal = lazy(() => import("./DeviceMeshStatusModal").then(m => ({ default: m.DeviceMeshStatusModal })));
 const SupervisorLiveRadarModal = lazy(() => import("./SupervisorLiveRadarModal").then(m => ({ default: m.default || m.SupervisorLiveRadarModal })));
@@ -960,9 +960,41 @@ export const SamityManagementHub = ({ onClose }) => {
     };
   }, []);
 
-  // Active Hub Sub-Tab
+  // Active Hub Sub-Tab & Live Multi-Device Cloud Sync State
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isDrawerOpenMobile, setIsDrawerOpenMobile] = useState(false);
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(() => Date.now());
+
+  const handleTriggerManualCloudSync = async () => {
+    if (isManualSyncing) return;
+    setIsManualSyncing(true);
+    playButtonClick?.();
+    triggerHaptic?.();
+    showToast?.(
+      activeLang === "en" ? "Syncing data with cloud database..." : "ক্লাউড ডাটাবেজের সাথে ডাটা সিঙ্ক করা হচ্ছে...",
+      "info"
+    );
+    try {
+      await pushSamityCloudState();
+      await pullSamityCloudState();
+      setLastSyncTime(Date.now());
+      playSuccessChime?.();
+      showToast?.(
+        activeLang === "en" ? "Cloud sync completed successfully!" : "ক্লাউড ডাটাবেজ ও মোবাইল সিঙ্ক সফল হয়েছে!",
+        "success"
+      );
+    } catch (err) {
+      console.warn('[SamityHub] Manual sync error:', err);
+      showToast?.(
+        activeLang === "en" ? "Sync failed. Please check internet." : "সিঙ্ক ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ পরীক্ষা করুন।",
+        "error"
+      );
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("s360_sidebar_collapsed") === "true";
@@ -5650,6 +5682,10 @@ ${samityTitle}
       {/* ==================================================================== */}
       {/* Mobile-First Samity Management Hub Subbar Stylesheet */}
       <style>{`
+        @keyframes spinSync {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
         .samity-hub-subbar {
           background: ${isLight ? "#ffffff" : "rgba(11, 17, 32, 0.96)"};
           backdrop-filter: blur(16px);
@@ -6082,6 +6118,60 @@ ${samityTitle}
                   : activeTab}
               </span>
             </div>
+
+            {/* Instant 1-Click Multi-Device Cloud Sync Button */}
+            <button
+              type="button"
+              onClick={handleTriggerManualCloudSync}
+              disabled={isManualSyncing}
+              style={{
+                height: "38px",
+                padding: "0 14px",
+                borderRadius: "10px",
+                background: isManualSyncing
+                  ? (isLight ? "#fef3c7" : "rgba(245, 158, 11, 0.2)")
+                  : (isLight ? "#f0fdf4" : "rgba(16, 185, 129, 0.15)"),
+                border: "1.5px solid " + (isManualSyncing
+                  ? (isLight ? "#fde68a" : "rgba(245, 158, 11, 0.4)")
+                  : (isLight ? "#86efac" : "rgba(16, 185, 129, 0.4)")),
+                color: isManualSyncing
+                  ? (isLight ? "#b45309" : "#fbbf24")
+                  : (isLight ? "#15803d" : "#34d399"),
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "7px",
+                cursor: isManualSyncing ? "wait" : "pointer",
+                fontWeight: "800",
+                fontSize: "0.80rem",
+                boxShadow: isLight ? "0 2px 6px rgba(0,0,0,0.04)" : "none",
+                transition: "all 0.2s ease",
+              }}
+              title={t("ক্লাউড ডাটাবেজ ও মোবাইল অ্যাপের সাথে ইনস্ট্যান্ট সিঙ্ক করুন", "Instant Sync with Cloud Database & Mobile APK")}
+            >
+              <RefreshCw
+                size={14}
+                style={{
+                  animation: isManualSyncing ? "spinSync 1s linear infinite" : "none",
+                }}
+              />
+              <span>
+                {isManualSyncing
+                  ? t("সিঙ্ক হচ্ছে...", "Syncing...")
+                  : t("ক্লাউড সিঙ্ক", "Cloud Sync")}
+              </span>
+              <span
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  background: isManualSyncing ? "#f59e0b" : "#10b981",
+                  boxShadow: isManualSyncing
+                    ? "0 0 8px #f59e0b"
+                    : "0 0 8px #10b981",
+                  display: "inline-block",
+                }}
+              />
+            </button>
 
             {/* Notifications Button */}
             <button

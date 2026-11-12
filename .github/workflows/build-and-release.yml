@@ -4,17 +4,6 @@ on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-    inputs:
-      target:
-        description: 'বিল্ড টার্গেট নির্বাচন করুন (Select build target)'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - android
-          - windows
-          - vercel
 
 permissions:
   contents: write
@@ -32,7 +21,6 @@ jobs:
   # -------------------------------------------------------------
   vercel-sync-verify:
     name: 🌐 Verify Web Build & Vercel Sync
-    if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'vercel'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -81,14 +69,14 @@ jobs:
           curl -sI "${{ env.VERCEL_URL }}" | head -n 8 || true
 
   # -------------------------------------------------------------
-  # Job 2: 📱 Build Android APK (Native Jetpack Compose App)
+  # Job 2: 📱 Build Android APK & Direct Unified Release
   # -------------------------------------------------------------
-  build-android:
-    name: 📱 Build Android APK
-    if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'android'
+  build-and-release-android:
+    name: 📱 Build Android APK & Publish Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -144,7 +132,7 @@ jobs:
 
           ./gradlew :app:assembleDebug -PbuildNumber="$BUILD_CODE" -PversionName="$DYNAMIC_VER" --no-daemon --stacktrace
 
-      - name: Prepare Dynamic Versioned APK Assets
+      - name: Collect & Verify Generated APK Assets
         run: |
           mkdir -p artifacts
           mkdir -p releases
@@ -189,135 +177,22 @@ jobs:
           git push origin HEAD 2>/dev/null || true
         continue-on-error: true
 
-  # -------------------------------------------------------------
-  # Job 3: 💻 Build Windows PC Desktop App (.exe)
-  # -------------------------------------------------------------
-  build-windows:
-    name: 💻 Build Windows PC Desktop App
-    if: github.event.inputs.target == 'all' || github.event.inputs.target == 'windows'
-    runs-on: windows-latest
-    continue-on-error: true
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Dependencies & Build Web Distribution
-        shell: powershell
-        run: |
-          if (Test-Path "package.json") {
-            npm install --legacy-peer-deps
-            npm run build
-          }
-
-      - name: Compile Native Windows PC App (.exe)
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path artifacts
-          New-Item -ItemType Directory -Force -Path src-desktop
-
-          # Ensure app.zip exists for embedding
-          if (Test-Path "dist") {
-            Compress-Archive -Path dist\* -DestinationPath src-desktop\app.zip -Force
-          } elseif (-not (Test-Path "src-desktop\app.zip")) {
-            New-Item -ItemType File -Path src-desktop\app.zip -Force
-          }
-
-          if (Test-Path "src-desktop\Program.cs") {
-            try {
-              $cscPath = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-              if (-not (Test-Path $cscPath)) {
-                $cscPath = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
-              }
-              Write-Host "Compiling with $cscPath..."
-              & $cscPath /target:winexe /resource:src-desktop\app.zip,app.zip /out:artifacts\Somiti-360-PC.exe src-desktop\Program.cs /reference:System.IO.Compression.dll,System.IO.Compression.FileSystem.dll,System.Windows.Forms.dll,System.Drawing.dll
-              if (Test-Path "artifacts\Somiti-360-PC.exe") {
-                Copy-Item "artifacts\Somiti-360-PC.exe" "artifacts\Somiti-360-Setup.exe" -Force
-                Write-Host "✅ Successfully compiled Somiti-360-PC.exe and Somiti-360-Setup.exe"
-              }
-            } catch {
-              Write-Host "Windows compilation note: $_"
-            }
-          }
-
-      - name: Upload Windows PC Artifact
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: Somiti-360-Windows-EXE
-          path: artifacts/*.exe
-          if-no-files-found: ignore
-          retention-days: 14
-
-  # -------------------------------------------------------------
-  # Job 4: 🚀 Publish Unified Multi-Platform Release
-  # -------------------------------------------------------------
-  publish-all-releases:
-    name: 🚀 Publish Unified Multi-Platform Release
-    runs-on: ubuntu-latest
-    needs: [build-android]
-    if: always() && !cancelled()
-    permissions:
-      contents: write
-      packages: write
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Download Android Artifacts
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: Somiti-360-Android-APK
-          path: all-releases
-
-      - name: Download Windows Artifacts
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: Somiti-360-Windows-EXE
-          path: all-releases
-
-      - name: Determine Dynamic Version and Prepare Release Folder
-        run: |
-          mkdir -p all-releases
-          BUILD_CODE="${{ github.run_number }}"
-          DYNAMIC_VER="${{ env.BASE_VERSION }}-b${BUILD_CODE}"
-          echo "APP_VERSION=${DYNAMIC_VER}" >> $GITHUB_ENV
-          echo "BUILD_NUMBER=${BUILD_CODE}" >> $GITHUB_ENV
-          echo "RELEASE_TAG=v${DYNAMIC_VER}" >> $GITHUB_ENV
-          echo "=== All Collected Platform Binaries ==="
-          ls -lh all-releases/
-
-      - name: Publish Unified Release to GitHub
+      - name: Publish Release to GitHub Releases
         uses: softprops/action-gh-release@v2
         continue-on-error: true
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: "Somiti 360 Release (${{ env.RELEASE_TAG }})"
+          tag_name: "v${{ env.BASE_VERSION }}-b${{ github.run_number }}"
+          name: "Somiti 360 Release (v${{ env.BASE_VERSION }}-b${{ github.run_number }})"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            ### 🛡️ সমিতি ৩৬০ (Somiti 360) স্বয়ংক্রিয় ক্লাউড রিলিজ (${{ env.RELEASE_TAG }})
-            - **ভার্সন:** `${{ env.RELEASE_TAG }}`
-            - **বিল্ড নম্বর:** `${{ env.BUILD_NUMBER }}`
-            - **গিটহাব অ্যাকশনস রান:** `#${{ github.run_number }}`
-            - **কমিট হ্যাশ:** `${{ github.sha }}`
-            - **ভার্সেল প্রোডাকশন ডোমেন:** [${{ env.VERCEL_URL }}](${{ env.VERCEL_URL }})
-            - **ক্লাউড সিঙ্ক:** ফায়ারস্টোর লাইভ ডাটাবেস সক্রিয় ⚡
-
-            | প্ল্যাটফর্ম (Platform) | ফাইল নেম (File Name) | বিবরণ |
-            | :--- | :--- | :--- |
-            | 📱 **Android Mobile** | `Somiti-360.apk` / `Somiti-360-${{ env.APP_VERSION }}-android.apk` | স্মার্টফোনে সরাসরি ডাউনলোড ও আপডেট করুন (আগের অ্যাপ আনইনস্টল করা লাগবে না) |
-            | 💻 **Windows PC Setup** | `Somiti-360-Setup.exe` / `Somiti-360-PC.exe` | উইন্ডোজ পিসি অ্যাপ ইন্সটলার ও পোর্টেবল অ্যাপ |
+            ### 🛡️ সমিতি ৩৬০ (Somiti 360) মোবাইল অ্যাপ রিলিজ
+            - **ভার্সন:** `v${{ env.BASE_VERSION }}-b${{ github.run_number }}`
+            - **বিল্ড রান:** `#${{ github.run_number }}`
+            - **ভার্সেল পোর্টাল:** [${{ env.VERCEL_URL }}](${{ env.VERCEL_URL }})
+            - **সরাসরি ডাউনলোড:** `Somiti-360.apk`
 
             > **আপডেট সহায়িকা:** আপনার ফোনে অ্যাপটি ইতিমধ্যে ইনস্টল করা থাকলে আগের অ্যাপ ডিলিট না করেই সরাসরি নতুন APK ফাইল ইনস্টল করলে অ্যাপ অটো-আপডেট হয়ে যাবে এবং কোনো অফলাইন ডাটা হারাবে না।
           fail_on_unmatched_files: false
-          files: all-releases/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            artifacts/*.apk
+            releases/Somiti-360.apk

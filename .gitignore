@@ -26,5 +26,10 @@ artifacts/
 !releases/*.apk
 *.exe
 
+# Never ignore Firebase and Gradle wrapper files
+!app/google-services.json
+!google-services.json
+!gradle/wrapper/gradle-wrapper.jar
+
 
 .neon

@@ -98,6 +98,107 @@ jobs:
           yes | sdkmanager --licenses 2>/dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" 2>/dev/null || true
 
+      - name: Inject Firebase google-services.json Configuration
+        env:
+          SECRET_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          SECRET_GOOGLE_SERVICES_BASE64: ${{ secrets.GOOGLE_SERVICES_BASE64 }}
+        run: |
+          echo "=========================================================="
+          echo "🔍 Verifying Firebase Configuration (google-services.json)..."
+          echo "=========================================================="
+          mkdir -p app/src/debug
+
+          if [ -n "$SECRET_GOOGLE_SERVICES_JSON" ]; then
+            echo "🔑 Detected GOOGLE_SERVICES_JSON from GitHub Secrets."
+            # Check if it is Base64 encoded or direct raw JSON
+            if echo "$SECRET_GOOGLE_SERVICES_JSON" | grep -q '^{'; then
+              echo "$SECRET_GOOGLE_SERVICES_JSON" > app/google-services.json
+            else
+              echo "$SECRET_GOOGLE_SERVICES_JSON" | base64 -d > app/google-services.json
+            fi
+            echo "✅ Successfully injected app/google-services.json from GOOGLE_SERVICES_JSON secret."
+          elif [ -n "$SECRET_GOOGLE_SERVICES_BASE64" ]; then
+            echo "🔑 Detected GOOGLE_SERVICES_BASE64 from GitHub Secrets. Decoding..."
+            echo "$SECRET_GOOGLE_SERVICES_BASE64" | base64 -d > app/google-services.json
+            echo "✅ Successfully injected app/google-services.json from GOOGLE_SERVICES_BASE64 secret."
+          elif [ -f app/google-services.json ] && [ -s app/google-services.json ]; then
+            echo "ℹ️ Using existing app/google-services.json from repository checkout."
+          elif [ -f google-services.json ] && [ -s google-services.json ]; then
+            echo "ℹ️ Found root google-services.json. Copying to app/..."
+            cp google-services.json app/google-services.json
+          else
+            echo "⚠️ Neither secret nor file found. Injecting pre-configured Somiti 360 Firebase config..."
+            cat << 'EOF' > app/google-services.json
+{
+  "project_info": {
+    "project_number": "364340009000",
+    "project_id": "hisabkitab-360-backup-511708",
+    "storage_bucket": "hisabkitab-360-backup-511708.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364340009000:android:045144121c3b435827bd1d",
+        "android_client_info": {
+          "package_name": "com.aistudio.somiti360.bxmpzq"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "364340009000-6j25sr4eupkg52dv31d6vaf68unaq12h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.somiti360.bxmpzq",
+            "certificate_hash": "ea32644d76fefcc635bcf02e1dda5e0d872cf1a7"
+          }
+        },
+        {
+          "client_id": "364340009000-rnu9nuvjuga5jj295u28b16d9u4fhbsh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8kDuzz6SUig8L0K8iU1pBDdEP2oGdego"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "364340009000-r85tnfahp2i5l9a8v2ng6m2t4t15usqm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+EOF
+            echo "✅ Embedded fallback Firebase config injected."
+          fi
+
+          # Duplicate to debug source set & root for 100% resolution coverage
+          cp app/google-services.json app/src/debug/google-services.json 2>/dev/null || true
+          cp app/google-services.json google-services.json 2>/dev/null || true
+
+          # Validate JSON syntax
+          if command -v jq >/dev/null 2>&1; then
+            jq . app/google-services.json >/dev/null || { echo "❌ ERROR: Invalid JSON in app/google-services.json"; exit 1; }
+            echo "✅ Validated app/google-services.json syntax with jq."
+          elif command -v python3 >/dev/null 2>&1; then
+            python3 -m json.tool app/google-services.json >/dev/null || { echo "❌ ERROR: Invalid JSON in app/google-services.json"; exit 1; }
+            echo "✅ Validated app/google-services.json syntax with python3."
+          fi
+
+          echo "Project ID in google-services.json:"
+          grep '"project_id"' app/google-services.json || true
+          echo "Package Name in google-services.json:"
+          grep '"package_name"' app/google-services.json || true
+          ls -la app/google-services.json app/src/debug/google-services.json
+
       - name: Configure Keystore Compatibility
         run: |
           mkdir -p ~/.android
@@ -122,7 +223,6 @@ jobs:
 
       - name: Build Android APK via Gradle with Incremental Versioning
         run: |
-          chmod +x ./gradlew
           BUILD_CODE="${{ github.run_number }}"
           DYNAMIC_VER="${{ env.BASE_VERSION }}-b${BUILD_CODE}"
           echo "=================================================="
@@ -130,7 +230,12 @@ jobs:
           echo "Build Number (versionCode): $BUILD_CODE"
           echo "=================================================="
 
-          ./gradlew :app:assembleDebug -PbuildNumber="$BUILD_CODE" -PversionName="$DYNAMIC_VER" --no-daemon --stacktrace
+          if [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+            ./gradlew :app:assembleDebug -PbuildNumber="$BUILD_CODE" -PversionName="$DYNAMIC_VER" --no-daemon --stacktrace
+          else
+            gradle :app:assembleDebug -PbuildNumber="$BUILD_CODE" -PversionName="$DYNAMIC_VER" --no-daemon --stacktrace
+          fi
 
       - name: Collect & Verify Generated APK Assets
         run: |

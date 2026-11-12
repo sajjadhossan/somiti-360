@@ -1,0 +1,6 @@
+{
+  "name": "Somiti 360",
+  "description": "Smart cooperative and microfinance management system for members, collections, dues, expenses, and official receipts with QR verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

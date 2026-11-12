@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Somiti360FirestoreBlueprint",
+  "entities": {
+    "members": {
+      "path": "/members/{memberId}",
+      "fields": {
+        "id": { "type": "string" },
+        "memberCode": { "type": "string" },
+        "nameBn": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "phone": { "type": "string" },
+        "designation": { "type": "string" },
+        "monthlySubscriptionAmount": { "type": "number" },
+        "status": { "type": "string" }
+      }
+    },
+    "deposits": {
+      "path": "/deposits/{depositId}",
+      "fields": {
+        "id": { "type": "string" },
+        "receiptNo": { "type": "string" },
+        "memberId": { "type": "string" },
+        "memberName": { "type": "string" },
+        "memberCode": { "type": "string" },
+        "amount": { "type": "number" },
+        "month": { "type": "string" },
+        "date": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "verifiedCode": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "expenses": {
+      "path": "/expenses/{expenseId}",
+      "fields": {
+        "id": { "type": "string" },
+        "voucherNo": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "paymentMethod": { "type": "string" }
+      }
+    },
+    "samity_profile": {
+      "path": "/samity_profile/{profileId}",
+      "fields": {
+        "nameBn": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "regNumber": { "type": "string" }
+      }
+    }
+  }
+}

@@ -92,6 +92,8 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java JDK 21
         uses: actions/setup-java@v4
@@ -101,7 +103,7 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Android SDK Environment
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Accept Android Licenses & Ensure Build-Tools
         run: |
@@ -145,6 +147,7 @@ jobs:
       - name: Prepare Dynamic Versioned APK Assets
         run: |
           mkdir -p artifacts
+          mkdir -p releases
           BUILD_CODE="${{ github.run_number }}"
           DYNAMIC_VER="${{ env.BASE_VERSION }}-b${BUILD_CODE}"
 
@@ -154,17 +157,20 @@ jobs:
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             cp app/build/outputs/apk/debug/app-debug.apk artifacts/Somiti-360.apk
             cp app/build/outputs/apk/debug/app-debug.apk "artifacts/Somiti-360-${DYNAMIC_VER}-android.apk"
-            echo "✅ Successfully copied APK to artifacts/Somiti-360-${DYNAMIC_VER}-android.apk"
+            cp app/build/outputs/apk/debug/app-debug.apk releases/Somiti-360.apk
+            echo "✅ Successfully copied APK to artifacts/ and releases/Somiti-360.apk"
           else
             FIRST_APK=$(find . -name "*debug*.apk" -type f | head -n 1)
             if [ -n "$FIRST_APK" ]; then
               cp "$FIRST_APK" artifacts/Somiti-360.apk
               cp "$FIRST_APK" "artifacts/Somiti-360-${DYNAMIC_VER}-android.apk"
-              echo "✅ Fallback: copied $FIRST_APK to artifacts/Somiti-360.apk"
+              cp "$FIRST_APK" releases/Somiti-360.apk
+              echo "✅ Fallback: copied $FIRST_APK to artifacts/ and releases/Somiti-360.apk"
             fi
           fi
 
           ls -lh artifacts/
+          ls -lh releases/
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
@@ -174,13 +180,23 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Direct Commit APK to Releases Branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add releases/Somiti-360.apk 2>/dev/null || true
+          git commit -m "chore(release): auto-publish Somiti-360.apk [skip ci]" 2>/dev/null || true
+          git push origin HEAD 2>/dev/null || true
+        continue-on-error: true
+
   # -------------------------------------------------------------
   # Job 3: 💻 Build Windows PC Desktop App (.exe)
   # -------------------------------------------------------------
   build-windows:
     name: 💻 Build Windows PC Desktop App
-    if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'windows'
+    if: github.event.inputs.target == 'all' || github.event.inputs.target == 'windows'
     runs-on: windows-latest
+    continue-on-error: true
     permissions:
       contents: write
     steps:

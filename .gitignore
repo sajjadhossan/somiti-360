@@ -23,6 +23,7 @@ android/build
 android/app/build
 artifacts/
 *.apk
+!releases/*.apk
 *.exe
 
 

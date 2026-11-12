@@ -487,7 +487,33 @@
         console.error("Google Sign-in error:", err);
         if (errBox) {
           errBox.classList.remove('hidden');
-          errBox.textContent = "গুগল লগইন ত্রুটি: " + (err.message || "পপআপ বাতিল বা ইন্টারনেট ত্রুটি। আপনি সরাসরি সদস্য কোড দিয়ে প্রবেশ করতে পারেন।");
+          if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.includes('unauthorized-domain'))) {
+            errBox.className = 'p-4 bg-amber-50 border-2 border-amber-300 text-amber-950 text-xs rounded-xl text-left space-y-2 shadow-sm';
+            errBox.innerHTML = `
+              <div class="flex items-center space-x-1.5 font-bold text-amber-900 text-sm">
+                <svg class="w-4 h-4 text-amber-700" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                <span>ফায়ারবেস ডোমেন অনুমোদন (Authorized Domain) প্রয়োজন</span>
+              </div>
+              <p class="leading-relaxed text-amber-900">
+                গুগল ক্লাউড সিকিউরিটি অনুযায়ী আপনার ভার্সেল ডোমেন <strong>somiti360.vercel.app</strong> ফায়ারবেস কনসোলের অনুমোদিত তালিকায় যোগ করা প্রয়োজন।
+              </p>
+              <div class="bg-white/90 p-2.5 rounded-lg border border-amber-200 text-[11px] text-slate-700 space-y-1">
+                <p>👉 <strong>সহজ সমাধান (১ মিনিট):</strong></p>
+                <p><a href="https://console.firebase.google.com/" target="_blank" class="text-emerald-700 font-bold underline">Firebase Console</a> ➔ <strong>Authentication</strong> ➔ <strong>Settings</strong> ➔ <strong>Authorized domains</strong>-এ গিয়ে <code>somiti360.vercel.app</code> অ্যাড করে দিন।</p>
+              </div>
+              <p class="text-[11px] text-amber-800 font-semibold pt-1">
+                💡 <strong>তাৎক্ষণিক লগইন করতে:</strong> নিচের সদস্য কোড ফিল্ডে আপনার কোড (যেমন: <strong>S360-001</strong>) লিখুন অথবা ডেমো মেম্বার বাটনে ক্লিক করুন।
+              </p>
+            `;
+            const codeInput = document.getElementById('auth-member-code');
+            if (codeInput) {
+              codeInput.focus();
+              codeInput.classList.add('ring-2', 'ring-amber-500');
+            }
+          } else {
+            errBox.className = 'p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl text-left';
+            errBox.textContent = "গুগল লগইন ত্রুটি: " + (err.message || "পপআপ বাতিল বা ইন্টারনেট ত্রুটি। আপনি নিচের সদস্য কোড দিয়ে প্রবেশ করতে পারেন।");
+          }
         }
       } finally {
         if (btn) {

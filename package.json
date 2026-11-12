@@ -1,0 +1,12 @@
+{
+  "name": "somiti-360",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Somiti 360 - Official Web Portal & Mobile Management System",
+  "scripts": {
+    "build": "node build_web.cjs",
+    "start": "node preview_server.cjs"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

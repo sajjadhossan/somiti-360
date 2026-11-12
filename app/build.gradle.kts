@@ -7,14 +7,24 @@ plugins {
 
 android {
     namespace = "com.somiti360.app"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.aistudio.somiti360.bxmpzq"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        targetSdk = 35
+        val buildNum = (project.findProperty("buildNumber") as? String)?.toIntOrNull()
+            ?: System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+            ?: 2
+        val verName = (project.findProperty("versionName") as? String)
+            ?: System.getenv("APP_VERSION_NAME")
+            ?: "1.1.0"
+
+        versionCode = buildNum
+        versionName = verName
+
+        buildConfigField("String", "APP_VERSION_NAME", "\"$verName\"")
+        buildConfigField("int", "APP_BUILD_NUMBER", "$buildNum")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -56,6 +66,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

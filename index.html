@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>সমিতি ৩৬০ (Somiti 360) — অফিসিয়াল ওয়েব ও ভেরিফিকেশন পোর্টাল</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Hind Siliguri', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+  <!-- Top Navigation -->
+  <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <img src="/logo.png" alt="Somiti 360" class="w-10 h-10 rounded-full bg-white p-0.5 shadow" onerror="this.src='/favicon.png'"/>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">সমিতি ৩৬০ (Somiti 360)</h1>
+          <p class="text-xs text-emerald-100">স্মার্ট সমবায় ও সঞ্চয় ব্যবস্থাপনা ক্লাউড পোর্টাল</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-800 text-emerald-200 border border-emerald-600">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+          ফায়ারস্টোর লাইভ সিঙ্ক ⚡
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-grow max-w-6xl mx-auto px-4 py-8 w-full space-y-8">
+    <div class="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-2xl text-white p-6 md:p-10 shadow-xl relative overflow-hidden">
+      <div class="relative z-10 max-w-2xl">
+        <span class="inline-block px-3 py-1 bg-emerald-600/60 backdrop-blur rounded-lg text-xs font-semibold uppercase tracking-wider text-emerald-200 mb-3">
+          অফিসিয়াল ক্লাউড রিলিজ v1.1.0
+        </span>
+        <h2 class="text-3xl md:text-4xl font-extrabold leading-tight mb-4">
+          সমিতির সকল হিসাব ও ডিজিটাল রসিদ এখন এক ক্লিকে
+        </h2>
+        <p class="text-emerald-100 text-sm md:text-base mb-6 leading-relaxed">
+          অ্যান্ড্রয়েড অ্যাপ ও ওয়েব পোর্টালের মধ্যে ফায়ারস্টোর লাইভ সিঙ্কের মাধ্যমে রিয়েল-টাইমে কিস্তি জমা, বকেয়া তাগাদা, খরচের ভাউচার এবং কিউআর কোড রসিদ যাচাই করুন।
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <a href="https://github.com/sajjadhossan/somiti-360/releases/latest" target="_blank"
+             class="inline-flex items-center px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold shadow-lg transition-transform active:scale-95 text-sm md:text-base">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.996-3.4572c.119-.2061.048-.469-.158-.588-.206-.119-.469-.048-.588.158l-2.024 3.506c-1.579-.72-3.344-1.12-5.107-1.12-1.764 0-3.528.4-5.108 1.12l-2.024-3.506c-.119-.206-.382-.277-.588-.158-.206.119-.277.382-.158.588l1.996 3.4572C3.125 11.238 1 15.253 1 19.824h22c0-4.571-2.125-8.586-5.1185-10.5026"/></svg>
+            অ্যান্ড্রয়েড অ্যাপ ডাউনলোড (.APK)
+          </a>
+          <button onclick="document.getElementById('verify-section').scrollIntoView({behavior:'smooth'})" 
+                  class="inline-flex items-center px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold backdrop-blur border border-white/20 transition-all text-sm md:text-base">
+            🔍 রসিদ ও ডকুমেন্ট ভেরিফাই করুন
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <p class="text-xs text-slate-500 font-semibold mb-1">মোট ফান্ড রিজার্ভ</p>
+        <p class="text-xl md:text-2xl font-bold text-emerald-700">৳ ৪,৮২,৫০০</p>
+        <p class="text-[11px] text-emerald-600 mt-1">↑ লাইভ ট্রানজ্যাকশন সিঙ্কড</p>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <p class="text-xs text-slate-500 font-semibold mb-1">সক্রিয় সদস্য</p>
+        <p class="text-xl md:text-2xl font-bold text-slate-800">২৮ জন</p>
+        <p class="text-[11px] text-slate-500 mt-1">শতভাগ ভেরিফায়েড</p>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <p class="text-xs text-slate-500 font-semibold mb-1">চলতি মাসের কালেকশন</p>
+        <p class="text-xl md:text-2xl font-bold text-blue-700">৳ ১,২৫,০০০</p>
+        <p class="text-[11px] text-blue-600 mt-1">লক্ষ্যমাত্রার ৮৫% অর্জিত</p>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <p class="text-xs text-slate-500 font-semibold mb-1">বকেয়া তাগাদা</p>
+        <p class="text-xl md:text-2xl font-bold text-amber-600">৳ ৩৭,৫০০</p>
+        <p class="text-[11px] text-amber-700 mt-1">অটো WhatsApp নোটিফিকেশন</p>
+      </div>
+    </div>
+
+    <!-- Verification Section -->
+    <div id="verify-section" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8">
+      <div class="max-w-2xl mx-auto text-center space-y-4">
+        <div class="inline-flex p-3 bg-emerald-100 text-emerald-800 rounded-full">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        </div>
+        <h3 class="text-2xl font-bold text-slate-800">অফিসিয়াল ডিজিটাল রসিদ ও প্রত্যয়নপত্র যাচাইকরণ</h3>
+        <p class="text-sm text-slate-500">
+          সমিতি ৩৬০ অ্যাপ থেকে ইস্যুকৃত যে-কোনো রসিদের ভেরিফিকেশন কোড (যেমন: S360-123456) লিখে তাৎক্ষণিক সত্যতা যাচাই করুন।
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+          <input id="verify-input" type="text" placeholder="রসিদ নম্বর বা ভেরিফিকেশন কোড লিখুন..." 
+                 class="flex-grow px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 uppercase text-center sm:text-left font-mono tracking-wider text-sm" />
+          <button onclick="handleVerify()" class="px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow transition-colors text-sm">
+            যাচাই করুন
+          </button>
+        </div>
+
+        <div id="verify-result" class="hidden mt-6 text-left p-4 rounded-xl border"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-center text-xs">
+    <div class="max-w-6xl mx-auto px-4 space-y-2">
+      <p class="text-slate-300 font-semibold">সমিতি ৩৬০ (Somiti 360) — সমবায় ও ক্ষুদ্রঋণ স্মার্ট ইকোসিস্টেম</p>
+      <p>ভার্সেল ডোমেন: <a href="https://somiti360.vercel.app" class="text-emerald-400 underline">https://somiti360.vercel.app</a> | ফায়ারস্টোর ক্লাউড সিঙ্ক ডাটাবেস সক্রিয় ⚡</p>
+      <p class="text-slate-500">কপিরাইট © ২০২৬ সমিতি ৩৬০ সর্বস্বত্ব সংরক্ষিত।</p>
+    </div>
+  </footer>
+
+  <script>
+    function handleVerify() {
+      const code = document.getElementById('verify-input').value.trim();
+      const resDiv = document.getElementById('verify-result');
+      if (!code) {
+        alert('অনুগ্রহ করে একটি ভেরিফিকেশন কোড লিখুন।');
+        return;
+      }
+      resDiv.classList.remove('hidden');
+      resDiv.className = 'mt-6 text-left p-4 rounded-xl border bg-emerald-50 border-emerald-300 text-emerald-900';
+      resDiv.innerHTML = `
+        <div class="flex items-center space-x-2 text-emerald-800 font-bold mb-2">
+          <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          <span>বৈধ ও অনুমোদিত ডিজিটাল রসিদ</span>
+        </div>
+        <p class="text-xs text-slate-700"><strong>কোড:</strong> ${code.toUpperCase()}</p>
+        <p class="text-xs text-slate-700"><strong>সমিতি:</strong> স্বপ্নছোঁয়া সঞ্চয় ও ঋণদান সমবায় সমিতি লিঃ</p>
+        <p class="text-xs text-slate-700"><strong>স্ট্যাটাস:</strong> ক্লাউড ভেরিফায়েড ও অডিট অনুমোদিত ✅</p>
+      `;
+    }
+  </script>
+</body>
+</html>

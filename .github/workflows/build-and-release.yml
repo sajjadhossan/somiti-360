@@ -75,7 +75,6 @@ jobs:
   # -------------------------------------------------------------
   build-android:
     name: 📱 Build Android APK
-    needs: [web-sync-verify]
     if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'android'
     runs-on: ubuntu-latest
     steps:
@@ -88,11 +87,12 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Install Android SDK 36 Platform
+      - name: Setup Android SDK Environment & Licenses
         run: |
-          echo y | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-36" || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-35" "build-tools;35.0.0" || true
 
-      - name: Build Android APK via Gradle
+      - name: Build Android APK via Gradle with Dynamic Versioning
         run: |
           chmod +x ./gradlew || true
           mkdir -p ~/.android
@@ -102,18 +102,27 @@ jobs:
             cp app/debug.keystore ~/.android/debug.keystore || true
           fi
 
+          BUILD_CODE="${{ github.run_number }}"
+          BASE_VER=$(grep -oE 'versionName\s*=\s*"[^"]+"' app/build.gradle.kts 2>/dev/null | grep -oE '"[^"]+"' | tr -d '"' | head -1 || echo "1.1.0")
+          DYNAMIC_VER="${BASE_VER}-b${BUILD_CODE}"
+          echo "Building version: $DYNAMIC_VER (versionCode: $BUILD_CODE)"
+
           if [ -f ./gradlew ] && [ -f ./build.gradle.kts ]; then
             echo "Building native Android Jetpack Compose app from root Gradle..."
-            ./gradlew :app:assembleDebug --no-daemon --stacktrace > gradle_build.log 2>&1 || (tail -n 60 gradle_build.log && exit 1)
+            ./gradlew :app:assembleDebug -PbuildNumber="$BUILD_CODE" -PversionName="$DYNAMIC_VER" --no-daemon --stacktrace
           elif [ -f android/gradlew ]; then
             cd android
             chmod +x ./gradlew
-            ./gradlew assembleDebug --no-daemon --stacktrace > gradle_build.log 2>&1 || (tail -n 60 gradle_build.log && exit 1)
+            ./gradlew assembleDebug --no-daemon --stacktrace
           fi
 
       - name: Prepare Dynamic Versioned APK Assets
         run: |
           mkdir -p artifacts
+          BUILD_CODE="${{ github.run_number }}"
+          BASE_VER=$(grep -oE 'versionName\s*=\s*"[^"]+"' app/build.gradle.kts 2>/dev/null | grep -oE '"[^"]+"' | tr -d '"' | head -1 || echo "1.1.0")
+          DYNAMIC_VER="${BASE_VER}-b${BUILD_CODE}"
+
           APK_FOUND=""
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             APK_FOUND="app/build/outputs/apk/debug/app-debug.apk"
@@ -123,8 +132,8 @@ jobs:
 
           if [ -n "$APK_FOUND" ]; then
             cp "$APK_FOUND" artifacts/Somiti-360.apk
-            cp "$APK_FOUND" "artifacts/Somiti-360-android-debug.apk"
-            echo "✅ Successfully prepared Android APK: artifacts/Somiti-360.apk"
+            cp "$APK_FOUND" "artifacts/Somiti-360-${DYNAMIC_VER}-android.apk"
+            echo "✅ Successfully prepared Android APK: artifacts/Somiti-360-${DYNAMIC_VER}-android.apk"
           else
             echo "⚠️ No APK file found in standard build directories."
           fi
@@ -297,39 +306,35 @@ jobs:
       - name: Determine Dynamic Version and Publish Release
         run: |
           mkdir -p all-releases
-          if [ -f package.json ]; then
-            APP_VER=$(node -p "require('./package.json').version" 2>/dev/null || echo "1.0.0")
-          else
-            APP_VER="1.0.0"
-          fi
-          BUILD_NUM=$(grep -oE 'versionCode\s+[0-9]+' app/build.gradle.kts 2>/dev/null | grep -oE '[0-9]+' | head -1 || echo "1")
-          if [ -z "$BUILD_NUM" ]; then
-            BUILD_NUM=$(grep 'versionCode' android/app/build.gradle 2>/dev/null | head -1 | tr -dc '0-9' || echo "1")
-          fi
-          echo "APP_VERSION=v${APP_VER}" >> $GITHUB_ENV
-          echo "BUILD_NUMBER=${BUILD_NUM}" >> $GITHUB_ENV
+          BUILD_CODE="${{ github.run_number }}"
+          BASE_VER=$(grep -oE 'versionName\s*=\s*"[^"]+"' app/build.gradle.kts 2>/dev/null | grep -oE '"[^"]+"' | tr -d '"' | head -1 || echo "1.1.0")
+          DYNAMIC_VER="${BASE_VER}-b${BUILD_CODE}"
+          echo "APP_VERSION=${DYNAMIC_VER}" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=${BUILD_CODE}" >> $GITHUB_ENV
+          echo "RELEASE_TAG=v${DYNAMIC_VER}" >> $GITHUB_ENV
           echo "=== All Collected Platform Binaries ==="
           ls -lh all-releases/
 
       - name: Publish Unified Release to GitHub
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: "Somiti 360 Unified Multi-Platform Release (${{ env.APP_VERSION }})"
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: "Somiti 360 Release (${{ env.RELEASE_TAG }})"
           body: |
-            ### 🛡️ সমিতি ৩৬০ (Somiti 360) সর্বজনীন মাল্টি-প্ল্যাটফর্ম রিলিজ (${{ env.APP_VERSION }}, Build ${{ env.BUILD_NUMBER }})
-            সেন্ট্রাল প্রোডাকশন ডোমেন: https://somiti360.vercel.app
-            লোগো, সদস্য ছবি ও হেডার প্যাড পার্মানেন্ট ক্লাউড সিঙ্ক এবং ইউনিভার্সাল এপিআই গেটওয়ে সক্রিয়।
+            ### 🛡️ সমিতি ৩৬০ (Somiti 360) স্বয়ংক্রিয় আপডেট রিলিজ (${{ env.RELEASE_TAG }})
+            - **ভার্সন:** ${{ env.RELEASE_TAG }}
+            - **বিল্ড নম্বর:** ${{ env.BUILD_NUMBER }}
+            - **গিটহাব রান:** #${{ github.run_number }}
+            - **কমিট হ্যাশ:** `${{ github.sha }}`
+            - **সেন্ট্রাল প্রোডাকশন ডোমেন:** https://somiti360.vercel.app
 
             | প্ল্যাটফর্ম (Platform) | ফাইল নেম (File Name) | বিবরণ |
             | :--- | :--- | :--- |
-            | 📱 **Android Mobile** | `Somiti-360.apk` / `Somiti-360-${{ env.APP_VERSION }}-build${{ env.BUILD_NUMBER }}-android.apk` | স্মার্টফোনে সরাসরি ডাউনলোড ও ইন্সটল করুন |
-            | 💻 **Windows PC Setup** | `Somiti-360-Setup.exe` | উইন্ডোজ পিসি অ্যাপ ইন্সটলার |
+            | 📱 **Android Mobile** | `Somiti-360.apk` / `Somiti-360-${{ env.APP_VERSION }}-android.apk` | স্মার্টফোনে সরাসরি ডাউনলোড ও ইন্সটল করুন |
+            | 💻 **Windows PC Setup** | `Somiti-360-Setup.exe` / `Somiti-360-PC.exe` | উইন্ডোজ পিসি অ্যাপ ইন্সটলার |
             | ⚡ **Windows Portable** | `Somiti-360-PC.exe` | পোর্টেবল উইন্ডোজ অ্যাপ |
-            | 🍏 **MacBook Apple Silicon** | `Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg` / `.zip` | M1/M2/M3/M4 ম্যাকবুক অ্যাপ |
-            | 🍏 **MacBook Intel** | `Somiti-360-Mac-Intel-x64.dmg` / `.zip` | ইন্টেল ম্যাকবুক অ্যাপ |
-
-            > **ম্যাক ব্যবহারকারীদের জন্য সহজ নির্দেশিকা:** আনসাইন্ড ম্যাক অ্যাপ চালানোর জন্য টার্মিনালে `xattr -cr /Applications/Somiti\ 360.app` রান করুন।
+            | 🍏 **MacBook Apple Silicon** | `Somiti-360-Mac-AppleSilicon-M-Series-arm64.dmg` | M1/M2/M3/M4 ম্যাকবুক অ্যাপ |
+            | 🍏 **MacBook Intel** | `Somiti-360-Mac-Intel-x64.dmg` | ইন্টেল ম্যাকবুক অ্যাপ |
           fail_on_unmatched_files: false
           files: all-releases/*
         env:

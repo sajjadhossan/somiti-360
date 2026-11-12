@@ -103,9 +103,9 @@ jobs:
           fi
 
           BUILD_CODE="${{ github.run_number }}"
-          BASE_VER=$(grep -oE 'versionName\s*=\s*"[^"]+"' app/build.gradle.kts 2>/dev/null | grep -oE '"[^"]+"' | tr -d '"' | head -1 || echo "1.1.0")
+          BASE_VER="1.1.0"
           DYNAMIC_VER="${BASE_VER}-b${BUILD_CODE}"
-          echo "Building version: $DYNAMIC_VER (versionCode: $BUILD_CODE)"
+          echo "Building Android APK version: $DYNAMIC_VER (versionCode: $BUILD_CODE)"
 
           if [ -f ./gradlew ] && [ -f ./build.gradle.kts ]; then
             echo "Building native Android Jetpack Compose app from root Gradle..."
@@ -120,7 +120,7 @@ jobs:
         run: |
           mkdir -p artifacts
           BUILD_CODE="${{ github.run_number }}"
-          BASE_VER=$(grep -oE 'versionName\s*=\s*"[^"]+"' app/build.gradle.kts 2>/dev/null | grep -oE '"[^"]+"' | tr -d '"' | head -1 || echo "1.1.0")
+          BASE_VER="1.1.0"
           DYNAMIC_VER="${BASE_VER}-b${BUILD_CODE}"
 
           APK_FOUND=""
@@ -135,7 +135,8 @@ jobs:
             cp "$APK_FOUND" "artifacts/Somiti-360-${DYNAMIC_VER}-android.apk"
             echo "✅ Successfully prepared Android APK: artifacts/Somiti-360-${DYNAMIC_VER}-android.apk"
           else
-            echo "⚠️ No APK file found in standard build directories."
+            echo "⚠️ Looking for any generated APK files..."
+            find . -name "*.apk" -exec cp {} artifacts/ \; 2>/dev/null || true
           fi
 
       - name: Backup Upload Artifact
@@ -151,7 +152,6 @@ jobs:
   # -------------------------------------------------------------
   build-windows:
     name: 💻 Build Windows PC Desktop App
-    needs: [web-sync-verify]
     if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'windows'
     runs-on: windows-latest
     steps:
@@ -162,38 +162,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Install Dependencies & Build Web Distribution
         shell: powershell
         run: |
           if (Test-Path "package.json") {
-            npm ci
+            npm install --legacy-peer-deps
             npm run build
-          } else {
-            Write-Host "Skipping Windows web build: pure Android mode."
           }
 
-      - name: Package Native Windows Electron App & Launcher
+      - name: Compile Native Windows PC App (.exe)
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path artifacts
-          if (Test-Path "package.json") {
-            try {
-              npx electron-builder --win --publish never
-              if (Test-Path "dist-electron\*.exe") {
-                Copy-Item "dist-electron\*.exe" "artifacts\Somiti-360-Setup.exe" -Force
-              }
-            } catch {
-              Write-Host "Electron builder fallback"
-            }
-          }
           if (Test-Path "src-desktop\Program.cs") {
             try {
-              Compress-Archive -Path dist\* -DestinationPath src-desktop\app.zip -Force
+              if (Test-Path "dist") {
+                Compress-Archive -Path dist\* -DestinationPath src-desktop\app.zip -Force
+              }
               & "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /resource:src-desktop\app.zip,app.zip /out:artifacts\Somiti-360-PC.exe src-desktop\Program.cs /reference:System.IO.Compression.dll,System.IO.Compression.FileSystem.dll,System.Windows.Forms.dll,System.Drawing.dll
+              if (Test-Path "artifacts\Somiti-360-PC.exe") {
+                Copy-Item "artifacts\Somiti-360-PC.exe" "artifacts\Somiti-360-Setup.exe" -Force
+                Write-Host "✅ Successfully compiled Somiti-360-PC.exe and Somiti-360-Setup.exe"
+              }
             } catch {
-              Write-Host "C# compiler fallback"
+              Write-Host "C# compiler note: $_"
             }
           }
 
@@ -203,6 +196,7 @@ jobs:
         with:
           name: Somiti-360-Windows-EXE
           path: artifacts/*.exe
+          if-no-files-found: warn
           retention-days: 7
 
   # -------------------------------------------------------------
@@ -230,7 +224,7 @@ jobs:
       - name: Install Dependencies & Build Web Assets
         run: |
           if [ -f package.json ]; then
-            npm ci || npm install --legacy-peer-deps
+            npm install --legacy-peer-deps
             npm run build
           else
             echo "Skipping macOS web build: pure Android mode."
@@ -307,7 +301,7 @@ jobs:
         run: |
           mkdir -p all-releases
           BUILD_CODE="${{ github.run_number }}"
-          BASE_VER=$(grep -oE 'versionName\s*=\s*"[^"]+"' app/build.gradle.kts 2>/dev/null | grep -oE '"[^"]+"' | tr -d '"' | head -1 || echo "1.1.0")
+          BASE_VER="1.1.0"
           DYNAMIC_VER="${BASE_VER}-b${BUILD_CODE}"
           echo "APP_VERSION=${DYNAMIC_VER}" >> $GITHUB_ENV
           echo "BUILD_NUMBER=${BUILD_CODE}" >> $GITHUB_ENV
